@@ -1,0 +1,21 @@
+{
+  "name": "@birthub/agent-packs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "node --import tsx ../../scripts/validate-packs.ts",
+    "test": "node --import tsx --test test/**/*.test.ts",
+    "smoke": "node --import tsx --test test/pack-smoke.test.ts",
+    "regression": "node --import tsx --test test/pack-regression.test.ts",
+    "docs": "node --import tsx ../../scripts/generate-pack-docs.ts"
+  },
+  "dependencies": {
+    "@birthub/agents-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

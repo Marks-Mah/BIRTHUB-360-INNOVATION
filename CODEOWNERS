@@ -1,0 +1,20 @@
+# Ownership técnico por domínio
+
+/docs/ @platform-architecture
+/apps/api-gateway/ @platform-api
+/apps/agent-orchestrator/ @platform-automation
+/apps/dashboard/ @product-frontend
+/apps/webhook-receiver/ @platform-integrations
+/agents/ldr/ @growth-sdr
+/agents/sdr/ @growth-sdr
+/agents/ae/ @sales-ae
+/agents/financeiro/ @finance-engineering
+/agents/juridico/ @legal-ops
+/agents/marketing/ @marketing-ops
+/agents/analista/ @data-bi
+/agents/pos-venda/ @cs-ops
+/packages/db/ @platform-data
+/packages/integrations/ @platform-integrations
+/packages/queue/ @platform-automation
+/packages/shared-types/ @platform-api
+/packages/utils/ @platform-core

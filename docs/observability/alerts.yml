@@ -1,0 +1,15 @@
+groups:
+  - name: tenant-anomaly-alerts
+    rules:
+      - alert: TenantHighErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m])
+          /
+          rate(http_requests_total[5m])
+          > 0.1
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tenant com error rate acima de 10%"
+          description: "A taxa de erros 5xx ultrapassou 10% da baseline da janela de 5 minutos."

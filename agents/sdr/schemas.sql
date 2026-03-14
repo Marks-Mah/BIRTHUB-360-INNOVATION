@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS sdr_leads (
+  id UUID PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  email TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  bant JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

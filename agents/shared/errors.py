@@ -1,0 +1,2 @@
+class AgentToolError(Exception):
+    pass

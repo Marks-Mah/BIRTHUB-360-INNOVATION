@@ -1,0 +1,41 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@birthub/config": [
+        "../../packages/config/dist/index.js"
+      ],
+      "@birthub/config/*": [
+        "../../packages/config/dist/*"
+      ],
+      "@birthub/logger": [
+        "../../packages/logger/dist/index.js"
+      ],
+      "@birthub/logger/*": [
+        "../../packages/logger/dist/*"
+      ],
+      "@birthub/workflows-core": [
+        "../../packages/workflows-core/dist/src/index.js"
+      ],
+      "@birthub/workflows-core/*": [
+        "../../packages/workflows-core/dist/src/*"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

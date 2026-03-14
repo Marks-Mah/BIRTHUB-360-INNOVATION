@@ -1,0 +1,29 @@
+{
+  "title": "BirthHub360 Tenant Drilldown",
+  "panels": [
+    {
+      "title": "p95 Latency by tenant.id",
+      "type": "timeseries",
+      "query": "histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket{tenant_id!=\"\"}[5m])) by (le, tenant_id))"
+    },
+    {
+      "title": "HTTP 500 by tenant.id",
+      "type": "timeseries",
+      "query": "sum(rate(http_requests_total{status=~\"5..\",tenant_id!=\"\"}[5m])) by (tenant_id)"
+    },
+    {
+      "title": "Request count by tenant.id",
+      "type": "timeseries",
+      "query": "sum(rate(http_requests_total{tenant_id!=\"\"}[5m])) by (tenant_id)"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "tenant_id",
+        "query": "label_values(http_requests_total, tenant_id)",
+        "type": "query"
+      }
+    ]
+  }
+}

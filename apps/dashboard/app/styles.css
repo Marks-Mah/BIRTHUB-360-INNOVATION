@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {
+  --bg-1: #18083f;
+  --bg-2: #12265d;
+  --bg-3: #3f1c7a;
+  --text-main: #b58dff;
+  --title: #f2c45a;
+  --accent: #7ec6ff;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg-1: #ecf2ff;
+  --bg-2: #f8fbff;
+  --bg-3: #dde9ff;
+  --text-main: #24314f;
+  --title: #1d2b52;
+  --accent: #2f6df6;
+  color-scheme: light;
+}
+:root[data-accent="gold"] { --accent: #f2c45a; }
+:root[data-accent="blue"] { --accent: #7ec6ff; }
+:root[data-accent="emerald"] { --accent: #34d399; }
+:root[data-accent="rose"] { --accent: #fb7185; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Poppins", "Inter", system-ui, sans-serif;
+  background: linear-gradient(120deg, var(--bg-1), var(--bg-2), var(--bg-3));
+  background-size: 280% 280%;
+  animation: movingGradient 16s ease infinite;
+  color: var(--text-main);
+}
+
+.app-shell { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 58px); }
+.app-content { width: 100%; }
+
+.top-nav {
+  position: sticky; top: 0; z-index: 30; display: flex; gap: 10px; overflow-x: auto;
+  padding: 12px 18px; border-bottom: 1px solid #8f63ff; background: rgba(31, 14, 70, 0.86); backdrop-filter: blur(10px);
+}
+
+.nav-link {
+  color: var(--title); text-decoration: none; padding: 10px 14px; border: 1px solid #8f72d9; border-radius: 999px;
+  white-space: nowrap; font-size: 1rem; transition: transform .2s ease, background .2s ease;
+}
+.nav-link:hover { transform: translateY(-2px) scale(1.02); background: rgba(63, 99, 255, .18); }
+.nav-link.active { border-color: #f2c45a; box-shadow: 0 0 16px rgba(242, 196, 90, .35); }
+
+.sidebar-ops {
+  margin: 18px; position: sticky; top: 76px; height: fit-content;
+  border-color: #f2c45a !important;
+  animation: glowPulse 2.2s ease-in-out infinite alternate;
+}
+
+.container { max-width: 1400px; margin: 0 auto; padding: 28px; }
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+
+h1, .header h1 { margin: 0; font-size: 2.5rem; color: var(--title); letter-spacing: .4px; }
+h2 { font-size: 1.6rem; color: var(--accent); }
+p, span, small, label, li, strong { color: var(--text-main); }
+strong { font-size: 1.3rem; color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.card {
+  background: linear-gradient(155deg, rgba(45, 23, 98, 0.93), rgba(17, 36, 96, 0.95));
+  border: 1px solid #6f5bc0; border-radius: 20px; padding: 22px;
+  box-shadow: 0 12px 30px rgba(18, 12, 49, .42);
+}
+.card-link { text-decoration: none; color: inherit; transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease; }
+.card-link:hover { transform: translateY(-7px) scale(1.02); border-color: #f2c45a; box-shadow: 0 0 28px rgba(126, 198, 255, .35); }
+
+.kpi-row, .metrics-grid, .premium-grid { display: grid; gap: 12px; margin-bottom: 22px; }
+.kpi-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.premium-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.metric { background: rgba(18, 25, 78, .85); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+.list, .activity-list, .chip-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.list li, .activity-list li {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;
+  padding: 12px; border-radius: 12px; background: rgba(34, 24, 91, .9);
+}
+
+.chip-list { flex-direction: row; flex-wrap: wrap; }
+.pill {
+  border: 1px solid var(--accent); border-radius: 999px; padding: 8px 12px;
+  background: rgba(126, 198, 255, .12); color: #f2c45a;
+}
+
+input, textarea, select, button {
+  border-radius: 12px; border: 1px solid #7a67d6; background: rgba(17, 19, 66, 0.85);
+  color: #7ec6ff; padding: 11px; font-family: inherit; font-size: 1rem;
+}
+input, textarea, select { width: 100%; }
+button {
+  cursor: pointer; background: linear-gradient(130deg, #f2c45a, #7b6eff, #2a66d9);
+  border: none; font-weight: 700; color: #18083f;
+  transition: transform .2s ease, filter .2s ease;
+}
+button:hover { transform: translateY(-2px); filter: brightness(1.08); }
+
+label { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; font-size: 1.05rem; }
+.muted { color: #7ec6ff; font-size: 1rem; }
+.inline-row { display: flex; gap: 10px; align-items: center; }
+.glow-card { animation: floatUp 2.8s ease-in-out infinite alternate; }
+
+.activity-list li { grid-template-columns: 180px 1fr auto; }
+
+@keyframes movingGradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes glowPulse { from { box-shadow: 0 0 14px rgba(242, 196, 90, .22); } to { box-shadow: 0 0 28px rgba(126, 198, 255, .33); } }
+@keyframes floatUp { from { transform: translateY(0px); } to { transform: translateY(-6px); } }
+
+@media (max-width: 1100px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar-ops { position: static; margin: 14px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .premium-grid { grid-template-columns: 1fr; }
+}
+
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.kanban-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(180px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.kanban-column {
+  background: rgba(13, 18, 54, 0.55);
+  border: 1px solid #5f4ca8;
+  border-radius: 12px;
+  padding: 10px;
+  min-height: 260px;
+}
+
+.kanban-column header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.kanban-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.deal-card {
+  background: #1d1b4d;
+  border: 1px solid #7560bd;
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  cursor: grab;
+}
+
+table th,
+table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #3d3274;
+}

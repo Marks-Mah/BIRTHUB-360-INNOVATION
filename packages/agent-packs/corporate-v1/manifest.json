@@ -1,0 +1,89 @@
+{
+  "agent": {
+    "changelog": [
+      "2.1.0 - BirthHub 360 descriptor updated for the autonomous preventive 42-agent official lineup"
+    ],
+    "description": "Collection descriptor for the unified BirthHub 360 official lineup of governed, preventive and high-performance autonomous agents.",
+    "id": "corporate-v1-catalog",
+    "kind": "catalog",
+    "name": "BirthHub 360 Official Collection",
+    "prompt": "Coordinate and expose the full BirthHub 360 official collection, separating collection governance from installable agents and highlighting the autonomous preventive operating model.",
+    "tenantId": "catalog",
+    "version": "2.1.0"
+  },
+  "keywords": [
+    "birthhub 360",
+    "official collection",
+    "agent catalog",
+    "marketplace governance",
+    "collection descriptor"
+  ],
+  "manifestVersion": "1.0.0",
+  "policies": [
+    {
+      "actions": [
+        "report:read",
+        "audit:write"
+      ],
+      "effect": "allow",
+      "id": "corporate-v1-catalog.policy.standard",
+      "name": "Collection governance policy"
+    }
+  ],
+  "skills": [
+    {
+      "description": "Expose catalog metadata and collection governance across the marketplace.",
+      "id": "corporate-v1-catalog.skill.collection-governance",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "Collection Governance",
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "description": "Support discovery, documentation and segmentation of the official lineup.",
+      "id": "corporate-v1-catalog.skill.collection-discovery",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "Collection Discovery",
+      "outputSchema": {
+        "type": "object"
+      }
+    }
+  ],
+  "tags": {
+    "domain": [
+      "management"
+    ],
+    "industry": [
+      "sales"
+    ],
+    "level": [
+      "suite"
+    ],
+    "persona": [
+      "catalog-admin"
+    ],
+    "use-case": [
+      "discover",
+      "governance"
+    ]
+  },
+  "tools": [
+    {
+      "description": "Expose official collection metadata for marketplace and documentation surfaces.",
+      "id": "corporate-v1-catalog.tool.collection-index",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "Collection Index",
+      "outputSchema": {
+        "type": "object"
+      },
+      "timeoutMs": 15000
+    }
+  ]
+}

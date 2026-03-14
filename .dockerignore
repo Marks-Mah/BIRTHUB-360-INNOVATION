@@ -1,0 +1,14 @@
+.git
+.github
+.turbo
+**/.turbo
+**/.next
+**/dist
+**/coverage
+**/node_modules
+test-results
+playwright-report
+pnpm-debug.log
+npm-debug.log
+Dockerfile*
+docker-compose*.yml

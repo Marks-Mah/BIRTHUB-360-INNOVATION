@@ -1,0 +1,67 @@
+# CHECKLIST MASTER — CICLO 2
+
+- [x] 2.1.C1
+- [x] 2.1.C2
+- [x] 2.1.C3
+- [x] 2.1.C4
+- [x] 2.1.C5
+- [x] 2.2.C1
+- [x] 2.2.C2
+- [x] 2.2.C3
+- [x] 2.2.C4
+- [x] 2.2.C5
+- [x] 2.3.C1
+- [x] 2.3.C2
+- [x] 2.3.C3
+- [x] 2.3.C4
+- [x] 2.3.C5
+- [x] 2.4.C1
+- [x] 2.4.C2
+- [x] 2.4.C3
+- [x] 2.4.C4
+- [x] 2.4.C5
+- [x] 2.5.C1
+- [x] 2.5.C2
+- [x] 2.5.C3
+- [x] 2.5.C4
+- [x] 2.5.C5
+- [x] 2.6.C1
+- [x] 2.6.C2
+- [x] 2.6.C3
+- [x] 2.6.C4
+- [x] 2.6.C5
+- [x] 2.7.C1
+- [x] 2.7.C2
+- [x] 2.7.C3
+- [x] 2.7.C4
+- [x] 2.7.C5
+- [x] 2.8.C1
+- [x] 2.8.C2
+- [x] 2.8.C3
+- [x] 2.8.C4
+- [x] 2.8.C5
+- [x] 2.9.C1
+- [x] 2.9.C2
+- [x] 2.9.C3
+- [x] 2.9.C4
+- [x] 2.9.C5
+- [x] 2.10.C1
+- [x] 2.10.C2
+- [x] 2.10.C3
+- [x] 2.10.C4
+- [x] 2.10.C5
+
+# CHECKLIST MASTER — CICLO 4
+
+## Engine de IA (Agent Core) Validada e Pronta para o Ciclo 5
+- [x] 4.1.J1 - ADR-014: Arquitetura de Agent Engine (TypeScript Custom Core)
+- [x] 4.1.J2 - Schema AgentManifest Zod definido
+- [x] 4.1.J3 - Parser com mapeamento amigável ZodError -> O campo 'tools' precisa ser um array
+- [x] 4.1.J4 - Separation of Concerns do monorepo `@birthub/agents-core`
+- [x] 4.1.J5 - Code Review nos schemas (.strict()) e incompatibilidade (version bump)
+- [x] 4.2.J1 a 4.2.J5 - Agent Registry & Versionamento (Hash SHA256 / Rollback Rules)
+- [x] 4.3.J1 a 4.3.J5 - PlanExecutor, BullMQ Níveis e Idempotência (Cache lock)
+- [x] 4.4.J1 a 4.4.J5 - Context Window (Message Array [1]..[N/2] cut) e PII Redaction
+- [x] 4.5.J1 a 4.6.J5 - ADR-015: Sandbox / SSRF Protection & Default-Deny (10.0.0.0/8 block)
+- [x] 4.7.J1 a 4.8.J5 - Agent Studio UI v2, Latência SLIs (<5s Pro, <2s Enterprise) e Error Budget
+- [x] 4.9.J1 a 4.10.J5 - Teste de Carga (50 jobs concorrentes), Review de Logs e Master Checklist Preenchido

@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+langgraph
+google-genai
+asyncpg
+pydantic
+pytest
+pytest-asyncio
+httpx
+-e ../shared

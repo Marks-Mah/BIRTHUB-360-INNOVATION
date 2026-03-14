@@ -1,0 +1,545 @@
+[
+  {
+    "package": "packages/agent-runtime",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/agents-core",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/auth",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/billing",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/conversation-core",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "adicionado barrel para service.ts"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/db",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [],
+    "packageJsonNotes": [
+      "type -> module",
+      "main -> ./dist/index.js",
+      "types -> ./dist/index.d.ts",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/integrations",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/llm-client",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/logger",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "sem src/"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/queue",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "adicionado barrel para definitions.ts"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/security",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/shared-types",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "packages/utils",
+    "suspiciousSymbols": [
+      "ForbiddenError",
+      "UnauthorizedError",
+      "NotFoundError",
+      "ValidationError"
+    ],
+    "changed": true,
+    "barrelNotes": [
+      "adicionado barrel para app-error.ts",
+      "adicionado barrel para errors.ts",
+      "adicionado barrel para logger.ts",
+      "adicionado barrel para sleep.ts",
+      "adicionado barrel para tracing.ts"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "agents/ae",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "sem src/"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "main -> ./dist/index.js",
+      "types -> ./dist/index.d.ts",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "sem tsconfig.json"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "agents/analista",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "sem src/"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "main -> ./dist/index.js",
+      "types -> ./dist/index.d.ts",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "sem tsconfig.json"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "agents/financeiro",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "sem src/"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "main -> ./dist/index.js",
+      "types -> ./dist/index.d.ts",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "sem tsconfig.json"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "agents/juridico",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "sem src/"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "main -> ./dist/index.js",
+      "types -> ./dist/index.d.ts",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "sem tsconfig.json"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "agents/ldr",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "sem src/"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "main -> ./dist/index.js",
+      "types -> ./dist/index.d.ts",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "target -> \"ES2022\"",
+      "module -> \"NodeNext\"",
+      "moduleResolution -> \"NodeNext\"",
+      "declaration -> true",
+      "outDir -> \"dist\"",
+      "rootDir -> \"src\"",
+      "verbatimModuleSyntax -> true",
+      "isolatedModules -> true"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "agents/marketing",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "sem src/"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "main -> ./dist/index.js",
+      "types -> ./dist/index.d.ts",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "sem tsconfig.json"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "agents/pos_venda",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "sem src/"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "main -> ./dist/index.js",
+      "types -> ./dist/index.d.ts",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "sem tsconfig.json"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  },
+  {
+    "package": "agents/sdr",
+    "suspiciousSymbols": [],
+    "changed": true,
+    "barrelNotes": [
+      "sem src/"
+    ],
+    "packageJsonNotes": [
+      "type -> module",
+      "main -> ./dist/index.js",
+      "types -> ./dist/index.d.ts",
+      "exports -> entrypoint público único"
+    ],
+    "tsconfigNotes": [
+      "sem tsconfig.json"
+    ],
+    "build": {
+      "ok": false,
+      "error": ""
+    },
+    "dist": {
+      "ok": null
+    }
+  }
+]

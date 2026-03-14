@@ -1,0 +1,486 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── CORE ENTITIES ───────────────────────────────────────────────────────────
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  cnpj        String?  @unique
+  plan        Plan     @default(STARTER)
+  createdAt   DateTime @default(now())
+  leads       Lead[]
+  deals       Deal[]
+  contracts   Contract[]
+  invoices    Invoice[]
+  users       User[]
+  customers   Customer[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  email          String       @unique
+  name           String
+  role           UserRole
+  createdAt      DateTime     @default(now())
+  dealsAsAE      Deal[]       @relation("AssignedAE")
+  dealsAsSDR     Deal[]       @relation("AssignedSDR")
+  commissions    Commission[]
+}
+
+model Lead {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Dados básicos
+  name           String
+  email          String
+  phone          String?
+  linkedin       String?
+  company        String
+  jobTitle       String?
+
+  // ICP & Scoring (LDR Agent)
+  icpScore       Int          @default(0)   // 0-100
+  icpTier        String?                    // "T1", "T2", "T3"
+  intentScore    Int          @default(0)
+
+  // Enriquecimento (LDR Agent)
+  techStack      Json?                      // Array de tecnologias detectadas
+  orgChart       Json?                      // Hierarquia mapeada
+  financialData  Json?                      // Saúde financeira
+  intentSignals  Json?                      // Sinais de compra detectados
+
+  // Email hygiene
+  emailValid     Boolean      @default(false)
+  emailStatus    String?      // "valid", "risky", "invalid"
+
+  // Status geral
+  status         LeadStatus   @default(NEW)
+  source         String?
+  utmData        Json?
+
+  // Relacionamentos
+  activities     Activity[]
+  deals          Deal[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@index([organizationId, status])
+  @@index([email])
+  @@index([icpScore])
+}
+
+model Deal {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  leadId         String
+  lead           Lead         @relation(fields: [leadId], references: [id])
+  assignedAEId   String?
+  assignedAE     User?        @relation("AssignedAE", fields: [assignedAEId], references: [id])
+  assignedSDRId  String?
+  assignedSDR    User?        @relation("AssignedSDR", fields: [assignedSDRId], references: [id])
+
+  // Dados do negócio
+  title          String
+  value          Float
+  currency       String       @default("BRL")
+  stage          DealStage    @default(PROSPECTING)
+  probability    Float        @default(0)    // 0-100 (calculado pelo AE Agent)
+
+  // Forecast (AE Agent)
+  forecastCategory String?                  // "commit", "best_case", "pipeline"
+  expectedCloseDate DateTime?
+  actualCloseDate DateTime?
+
+  // Produtos/Planos
+  products       Json?
+  discountPct    Float        @default(0)
+  finalValue     Float?
+
+  // Dados de negociação
+  competitors    Json?                      // Battlecards acionados
+  stakeholders   Json?                      // Mapa de decisores
+  objections     Json?                      // Objeções registradas
+  callNotes      String?                    // Gerado pelo AE Agent
+
+  // Relacionamentos
+  activities     Activity[]
+  contract       Contract?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@index([organizationId, stage])
+  @@index([assignedAEId, stage])
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  leadId    String?
+  lead      Lead?        @relation(fields: [leadId], references: [id])
+  dealId    String?
+  deal      Deal?        @relation(fields: [dealId], references: [id])
+  agentId   String                          // Qual agente executou
+  type      ActivityType
+  channel   String?                         // "email", "whatsapp", "linkedin", "call"
+  content   Json
+  outcome   String?
+  createdAt DateTime     @default(now())
+
+  @@index([leadId, createdAt])
+  @@index([dealId, createdAt])
+}
+
+model EmailCadence {
+  id          String   @id @default(cuid())
+  leadId      String
+  step        Int
+  channel     String
+  scheduledAt DateTime
+  sentAt      DateTime?
+  openedAt    DateTime?
+  repliedAt   DateTime?
+  status      String
+  subject     String
+  body        String
+  createdAt   DateTime @default(now())
+}
+
+model Customer {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  leadId         String       @unique
+  dealId         String       @unique
+
+  // Health Score (Pós-venda Agent)
+  healthScore    Int          @default(100) // 0-100
+  healthStatus   String       @default("healthy") // "healthy", "at_risk", "churning"
+  lastLoginAt    DateTime?
+  loginFrequency Float?                     // média logins/semana
+  featureAdoption Json?                     // uso de features
+  supportSentiment String?                  // "positive", "neutral", "negative"
+
+  // Financeiro
+  mrr            Float
+  planId         String
+  contractStart  DateTime
+  contractEnd    DateTime
+
+  // NPS
+  npsScore       Int?
+  npsCategory    String?      // "promoter", "passive", "detractor"
+  npsComment     String?
+
+  churnRisk      Float        @default(0)  // 0-1 (ML score)
+  churnReason    String?
+
+  invoices       Invoice[]
+  tickets        SupportTicket[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+}
+
+model Contract {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  dealId         String       @unique
+  deal           Deal         @relation(fields: [dealId], references: [id])
+  customerId     String?
+
+  type           String                     // "MSA", "DPA", "NDA", "Aditivo"
+  status         ContractStatus @default(DRAFT)
+
+  // Conteúdo
+  content        String?      @db.Text
+  fileUrl        String?
+  version        Int          @default(1)
+
+  // Análise jurídica (Jurídico Agent)
+  riskScore      Int?         // 0-100
+  redFlags       Json?        // Cláusulas problemáticas detectadas
+  summary        String?      @db.Text
+
+  // Assinatura eletrônica
+  docusignId     String?
+  clicksignId    String?
+  signatories    Json?
+  signedAt       DateTime?
+
+  // Datas
+  startDate      DateTime?
+  endDate        DateTime?
+  renewalDate    DateTime?
+
+  // KYC/KYB
+  kycStatus      String?      // "pending", "approved", "rejected"
+  kycData        Json?
+  amlStatus      String?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+}
+
+model Invoice {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  customerId     String
+  customer       Customer     @relation(fields: [customerId], references: [id])
+
+  // Dados financeiros
+  amount         Float
+  currency       String       @default("BRL")
+  dueDate        DateTime
+  paidAt         DateTime?
+
+  // Status e cobrança
+  status         InvoiceStatus @default(PENDING)
+  dunningStep    Int          @default(0)   // 0=initial, 1,2,3=escalation
+  dunningLastAt  DateTime?
+
+  // NF-e
+  nfeKey         String?
+  nfeStatus      String?
+  nfeUrl         String?
+
+  // Pagamento
+  gateway        String?      // "stripe", "pagarme", "asaas"
+  gatewayId      String?
+  paymentMethod  String?
+
+  // Conciliação bancária
+  reconciledAt   DateTime?
+  bankReference  String?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@index([customerId, status])
+  @@index([dueDate, status])
+}
+
+model SupportTicket {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  title       String
+  description String   @db.Text
+  status      String
+  priority    String
+  category    String?
+  resolvedAt  DateTime?
+  sentiment   String?  // "positive", "neutral", "negative"
+  createdAt   DateTime @default(now())
+}
+
+model Commission {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  dealId      String
+  period      String                         // "2024-Q1"
+  baseAmount  Float
+  rate        Float
+  finalAmount Float
+  type        String                         // "base", "residual", "accelerator"
+  clawbackAt  DateTime?
+  paidAt      DateTime?
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+}
+
+model AgentLog {
+  id        String   @id @default(cuid())
+  agentName String
+  jobId     String?
+  action    String
+  input     Json?
+  output    Json?
+  tokensIn  Int?
+  tokensOut Int?
+  durationMs Int?
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([agentName, createdAt])
+  @@index([jobId])
+}
+
+model AgentLogArchive {
+  id          String   @id
+  agentName   String
+  jobId       String?
+  action      String
+  input       Json?
+  output      Json?
+  tokensIn    Int?
+  tokensOut   Int?
+  durationMs  Int?
+  error       String?
+  createdAt   DateTime
+  archivedAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([archivedAt])
+}
+
+model PlanFeature {
+  id      String @id @default(cuid())
+  plan    Plan
+  feature String
+  limit   Int?
+
+  @@unique([plan, feature])
+}
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum Plan {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum UserRole {
+  ADMIN
+  CMO
+  HEAD_MARKETING
+  SDR
+  AE
+  CS_MANAGER
+  FINANCIAL
+  LEGAL
+  ANALYST
+  VIEWER
+}
+
+enum LeadStatus {
+  NEW
+  ENRICHING
+  QUALIFIED
+  DISQUALIFIED
+  CONTACTED
+  MEETING_SCHEDULED
+  IN_NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+  NURTURING
+}
+
+enum DealStage {
+  PROSPECTING
+  QUALIFICATION
+  DEMO_SCHEDULED
+  DEMO_DONE
+  PROPOSAL_SENT
+  NEGOTIATION
+  CONTRACT_REVIEW
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum ContractStatus {
+  DRAFT
+  REVIEW
+  PENDING_SIGNATURE
+  PARTIALLY_SIGNED
+  SIGNED
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum InvoiceStatus {
+  PENDING
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  IN_DUNNING
+  CANCELLED
+  WRITTEN_OFF
+}
+
+enum ActivityType {
+  EMAIL_SENT
+  EMAIL_OPENED
+  EMAIL_REPLIED
+  CALL_MADE
+  CALL_ANSWERED
+  WHATSAPP_SENT
+  WHATSAPP_REPLIED
+  LINKEDIN_INMAIL
+  MEETING_SCHEDULED
+  MEETING_COMPLETED
+  PROPOSAL_SENT
+  CONTRACT_SENT
+  CONTRACT_SIGNED
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  NPS_COLLECTED
+  HEALTH_ALERT
+  UPSELL_TRIGGERED
+  AGENT_ACTION
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  UNPAID
+}
+
+enum UsageFeature {
+  AGENT_CALL
+  API_REQUEST
+  STORAGE_GB
+  WORKFLOW_RUN
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum AgentTaskStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}

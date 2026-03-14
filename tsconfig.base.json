@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "declaration": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@birthub/agents-core": [
+        "packages/agents-core/src/index.ts"
+      ],
+      "@birthub/agents-core/*": [
+        "packages/agents-core/src/*"
+      ],
+      "@birthub/agents-registry": [
+        "packages/agents-registry/src/index.ts"
+      ],
+      "@birthub/agents-registry/*": [
+        "packages/agents-registry/src/*"
+      ],
+      "@birthub/config": [
+        "packages/config/src/index.ts"
+      ],
+      "@birthub/config/*": [
+        "packages/config/src/*"
+      ],
+      "@birthub/database": [
+        "packages/database/src/index.ts"
+      ],
+      "@birthub/database/*": [
+        "packages/database/src/*"
+      ],
+      "@birthub/logger": [
+        "packages/logger/src/index.ts"
+      ],
+      "@birthub/logger/*": [
+        "packages/logger/src/*"
+      ],
+      "@birthub/workflows-core": [
+        "packages/workflows-core/src/index.ts"
+      ],
+      "@birthub/workflows-core/*": [
+        "packages/workflows-core/src/*"
+      ],
+      "@birthub/testing": [
+        "packages/testing/src/index.ts"
+      ],
+      "@birthub/testing/*": [
+        "packages/testing/src/*"
+      ],
+      "@birthub/*": [
+        "packages/*/src",
+        "packages/*"
+      ]
+    }
+  }
+}

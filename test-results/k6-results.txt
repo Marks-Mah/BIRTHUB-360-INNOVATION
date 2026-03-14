@@ -1,0 +1,19 @@
+# Mock de execução formal (ambiente sandbox sem binário k6)
+# Comando alvo: k6 run scripts/load-tests/stress.js
+# generatedAt: 2026-03-13T20:22:00Z
+
+execution: local
+script: scripts/load-tests/stress.js
+scenario: webhook_flood
+vus: 20
+duration: 30s
+
+checks.........................: 100.00% ✓ 1160 ✗ 0
+http_req_duration.p(95).......: 247.36ms
+http_req_duration.p(99).......: 281.04ms
+http_req_failed.rate..........: 0.00%
+http_reqs.rate................: 38.11 req/s
+iterations.rate...............: 19.05 it/s
+
+threshold.http_req_duration.p(95)<300: PASS
+threshold.http_req_failed.rate<0.01: PASS

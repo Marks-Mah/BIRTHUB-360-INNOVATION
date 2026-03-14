@@ -1,0 +1,30 @@
+{
+  "name": "ldr-agent-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start:worker": "tsx worker.ts",
+    "dev": "tsx worker.ts"
+  },
+  "dependencies": {
+    "@birthub/queue": "workspace:*",
+    "@birthub/shared-types": "workspace:*",
+    "axios": "^1.13.6",
+    "bullmq": "^5.71.0",
+    "dotenv": "^17.3.1",
+    "ioredis": "^5.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  }
+}

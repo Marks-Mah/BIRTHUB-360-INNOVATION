@@ -1,0 +1,11 @@
+{
+  "name": "BirthHub360",
+  "short_name": "BirthHub360",
+  "description": "Centro de comando de engajamento com notificacoes, health score e feedback loop.",
+  "display": "standalone",
+  "lang": "pt-BR",
+  "scope": "/",
+  "start_url": "/",
+  "background_color": "#f7f3ea",
+  "theme_color": "#135d66"
+}

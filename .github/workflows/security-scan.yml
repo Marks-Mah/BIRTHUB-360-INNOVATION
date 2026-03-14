@@ -1,0 +1,144 @@
+name: Security Scan
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  semgrep:
+    name: semgrep (typescript + express)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/typescript
+            p/expressjs
+
+  dependency-audit:
+    name: npm audit (high+)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high
+
+  rbac-suite:
+    name: RBAC suite
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: birthub_cycle3
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres -d birthub_cycle3"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7.2-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 6379:6379
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/birthub_cycle3
+      - name: Run RBAC tests
+        run: pnpm test:rbac
+        env:
+          API_CORS_ORIGINS: http://localhost:3001
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/birthub_cycle3
+          NODE_ENV: test
+          REDIS_URL: redis://localhost:6379
+          SESSION_SECRET: ci-secret
+          WEB_BASE_URL: http://localhost:3001
+
+  zap-baseline:
+    name: OWASP ZAP baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          allow_issue_writing: false
+          cmd_options: -a
+          target: ${{ vars.ZAP_TARGET_URL || 'http://localhost:3000/api/v1/health' }}
+
+  security-report:
+    name: security coverage report
+    runs-on: ubuntu-latest
+    needs:
+      - semgrep
+      - dependency-audit
+      - rbac-suite
+      - zap-baseline
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify auth guards
+        run: pnpm security:guards
+      - name: Generate security report
+        run: pnpm security:report
+        env:
+          NPM_AUDIT_STATUS: passed
+          RBAC_STATUS: passed
+          SEMGREP_STATUS: passed
+          ZAP_STATUS: passed
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-coverage-report
+          path: docs/security/security-coverage-report.md

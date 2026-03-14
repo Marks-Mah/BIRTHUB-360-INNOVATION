@@ -1,0 +1,424 @@
+﻿Dashboard MestreAbrir checklist do ciclo📋 Copiar prompt🌙 Tema
+
+
+Prompt operacionalCiclo 4Agente JULES
+Prompt de Execução • Ciclo 04 • JULES
+Arquivo de prompt para o agente ler no repositório e começar a executar o ciclo correspondente, em sincronia com o checklist.
+Checklist de referência: checklists/BirthHub360_Ciclo_04_JULES.html
+Resumo do ciclo
+* Total de itens: 50
+* UE total: 124.0
+* Fases: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 4.10
+* Validador cruzado: CODEX
+Prompt completo
+Você é o JULES, executor principal do Ciclo 4 do BirthHub360.
+
+Leia no repositório o arquivo de checklist:
+- checklists/BirthHub360_Ciclo_04_JULES.html
+
+Papel:
+- executor dos itens JULES
+- verificador dos itens do agente CODEX
+- ninguém se autoaprova
+
+Regras de governança:
+- vermelho = item não criado
+- azul = executor criou, aguardando validação
+- amarelo = validado com melhorias; volta ao executor
+- verde = pronto para uso
+- para ir a azul: preencher evidência, touched_paths e assinatura do executor
+- para ir a amarelo/verde: assinatura do validador + observação obrigatória
+- para fechar fase: todos os itens verdes + assinaturas + branch/PR + touched_paths
+- fase posterior só inicia após fechamento formal da fase anterior
+
+Itens deste ciclo:
+- 4.1.J1 | UE 2.3 | dep: 3.10.J5 | validador: CODEX | tarefa: Escrever ADR-013: Design do Agent Manifest — extensibilidade, versionamento, backward compat
+- 4.1.J2 | UE 2.3 | dep: 4.1.J1 | validador: CODEX | tarefa: Definir capabilities: read write execute notify e safety rails de cada uma
+- 4.1.J3 | UE 2.3 | dep: 4.1.J2 | validador: CODEX | tarefa: Criar guia de contribuição: como escrever manifest válido, testável e com semântica clara
+- 4.1.J4 | UE 2.3 | dep: 4.1.J3 | validador: CODEX | tarefa: Escrever análise de risco de manifest malicioso: campos que podem causar side effects
+- 4.1.J5 | UE 2.3 | dep: 4.1.J4 | validador: CODEX | tarefa: Definir processo de revisão de manifest: quem aprova, critérios, SLA de review
+- 4.10.J1 | UE 1.9 | dep: 4.9.J5 | validador: CODEX | tarefa: Escrever relatório de prontidão do Agent Core: entregues, dívida técnica, riscos abertos
+- 4.10.J2 | UE 1.9 | dep: 4.10.J1 | validador: CODEX | tarefa: Revisar todos os ADRs do Ciclo 4 e confirmar alinhamento com implementação
+- 4.10.J3 | UE 1.9 | dep: 4.10.J2 | validador: CODEX | tarefa: Validar que memory e tool logging não vaza PII em nenhum cenário de teste
+- 4.10.J4 | UE 1.9 | dep: 4.10.J3 | validador: CODEX | tarefa: Conduzir revisão de policy engine: cenários de bypass tentados e resultados
+- 4.10.J5 | UE 1.9 | dep: 4.10.J4 | validador: CODEX | tarefa: Assinar gate: 'Agent Core aprovado — pronto para receber packs corporativos'
+- 4.2.J1 | UE 2.3 | dep: 4.1.J5 | validador: CODEX | tarefa: Escrever ADR-014: Versionamento de agentes — semver vs data-based, política de breaking changes
+- 4.2.J2 | UE 2.3 | dep: 4.2.J1 | validador: CODEX | tarefa: Definir política de deprecação: notice period, migration guide, sunset date
+- 4.2.J3 | UE 2.3 | dep: 4.2.J2 | validador: CODEX | tarefa: Criar checklist de revisão de manifest antes de publicar nova versão
+- 4.2.J4 | UE 2.3 | dep: 4.2.J3 | validador: CODEX | tarefa: Escrever análise: como atualização de agente pode quebrar workflow existente
+- 4.2.J5 | UE 2.3 | dep: 4.2.J4 | validador: CODEX | tarefa: Definir o que constitui breaking change em um manifest de agente
+- 4.3.J1 | UE 3.2 | dep: 4.2.J5 | validador: CODEX | tarefa: Escrever ADR-015: Runtime de agentes — filas por tenant vs compartilhada, prioridades
+- 4.3.J2 | UE 3.2 | dep: 4.3.J1 | validador: CODEX | tarefa: Criar análise de risco de worker crash durante execução: estado, compensação, reprocessamento
+- 4.3.J3 | UE 3.2 | dep: 4.3.J2 | validador: CODEX | tarefa: Definir política de retry por tipo de erro: rede (retry), lógica (no retry), timeout (retry 1x)
+- 4.3.J4 | UE 3.2 | dep: 4.3.J3 | validador: CODEX | tarefa: Escrever análise de isolamento de runtime: execução de tenant A não afeta tenant B
+- 4.3.J5 | UE 3.2 | dep: 4.3.J4 | validador: CODEX | tarefa: Criar runbook de worker saturado: diagnóstico, escalonamento, descarte de jobs velhos
+- 4.4.J1 | UE 2.3 | dep: 4.3.J5 | validador: CODEX | tarefa: Escrever ADR-016: Memória de agente — ephemeral vs persistent, vetorial vs chave-valor
+- 4.4.J2 | UE 2.3 | dep: 4.4.J1 | validador: CODEX | tarefa: Criar política de retenção de memória alinhada com LGPD finalidade e minimização
+- 4.4.J3 | UE 2.3 | dep: 4.4.J2 | validador: CODEX | tarefa: Escrever análise de risco de memória cross-tenant: como previnir e detectar vazamento
+- 4.4.J4 | UE 2.3 | dep: 4.4.J3 | validador: CODEX | tarefa: Definir o que é PII em contexto de agente e lista de campos obrigatoriamente redactados
+- 4.4.J5 | UE 2.3 | dep: 4.4.J4 | validador: CODEX | tarefa: Criar análise de custo de memória por agente por tenant para modelagem de pricing
+- 4.5.J1 | UE 2.3 | dep: 4.4.J5 | validador: CODEX | tarefa: Escrever ADR-017: Tools Framework — sandboxing, timeouts, output validation, custo
+- 4.5.J2 | UE 2.3 | dep: 4.5.J1 | validador: CODEX | tarefa: Criar análise de custo por tool: latência e custo médio por chamada para pricing
+- 4.5.J3 | UE 2.3 | dep: 4.5.J2 | validador: CODEX | tarefa: Definir política de tools de terceiros: como avaliar, requisitos de segurança, aprovação
+- 4.5.J4 | UE 2.3 | dep: 4.5.J3 | validador: CODEX | tarefa: Escrever análise de SSRF via tool http: allowlist, bloqueio de private ranges, logging
+- 4.5.J5 | UE 2.3 | dep: 4.5.J4 | validador: CODEX | tarefa: Criar critérios de aceite de nova tool: o que Jules verifica antes de aprovar PR de tool
+- 4.6.J1 | UE 3.2 | dep: 4.5.J5 | validador: CODEX | tarefa: Escrever ADR-018: Policy engine — allow-list vs deny-list, avaliação eager vs lazy
+- 4.6.J2 | UE 3.2 | dep: 4.6.J1 | validador: CODEX | tarefa: Criar políticas padrão por plano: Free (read-only tools), Pro (todas as tools), Enterprise (custom)
+- 4.6.J3 | UE 3.2 | dep: 4.6.J2 | validador: CODEX | tarefa: Analisar edge cases: conflito de policies, ausência de policy, escalation de privilégio
+- 4.6.J4 | UE 3.2 | dep: 4.6.J3 | validador: CODEX | tarefa: Escrever análise de risco de policy bypass via tool chaining ou context manipulation
+- 4.6.J5 | UE 3.2 | dep: 4.6.J4 | validador: CODEX | tarefa: Definir processo de auditoria de policies: frequência de revisão e quem pode alterar
+- 4.7.J1 | UE 2.3 | dep: 4.6.J5 | validador: CODEX | tarefa: Criar análise de UX do Agent Studio: fluxo de gestor não-técnico do zero à primeira execução
+- 4.7.J2 | UE 2.3 | dep: 4.7.J1 | validador: CODEX | tarefa: Definir política de edição de prompt: quem pode editar, aprovação necessária, audit
+- 4.7.J3 | UE 2.3 | dep: 4.7.J2 | validador: CODEX | tarefa: Criar checklist de aceite de UX: critérios que toda feature de Agent Studio deve passar
+- 4.7.J4 | UE 2.3 | dep: 4.7.J3 | validador: CODEX | tarefa: Escrever análise de segurança de editor de prompt: XSS via prompt, injection via template
+- 4.7.J5 | UE 2.3 | dep: 4.7.J4 | validador: CODEX | tarefa: Criar mapa de jornada de usuário: admin técnico vs manager de negócio vs CEO
+- 4.8.J1 | UE 2.7 | dep: 4.7.J5 | validador: CODEX | tarefa: Definir SLO de agentes por plano: Pro garante p95 < 5s, Enterprise p95 < 2s
+- 4.8.J2 | UE 2.7 | dep: 4.8.J1 | validador: CODEX | tarefa: Criar runbook de triage de agente com fail_rate elevado: diagnóstico em < 10 min
+- 4.8.J3 | UE 2.7 | dep: 4.8.J2 | validador: CODEX | tarefa: Escrever análise de custo de agentes: como modelar e prever custo LLM + tools por mês
+- 4.8.J4 | UE 2.7 | dep: 4.8.J3 | validador: CODEX | tarefa: Definir quais métricas são SLI e como calcular error budget por agente
+- 4.8.J5 | UE 2.7 | dep: 4.8.J4 | validador: CODEX | tarefa: Criar análise de correlação: falha de tool específica vs fail_rate do agente
+- 4.9.J1 | UE 2.3 | dep: 4.8.J5 | validador: CODEX | tarefa: Criar plano de testes de carga: execuções paralelas máximas antes de degradação
+- 4.9.J2 | UE 2.3 | dep: 4.9.J1 | validador: CODEX | tarefa: Analisar cobertura de testes e identificar cenários críticos sem cobertura
+- 4.9.J3 | UE 2.3 | dep: 4.9.J2 | validador: CODEX | tarefa: Criar teste de caos: worker cai no meio de execução — consistência do estado final
+- 4.9.J4 | UE 2.3 | dep: 4.9.J3 | validador: CODEX | tarefa: Escrever análise de race condition em execuções paralelas do mesmo agente
+- 4.9.J5 | UE 2.3 | dep: 4.9.J4 | validador: CODEX | tarefa: Criar critério de aceite de performance: métricas que uma execução deve satisfazer
+
+Execução esperada:
+- Fase 4.1: trabalhar nos itens 4.1.J1, 4.1.J2, 4.1.J3, 4.1.J4, 4.1.J5 respeitando dependências e validação cruzada com CODEX.
+- Fase 4.2: trabalhar nos itens 4.2.J1, 4.2.J2, 4.2.J3, 4.2.J4, 4.2.J5 respeitando dependências e validação cruzada com CODEX.
+- Fase 4.3: trabalhar nos itens 4.3.J1, 4.3.J2, 4.3.J3, 4.3.J4, 4.3.J5 respeitando dependências e validação cruzada com CODEX.
+- Fase 4.4: trabalhar nos itens 4.4.J1, 4.4.J2, 4.4.J3, 4.4.J4, 4.4.J5 respeitando dependências e validação cruzada com CODEX.
+- Fase 4.5: trabalhar nos itens 4.5.J1, 4.5.J2, 4.5.J3, 4.5.J4, 4.5.J5 respeitando dependências e validação cruzada com CODEX.
+- Fase 4.6: trabalhar nos itens 4.6.J1, 4.6.J2, 4.6.J3, 4.6.J4, 4.6.J5 respeitando dependências e validação cruzada com CODEX.
+- Fase 4.7: trabalhar nos itens 4.7.J1, 4.7.J2, 4.7.J3, 4.7.J4, 4.7.J5 respeitando dependências e validação cruzada com CODEX.
+- Fase 4.8: trabalhar nos itens 4.8.J1, 4.8.J2, 4.8.J3, 4.8.J4, 4.8.J5 respeitando dependências e validação cruzada com CODEX.
+- Fase 4.9: trabalhar nos itens 4.9.J1, 4.9.J2, 4.9.J3, 4.9.J4, 4.9.J5 respeitando dependências e validação cruzada com CODEX.
+- Fase 4.10: trabalhar nos itens 4.10.J1, 4.10.J2, 4.10.J3, 4.10.J4, 4.10.J5 respeitando dependências e validação cruzada com CODEX.
+
+O que você deve fazer agora:
+1. Abrir o checklist do ciclo no repositório.
+2. Identificar a próxima ação lógica disponível.
+3. Executar o item cabível do seu agente.
+4. Registrar branch, PR (se existir), touched_paths, evidências e testes.
+5. Assinar como executor.
+6. Quando for validador, registrar observação e assinar.
+7. Informar o próximo plano lógico.
+
+Formato obrigatório de resposta:
+# JULES — CICLO 4 — EXECUÇÃO
+## 1. Itens trabalhados
+## 2. O que foi feito
+## 3. O que foi validado
+## 4. Branch / PR / touched_paths
+## 5. Evidências e testes
+## 6. Bloqueios
+## 7. Próximo plano lógico
+Itens do ciclo
+
+
+ID
+	Tarefa
+	UE
+	Dependência
+	Validador
+	Complexidade
+	4.1.J1
+	Escrever ADR-013: Design do Agent Manifest — extensibilidade, versionamento, backward compat
+	2.3
+	3.10.J5
+	CODEX
+	CRÍTICA
+	4.1.J2
+	Definir capabilities: read write execute notify e safety rails de cada uma
+	2.3
+	4.1.J1
+	CODEX
+	CRÍTICA
+	4.1.J3
+	Criar guia de contribuição: como escrever manifest válido, testável e com semântica clara
+	2.3
+	4.1.J2
+	CODEX
+	CRÍTICA
+	4.1.J4
+	Escrever análise de risco de manifest malicioso: campos que podem causar side effects
+	2.3
+	4.1.J3
+	CODEX
+	CRÍTICA
+	4.1.J5
+	Definir processo de revisão de manifest: quem aprova, critérios, SLA de review
+	2.3
+	4.1.J4
+	CODEX
+	CRÍTICA
+	4.10.J1
+	Escrever relatório de prontidão do Agent Core: entregues, dívida técnica, riscos abertos
+	1.9
+	4.9.J5
+	CODEX
+	CRÍTICA
+	4.10.J2
+	Revisar todos os ADRs do Ciclo 4 e confirmar alinhamento com implementação
+	1.9
+	4.10.J1
+	CODEX
+	CRÍTICA
+	4.10.J3
+	Validar que memory e tool logging não vaza PII em nenhum cenário de teste
+	1.9
+	4.10.J2
+	CODEX
+	CRÍTICA
+	4.10.J4
+	Conduzir revisão de policy engine: cenários de bypass tentados e resultados
+	1.9
+	4.10.J3
+	CODEX
+	CRÍTICA
+	4.10.J5
+	Assinar gate: 'Agent Core aprovado — pronto para receber packs corporativos'
+	1.9
+	4.10.J4
+	CODEX
+	CRÍTICA
+	4.2.J1
+	Escrever ADR-014: Versionamento de agentes — semver vs data-based, política de breaking changes
+	2.3
+	4.1.J5
+	CODEX
+	CRÍTICA
+	4.2.J2
+	Definir política de deprecação: notice period, migration guide, sunset date
+	2.3
+	4.2.J1
+	CODEX
+	CRÍTICA
+	4.2.J3
+	Criar checklist de revisão de manifest antes de publicar nova versão
+	2.3
+	4.2.J2
+	CODEX
+	CRÍTICA
+	4.2.J4
+	Escrever análise: como atualização de agente pode quebrar workflow existente
+	2.3
+	4.2.J3
+	CODEX
+	CRÍTICA
+	4.2.J5
+	Definir o que constitui breaking change em um manifest de agente
+	2.3
+	4.2.J4
+	CODEX
+	CRÍTICA
+	4.3.J1
+	Escrever ADR-015: Runtime de agentes — filas por tenant vs compartilhada, prioridades
+	3.2
+	4.2.J5
+	CODEX
+	CRÍTICA
+	4.3.J2
+	Criar análise de risco de worker crash durante execução: estado, compensação, reprocessamento
+	3.2
+	4.3.J1
+	CODEX
+	CRÍTICA
+	4.3.J3
+	Definir política de retry por tipo de erro: rede (retry), lógica (no retry), timeout (retry 1x)
+	3.2
+	4.3.J2
+	CODEX
+	CRÍTICA
+	4.3.J4
+	Escrever análise de isolamento de runtime: execução de tenant A não afeta tenant B
+	3.2
+	4.3.J3
+	CODEX
+	CRÍTICA
+	4.3.J5
+	Criar runbook de worker saturado: diagnóstico, escalonamento, descarte de jobs velhos
+	3.2
+	4.3.J4
+	CODEX
+	CRÍTICA
+	4.4.J1
+	Escrever ADR-016: Memória de agente — ephemeral vs persistent, vetorial vs chave-valor
+	2.3
+	4.3.J5
+	CODEX
+	CRÍTICA
+	4.4.J2
+	Criar política de retenção de memória alinhada com LGPD finalidade e minimização
+	2.3
+	4.4.J1
+	CODEX
+	CRÍTICA
+	4.4.J3
+	Escrever análise de risco de memória cross-tenant: como previnir e detectar vazamento
+	2.3
+	4.4.J2
+	CODEX
+	CRÍTICA
+	4.4.J4
+	Definir o que é PII em contexto de agente e lista de campos obrigatoriamente redactados
+	2.3
+	4.4.J3
+	CODEX
+	CRÍTICA
+	4.4.J5
+	Criar análise de custo de memória por agente por tenant para modelagem de pricing
+	2.3
+	4.4.J4
+	CODEX
+	CRÍTICA
+	4.5.J1
+	Escrever ADR-017: Tools Framework — sandboxing, timeouts, output validation, custo
+	2.3
+	4.4.J5
+	CODEX
+	CRÍTICA
+	4.5.J2
+	Criar análise de custo por tool: latência e custo médio por chamada para pricing
+	2.3
+	4.5.J1
+	CODEX
+	CRÍTICA
+	4.5.J3
+	Definir política de tools de terceiros: como avaliar, requisitos de segurança, aprovação
+	2.3
+	4.5.J2
+	CODEX
+	CRÍTICA
+	4.5.J4
+	Escrever análise de SSRF via tool http: allowlist, bloqueio de private ranges, logging
+	2.3
+	4.5.J3
+	CODEX
+	CRÍTICA
+	4.5.J5
+	Criar critérios de aceite de nova tool: o que Jules verifica antes de aprovar PR de tool
+	2.3
+	4.5.J4
+	CODEX
+	CRÍTICA
+	4.6.J1
+	Escrever ADR-018: Policy engine — allow-list vs deny-list, avaliação eager vs lazy
+	3.2
+	4.5.J5
+	CODEX
+	CRÍTICA
+	4.6.J2
+	Criar políticas padrão por plano: Free (read-only tools), Pro (todas as tools), Enterprise (custom)
+	3.2
+	4.6.J1
+	CODEX
+	CRÍTICA
+	4.6.J3
+	Analisar edge cases: conflito de policies, ausência de policy, escalation de privilégio
+	3.2
+	4.6.J2
+	CODEX
+	CRÍTICA
+	4.6.J4
+	Escrever análise de risco de policy bypass via tool chaining ou context manipulation
+	3.2
+	4.6.J3
+	CODEX
+	CRÍTICA
+	4.6.J5
+	Definir processo de auditoria de policies: frequência de revisão e quem pode alterar
+	3.2
+	4.6.J4
+	CODEX
+	CRÍTICA
+	4.7.J1
+	Criar análise de UX do Agent Studio: fluxo de gestor não-técnico do zero à primeira execução
+	2.3
+	4.6.J5
+	CODEX
+	CRÍTICA
+	4.7.J2
+	Definir política de edição de prompt: quem pode editar, aprovação necessária, audit
+	2.3
+	4.7.J1
+	CODEX
+	CRÍTICA
+	4.7.J3
+	Criar checklist de aceite de UX: critérios que toda feature de Agent Studio deve passar
+	2.3
+	4.7.J2
+	CODEX
+	CRÍTICA
+	4.7.J4
+	Escrever análise de segurança de editor de prompt: XSS via prompt, injection via template
+	2.3
+	4.7.J3
+	CODEX
+	CRÍTICA
+	4.7.J5
+	Criar mapa de jornada de usuário: admin técnico vs manager de negócio vs CEO
+	2.3
+	4.7.J4
+	CODEX
+	CRÍTICA
+	4.8.J1
+	Definir SLO de agentes por plano: Pro garante p95 < 5s, Enterprise p95 < 2s
+	2.7
+	4.7.J5
+	CODEX
+	CRÍTICA
+	4.8.J2
+	Criar runbook de triage de agente com fail_rate elevado: diagnóstico em < 10 min
+	2.7
+	4.8.J1
+	CODEX
+	CRÍTICA
+	4.8.J3
+	Escrever análise de custo de agentes: como modelar e prever custo LLM + tools por mês
+	2.7
+	4.8.J2
+	CODEX
+	CRÍTICA
+	4.8.J4
+	Definir quais métricas são SLI e como calcular error budget por agente
+	2.7
+	4.8.J3
+	CODEX
+	CRÍTICA
+	4.8.J5
+	Criar análise de correlação: falha de tool específica vs fail_rate do agente
+	2.7
+	4.8.J4
+	CODEX
+	CRÍTICA
+	4.9.J1
+	Criar plano de testes de carga: execuções paralelas máximas antes de degradação
+	2.3
+	4.8.J5
+	CODEX
+	CRÍTICA
+	4.9.J2
+	Analisar cobertura de testes e identificar cenários críticos sem cobertura
+	2.3
+	4.9.J1
+	CODEX
+	CRÍTICA
+	4.9.J3
+	Criar teste de caos: worker cai no meio de execução — consistência do estado final
+	2.3
+	4.9.J2
+	CODEX
+	CRÍTICA
+	4.9.J4
+	Escrever análise de race condition em execuções paralelas do mesmo agente
+	2.3
+	4.9.J3
+	CODEX
+	CRÍTICA
+	4.9.J5
+	Criar critério de aceite de performance: métricas que uma execução deve satisfazer
+	2.3
+	4.9.J4
+	CODEX
+	CRÍTICA

@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 4 * * 1'
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @birthub/api-gateway lint
+      - run: pnpm --filter @birthub/api-gateway test
+      - run: pnpm --filter @birthub/api-gateway test:contract
+
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements-test.txt
+      - run: pytest agents tests/integration --cov=agents/ae --cov=agents/ldr --cov=agents/sdr --cov=agents/shared --cov-fail-under=80
+
+  sca-sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level high
+      - run: pip install pip-audit bandit
+      - run: pip-audit -r requirements-test.txt
+      - run: bandit -q -r agents apps
+
+  dr-drill:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disaster recovery readiness check
+        run: |
+          test -f docs/runbooks/critical-incidents.md
+          test -f infra/terraform/main.tf
+          test -f infra/monitoring/alert.rules.yml
+          echo "DR drill checklist artifacts found."

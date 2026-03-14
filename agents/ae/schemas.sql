@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS ae_deals (
+  id UUID PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  contract_id TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

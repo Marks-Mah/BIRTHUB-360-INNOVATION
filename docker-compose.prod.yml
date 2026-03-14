@@ -1,0 +1,94 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:3000
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?set the public HTTPS app URL}
+      NEXT_PUBLIC_CSP_REPORT_ONLY: "false"
+      NEXT_PUBLIC_ENVIRONMENT: production
+      NODE_ENV: production
+      WEB_PORT: 3001
+    networks:
+      - edge
+      - backend
+    ports:
+      - "3001:3001"
+    read_only: true
+    restart: unless-stopped
+    tmpfs:
+      - /tmp
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:?set the official UI origin}
+      API_PORT: 3000
+      AUTH_BCRYPT_SALT_ROUNDS: ${AUTH_BCRYPT_SALT_ROUNDS:-12}
+      AUTH_MFA_ENCRYPTION_KEY: ${AUTH_MFA_ENCRYPTION_KEY:?set a production key}
+      BILLING_GRACE_PERIOD_DAYS: ${BILLING_GRACE_PERIOD_DAYS:-3}
+      DATABASE_URL: ${DATABASE_URL:?use a production PostgreSQL URL with sslmode=require}
+      EXTERNAL_HEALTHCHECK_URLS: ${EXTERNAL_HEALTHCHECK_URLS:-}
+      JOB_HMAC_GLOBAL_SECRET: ${JOB_HMAC_GLOBAL_SECRET:?set a production secret}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      NODE_ENV: production
+      QUEUE_NAME: ${QUEUE_NAME:-birthub-v1}
+      REDIS_URL: ${REDIS_URL:?use a TLS-enabled Redis URL}
+      REQUIRE_SECURE_COOKIES: "true"
+      SESSION_SECRET: ${SESSION_SECRET:?set a production session secret}
+      STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL:?set a production HTTPS cancel URL}
+      STRIPE_PORTAL_RETURN_URL: ${STRIPE_PORTAL_RETURN_URL:?set a production HTTPS portal URL}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?set a live Stripe secret}
+      STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL:?set a production HTTPS success URL}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?set a live Stripe webhook secret}
+      WEB_BASE_URL: ${NEXT_PUBLIC_APP_URL:?set the public HTTPS app URL}
+    expose:
+      - "3000"
+    networks:
+      - backend
+    read_only: true
+    restart: unless-stopped
+    tmpfs:
+      - /tmp
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BILLING_GRACE_PERIOD_DAYS: ${BILLING_GRACE_PERIOD_DAYS:-3}
+      DATABASE_URL: ${DATABASE_URL:?use a production PostgreSQL URL with sslmode=require}
+      JOB_HMAC_GLOBAL_SECRET: ${JOB_HMAC_GLOBAL_SECRET:?set a production secret}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      NODE_ENV: production
+      QUEUE_NAME: ${QUEUE_NAME:-birthub-v1}
+      REDIS_URL: ${REDIS_URL:?use a TLS-enabled Redis URL}
+      WEB_BASE_URL: ${NEXT_PUBLIC_APP_URL:?set the public HTTPS app URL}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+      WORKER_HEALTH_PORT: 3002
+    expose:
+      - "3002"
+    networks:
+      - backend
+    read_only: true
+    restart: unless-stopped
+    tmpfs:
+      - /tmp
+
+networks:
+  edge:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true

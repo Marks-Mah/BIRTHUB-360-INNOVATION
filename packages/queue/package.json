@@ -1,0 +1,29 @@
+{
+  "name": "@birthub/queue",
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@birthub/shared-types": "workspace:*",
+    "bullmq": "^5.71.0",
+    "ioredis": "^5.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test:load": "tsx load-test/bullmq-load-test.ts",
+    "schedule:crons": "tsx scripts/schedule-recurring-jobs.ts",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\""
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  }
+}

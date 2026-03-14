@@ -1,0 +1,9 @@
+{
+  "defaultExecutionMode": "LIVE",
+  "maxContextTokens": 6000,
+  "estimatedCostPerExecutionBRL": 0.5,
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "strategy": "exponential"
+  }
+}

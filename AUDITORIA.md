@@ -1,35 +1,26 @@
-﻿DIRETRIZ: EXECUTE A AUDITORIA DE TODAS AS TAREFAS DE UMA VEZ SÓ.
+DIRETRIZ: EXECUTE A AUDITORIA DE TODAS AS TAREFAS DE UMA VEZ SÓ.
 ## 2. REGRAS ESTRITAS DE VALIDAÇÃO (A REGRA ANTI-MOCK)
 A sua análise não se baseia naquilo que o CODEX diz que fez, mas naquilo que realmente existe no código.
 
-
-* PROIBIDO MOCKS: Se encontrar dados estáticos (const user = {id: 1}), ficheiros vazios, // TODO, // FIXME, ou funções que retornam placeholders em vez de consultar a base de dados real ou a API externa, isso é uma FALHA CRÍTICA.
-* QUALIDADE: Avalie o tratamento de erros (try/catch, Zod), a tipagem estrita do TypeScript (ausência de any), a performance (N+1 queries, paginação) e a segurança (RLS, SQL Injection, CORS, Paywalls).
+PROIBIDO MOCKS: Se encontrar dados estáticos (const user = {id: 1}), ficheiros vazios, // TODO, // FIXME, ou funções que retornam placeholders em vez de consultar a base de dados real ou a API externa, isso é uma FALHA CRÍTICA.
+QUALIDADE: Avalie o tratamento de erros (try/catch, Zod), a tipagem estrita do TypeScript (ausência de any), a performance (N+1 queries, paginação) e a segurança (RLS, SQL Injection, CORS, Paywalls).
 ## 3. SISTEMA DE AVALIAÇÃO E GOVERNAÇÃO
 Para cada um dos 10 Ciclos, deverá fornecer um parecer final com os seguintes elementos:
 
+Nota do Ciclo (0 a 10): Atribua uma classificação e explique detalhadamente o porquê dessa nota com base na qualidade e funcionalidade do código encontrado.
+Estado de Governança (Bolinhas): Atualize o estado de cada ciclo/item avaliado usando EXCLUSIVAMENTE a seguinte escala:
 
-1. Nota do Ciclo (0 a 10): Atribua uma classificação e explique detalhadamente o porquê dessa nota com base na qualidade e funcionalidade do código encontrado.
-2. Estado de Governança (Bolinhas): Atualize o estado de cada ciclo/item avaliado usando EXCLUSIVAMENTE a seguinte escala:
+🔴 Vermelho: Item não criado ou completamente ausente.
 
+🔵 Azul: Código criado, mas aguarda a sua validação profunda (Estado inicial da auditoria).
 
-   * 🔴 Vermelho: Item não criado ou completamente ausente.
+🟡 Amarelo: Validado com melhorias (Tem mocks, bugs, falta de segurança ou não cumpre os requisitos a 100%. Exige refatorização pelo CODEX).
 
-
-   * 🔵 Azul: Código criado, mas aguarda a sua validação profunda (Estado inicial da auditoria).
-
-
-   * 🟡 Amarelo: Validado com melhorias (Tem mocks, bugs, falta de segurança ou não cumpre os requisitos a 100%. Exige refatorização pelo CODEX).
-
-
-   * 🟢 Verde: Pronto e Perfeito (Código real, testado, funcional e em produção).
-
+🟢 Verde: Pronto e Perfeito (Código real, testado, funcional e em produção).
 
 📋 LISTA DE ITENS PARA AUDITORIA (1000 TAREFAS DESTE CICLO)
 
-
-   * Atenção Jules: Procure pela implementação REAL de cada um destes itens no repositório.
-
+Atenção Jules: Procure pela implementação REAL de cada um destes itens no repositório.
 
 🔵 1.1.C1: Criar Turborepo com apps/web, apps/api e apps/worker configurados (pnpm).
 🔵 1.1.J1: Escrever ADR-001: Escolha do Monorepo Tooling (Turborepo vs Nx).
@@ -1032,12 +1023,10 @@ Para cada um dos 10 Ciclos, deverá fornecer um parecer final com os seguintes e
 🔵 10.10.C5: Finalização. BirthHub360 Version 1.0 Live. Tarefa Concluída.
 🔵 10.10.J5: V1.0 LIVE! Encerramento Oficial do Desenvolvimento Base da Plataforma!
 
-
 ## 4. FORMATO DE SAIDA
 HTML ROBUSTO, ORGANIZADO, COM AS INFORMAÇÕES CLARAS, E CONTENDO A ANÁLISE DE AUDITORIA, COM UM PROMPT PARA QUALQUER IA EXECUTAR O QUE FALTA SER IMPLEMENTADO, E MELHORAR O QUE PRECISA SER MELHORADO.
 
-
 SEJA 100% VERDADEIRO, ELOGIE TUDO O QUE TIVER QUE SER ELOGIADO E CRITIQUE TUDO  O QUE TIVER QUE SER CRITICADO.
 
-
 FAÇA A MELHOR ANÁLISE E O MELHOR PLANO DA SUA VIDA.
+

@@ -1,5 +1,6 @@
 :root {
   color-scheme: light;
+  --font-sans: "IBM Plex Sans", "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
   --surface: #f7f3ea;
   --surface-strong: #efe2c3;
   --text: #1f1d17;

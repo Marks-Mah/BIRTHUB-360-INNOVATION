@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect } from "react";
+import { Suspense, type ReactNode, useEffect } from "react";
 
 import { CookieConsentBanner } from "../components/cookie-consent-banner";
 import { PaywallProvider } from "../components/paywall-provider";
@@ -23,11 +23,13 @@ export function AppProviders({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <PaywallProvider>
       <EngagementProvider>
-        <AnalyticsProvider>
-          <ServiceWorkerBootstrap />
-          {children}
-          <CookieConsentBanner />
-        </AnalyticsProvider>
+        <Suspense fallback={null}>
+          <AnalyticsProvider>
+            <ServiceWorkerBootstrap />
+            {children}
+            <CookieConsentBanner />
+          </AnalyticsProvider>
+        </Suspense>
       </EngagementProvider>
     </PaywallProvider>
   );

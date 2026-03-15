@@ -52,7 +52,8 @@
     "dev:pos-venda-worker": "tsx agents/pos-venda/worker.ts",
     "dev:all-workers": "pnpm -r --parallel --filter \"*-agent-worker\" dev",
     "dev:ae-worker": "tsx agents/ae/worker.ts",
-    "dev:marketing-worker": "tsx agents/marketing/worker.ts"
+    "dev:marketing-worker": "tsx agents/marketing/worker.ts",
+    "ci:local": "bash ./scripts/ci/local-ci.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

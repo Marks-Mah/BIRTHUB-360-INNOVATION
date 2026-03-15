@@ -106,55 +106,49 @@ export async function executeHttpRequestNode(
   const safeUrl = assertSafeUrl(interpolated.url);
   const timeoutMs = Math.min(Math.max(interpolated.timeout_ms ?? 2500, 1), 10_000);
 
-  try {
-    const headers = new Headers(interpolated.headers ?? {});
-    if (interpolated.auth?.bearer) {
-      headers.set("Authorization", `Bearer ${interpolated.auth.bearer}`);
-    }
-
-    const hasBody = interpolated.body !== undefined && interpolated.method !== "GET";
-    if (hasBody && !headers.has("Content-Type")) {
-      headers.set("Content-Type", "application/json");
-    }
-
-    if (hasBody && interpolated.webhookSecret) {
-      const payload = JSON.stringify(interpolated.body);
-      const signature = createHmac("sha256", interpolated.webhookSecret)
-        .update(payload)
-        .digest("hex");
-      headers.set("X-BirthHub-Signature", signature);
-    }
-
-    if (rateLimiter) {
-      // 10 requests per second per tenant per host
-      await rateLimiter.consume(`httpreq:${context.tenantId}:${safeUrl.host}`, 10, 1);
-    }
-
-    const breaker = getCircuitBreaker(safeUrl.host);
-    const response = await breaker.fire(
-      safeUrl.toString(),
-      {
-        body: hasBody ? JSON.stringify(interpolated.body) : null,
-        headers,
-        method: interpolated.method ?? "GET"
-      },
-      timeoutMs
-    );
-
-    const responseBody = await parseResponseBody(response);
-    const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((value, key) => {
-      responseHeaders[key] = value;
-    });
-
-    return {
-      body: responseBody,
-      headers: responseHeaders,
-      status: response.status
-    };
-  } catch (error) {
-    throw error;
+  const headers = new Headers(interpolated.headers ?? {});
+  if (interpolated.auth?.bearer) {
+    headers.set("Authorization", `Bearer ${interpolated.auth.bearer}`);
   }
+
+  const hasBody = interpolated.body !== undefined && interpolated.method !== "GET";
+  if (hasBody && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (hasBody && interpolated.webhookSecret) {
+    const payload = JSON.stringify(interpolated.body);
+    const signature = createHmac("sha256", interpolated.webhookSecret).update(payload).digest("hex");
+    headers.set("X-BirthHub-Signature", signature);
+  }
+
+  if (rateLimiter) {
+    // 10 requests per second per tenant per host
+    await rateLimiter.consume(`httpreq:${context.tenantId}:${safeUrl.host}`, 10, 1);
+  }
+
+  const breaker = getCircuitBreaker(safeUrl.host);
+  const response = await breaker.fire(
+    safeUrl.toString(),
+    {
+      body: hasBody ? JSON.stringify(interpolated.body) : null,
+      headers,
+      method: interpolated.method ?? "GET"
+    },
+    timeoutMs
+  );
+
+  const responseBody = await parseResponseBody(response);
+  const responseHeaders: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    responseHeaders[key] = value;
+  });
+
+  return {
+    body: responseBody,
+    headers: responseHeaders,
+    status: response.status
+  };
 }
 
 export type { HttpRequestNodeConfig };

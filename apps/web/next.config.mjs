@@ -7,6 +7,7 @@ const cspReportOnly = (process.env.NEXT_PUBLIC_CSP_REPORT_ONLY ?? "true") === "t
 const immutableAssetCache = "public, max-age=31536000, immutable";
 const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isWindows = process.platform === "win32";
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -49,7 +50,7 @@ const securityHeaders = [
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   compress: true,
-  output: "standalone",
+  output: isWindows ? undefined : "standalone",
   outputFileTracingRoot: path.join(__dirname, "../.."),
   poweredByHeader: false,
   reactStrictMode: true,

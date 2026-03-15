@@ -9,18 +9,18 @@ import { RequireFeature } from "../src/common/guards/feature.guard.js";
 import { errorHandler } from "../src/middleware/error-handler.js";
 import { requestContextMiddleware } from "../src/middleware/request-context.js";
 
-function stubMethod(target: any, key: string, value: unknown): () => void {
-  const original = target[key];
-  target[key] = value;
+function stubMethod(target: object, key: string, value: unknown): () => void {
+  const original = Reflect.get(target, key);
+  Reflect.set(target, key, value);
   return () => {
-    target[key] = original;
+    Reflect.set(target, key, original);
   };
 }
 
 void test("pack install is blocked with 402 when agents feature is disabled by plan", async () => {
   const restores = [
-    stubMethod(prisma.organization, "findFirst", async ({ include }: any) => {
-      if (include?.plan) {
+    stubMethod(prisma.organization, "findFirst", async (args: { include?: { plan?: boolean } }) => {
+      if (args.include?.plan) {
         return {
           id: "org_alpha",
           plan: {

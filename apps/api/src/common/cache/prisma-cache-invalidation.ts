@@ -2,8 +2,6 @@ import { type Prisma, prisma } from "@birthub/database";
 
 import { invalidateTenantCache } from "./tenant-cache.js";
 
-const MUTATION_ACTIONS = new Set(["update", "delete"]);
-
 let middlewareRegistered = false;
 
 type CachedOrganization = {
@@ -158,46 +156,5 @@ export function registerTenantCacheInvalidationMiddleware(): void {
   }
 
   middlewareRegistered = true;
-  const prismaWithMiddleware = prisma as {
-    $use?: (
-      middleware: (
-        params: any,
-        next: (params: any) => Promise<unknown>
-      ) => Promise<unknown>
-    ) => void;
-  };
-
-  if (typeof prismaWithMiddleware.$use !== "function") {
-    registerByWrappingDelegates();
-    return;
-  }
-
-  prismaWithMiddleware.$use(async (params, next) => {
-    if (!params.model || !MUTATION_ACTIONS.has(params.action)) {
-      return next(params);
-    }
-
-    let referencesBeforeMutation: string[] = [];
-
-    if (params.model === "Organization") {
-      const organizations = await resolveOrganizationsFromWhere(params.args?.where);
-      referencesBeforeMutation = organizations.flatMap(organizationToReferences);
-    }
-
-    if (params.model === "User") {
-      referencesBeforeMutation = await resolveTenantIdsForUsers(params.args?.where);
-    }
-
-    const result = await next(params);
-    const referencesToInvalidate = collectTenantReferences([
-      ...referencesBeforeMutation,
-      ...organizationReferencesFromResult(result)
-    ]);
-
-    if (referencesToInvalidate.length > 0) {
-      await invalidateTenantCache(referencesToInvalidate);
-    }
-
-    return result;
-  });
+  registerByWrappingDelegates();
 }

@@ -105,15 +105,10 @@ export function createInstalledAgentsRouter(): Router {
   router.get(
     "/installed/:installedAgentId/run/stream",
     asyncHandler(async (request, response) => {
-      const executionId = String(request.query.executionId ?? "");
-
-      if (!executionId.trim()) {
-        throw new ProblemDetailsError({
-          detail: "executionId is required for replay stream.",
-          status: 400,
-          title: "Bad Request"
-        });
-      }
+      const executionId = requireStringValue(
+        request.query.executionId,
+        "executionId is required for replay stream."
+      );
 
       const tenantReference = resolveTenantReference({
         contextTenantId: request.context.tenantId,

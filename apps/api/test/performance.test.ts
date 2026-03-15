@@ -7,7 +7,7 @@ import { PrismaClient } from "@birthub/database";
 const databaseUrl = process.env.DATABASE_URL ?? "";
 const testIfDatabase = databaseUrl ? test : test.skip;
 
-testIfDatabase("query com 10k registros de um tenant unico fica abaixo de 100ms", async () => {
+void testIfDatabase("query com 10k registros de um tenant unico fica abaixo de 100ms", async () => {
   const prisma = new PrismaClient({
     datasources: {
       db: {

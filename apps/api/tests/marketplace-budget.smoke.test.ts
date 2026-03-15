@@ -25,7 +25,7 @@ void test("marketplace search returns facets and ranked agents", async () => {
 
   await request(app)
     .get("/api/v1/agents/search?q=sales&page=1&pageSize=5")
-    .set("If-None-Match", response.headers.etag as string)
+    .set("If-None-Match", response.headers.etag)
     .expect(304);
 });
 

@@ -213,8 +213,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
     createLoginRateLimitMiddleware(config),
     validateBody(loginRequestSchema),
     asyncHandler(async (request, response) => {
-      const loginInput = loginRequestSchema.parse(request.body);
-      const organizationId = await resolveOrganizationId(loginInput.tenantId);
+      const organizationId = await resolveOrganizationId(request.body.tenantId);
 
       if (!organizationId) {
         throw new ProblemDetailsError({
@@ -226,10 +225,10 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
       const login = await loginWithPassword({
         config,
-        email: loginInput.email,
+        email: request.body.email,
         ipAddress: request.ip ?? null,
         organizationId,
-        password: loginInput.password,
+        password: request.body.password,
         userAgent: request.header("user-agent") ?? null
       });
 
@@ -245,7 +244,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
         return;
       }
 
-      request.context.tenantId = loginInput.tenantId;
+      request.context.tenantId = request.body.tenantId;
       request.context.userId = login.userId;
       request.context.sessionId = login.sessionId;
       request.context.authType = "session";
@@ -260,7 +259,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
             expiresAt: login.tokens.expiresAt.toISOString(),
             id: login.sessionId,
             refreshToken: login.tokens.refreshToken,
-            tenantId: loginInput.tenantId,
+            tenantId: request.body.tenantId,
             token: login.tokens.token,
             userId: login.userId
           }

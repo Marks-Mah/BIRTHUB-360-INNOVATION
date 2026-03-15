@@ -8,19 +8,19 @@ import { createApp } from "../src/app.js";
 import { createTestApiConfig } from "./test-config.js";
 import { sha256 } from "../src/modules/auth/crypto.js";
 
-function stubMethod(target: object, key: string, value: unknown): () => void {
-  const original = Reflect.get(target, key);
-  Reflect.set(target, key, value);
+function stubMethod(target: any, key: string, value: unknown): () => void {
+  const original = target[key];
+  target[key] = value;
   return () => {
-    Reflect.set(target, key, original);
+    target[key] = original;
   };
 }
 
 void test("security sanitizes XSS payloads before queueing tasks", async () => {
-  let queuedDescription: string | null = null;
+  let queuedPayload: any = null;
   const restores = [
-    stubMethod(prisma.session, "findUnique", async (args: { where?: { token?: string } }) => {
-      if (args.where?.token !== sha256("atk_member")) {
+    stubMethod(prisma.session, "findUnique", async ({ where }: any) => {
+      if (where.token !== sha256("atk_member")) {
         return null;
       }
 
@@ -47,17 +47,7 @@ void test("security sanitizes XSS payloads before queueing tasks", async () => {
     const app = createApp({
       config: createTestApiConfig(),
       enqueueTask: async (_config, payload) => {
-        if (
-          payload &&
-          typeof payload === "object" &&
-          "payload" in payload &&
-          payload.payload &&
-          typeof payload.payload === "object" &&
-          "description" in payload.payload &&
-          typeof payload.payload.description === "string"
-        ) {
-          queuedDescription = payload.payload.description;
-        }
+        queuedPayload = payload;
         return { jobId: "job_1" };
       },
       shouldExposeDocs: false
@@ -76,7 +66,7 @@ void test("security sanitizes XSS payloads before queueing tasks", async () => {
       })
       .expect(202);
 
-    assert.equal(queuedDescription, "alert(1)");
+    assert.equal(queuedPayload?.payload.description, "alert(1)");
   } finally {
     for (const restore of restores.reverse()) {
       restore();

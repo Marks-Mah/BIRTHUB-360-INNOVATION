@@ -32,15 +32,7 @@ function toPrismaNestedJsonValue(value: unknown): Prisma.InputJsonValue | null {
     return jsonObject as Prisma.InputJsonObject;
   }
 
-  if (typeof value === "function") {
-    return value.name || "[function]";
-  }
-
-  if (typeof value === "symbol") {
-    return value.description ?? value.toString();
-  }
-
-  return null;
+  return String(value);
 }
 
 export function toPrismaJsonValue(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {

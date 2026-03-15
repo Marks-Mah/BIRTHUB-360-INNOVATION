@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 
 import type { ApiConfig } from "@birthub/config";
 import type { WorkflowTriggerType } from "@birthub/database";
-import type { ConnectionOptions, JobsOptions } from "bullmq";
 import { Queue } from "bullmq";
 import { Redis } from "ioredis";
 
@@ -45,7 +44,7 @@ function getRedisConnection(config: ApiConfig): Redis {
 function getExecutionQueue(config: ApiConfig): Queue {
   if (!executionQueue) {
     executionQueue = new Queue(WORKFLOW_QUEUE_NAME, {
-      connection: getRedisConnection(config) as unknown as ConnectionOptions,
+      connection: getRedisConnection(config) as any,
       defaultJobOptions: {
         attempts: 5,
         backoff: {
@@ -68,7 +67,7 @@ function getExecutionQueue(config: ApiConfig): Queue {
 function getTriggerQueue(config: ApiConfig): Queue {
   if (!triggerQueue) {
     triggerQueue = new Queue(WORKFLOW_TRIGGER_QUEUE_NAME, {
-      connection: getRedisConnection(config) as unknown as ConnectionOptions,
+      connection: getRedisConnection(config) as any,
       defaultJobOptions: {
         removeOnComplete: {
           count: 500
@@ -91,7 +90,7 @@ export async function enqueueWorkflowExecution(
     jobId?: string;
   }
 ): Promise<void> {
-  const jobOptions: JobsOptions = {
+  const jobOptions: Record<string, unknown> = {
     jobId: options?.jobId ?? `${payload.executionId}:${payload.stepKey}:${payload.attempt}`
   };
 
@@ -99,7 +98,7 @@ export async function enqueueWorkflowExecution(
     jobOptions.delay = options.delay;
   }
 
-  await getExecutionQueue(config).add("workflow-step", payload, jobOptions);
+  await getExecutionQueue(config).add("workflow-step", payload, jobOptions as any);
 }
 
 export async function enqueueWorkflowTrigger(

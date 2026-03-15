@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { prisma, Role, withTenantDatabaseContext } from "@birthub/database";
+import { type Prisma, prisma, Role, withTenantDatabaseContext } from "@birthub/database";
 import { createLogger } from "@birthub/logger";
 
 import { ProblemDetailsError } from "../../lib/problem-details.js";

@@ -19,14 +19,17 @@ type OptionalBcryptModule = {
 };
 
 let bcryptModulePromise: Promise<OptionalBcryptModule | null> | null = null;
+const importOptionalModule = new Function("specifier", "return import(specifier)") as (
+  specifier: string
+) => Promise<unknown>;
 
 async function loadOptionalBcryptModule(): Promise<OptionalBcryptModule | null> {
   if (!bcryptModulePromise) {
-    bcryptModulePromise = import("bcryptjs")
+    bcryptModulePromise = importOptionalModule("bcryptjs")
       .then((module) => ({
-        compare: module.compare,
-        genSalt: module.genSalt,
-        hash: module.hash
+        compare: (module as OptionalBcryptModule).compare,
+        genSalt: (module as OptionalBcryptModule).genSalt,
+        hash: (module as OptionalBcryptModule).hash
       }))
       .catch(() => null);
   }

@@ -56,10 +56,9 @@ export function createOrganizationsRouter(): Router {
     resolveTenantId: (_request, _response, result) =>
       typeof result === "object" && result && "tenantId" in result ? String(result.tenantId) : undefined
   })(async (request, response) => {
-    const payload = createOrganizationRequestSchema.parse(request.body);
     const organization = createOrganizationResponseSchema.parse(
       await createOrganization({
-        ...payload,
+        ...request.body,
         requestId: request.context.requestId
       })
     );

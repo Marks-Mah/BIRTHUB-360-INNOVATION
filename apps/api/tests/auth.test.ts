@@ -9,11 +9,11 @@ import { encryptTotpSecret, generateCurrentTotp, generateTotpSecret } from "../s
 import { sha256 } from "../src/modules/auth/crypto.js";
 import { createTestApiConfig } from "./test-config.js";
 
-function stubMethod(target: object, key: string, value: unknown): () => void {
-  const original = Reflect.get(target, key);
-  Reflect.set(target, key, value);
+function stubMethod(target: any, key: string, value: unknown): () => void {
+  const original = target[key];
+  target[key] = value;
   return () => {
-    Reflect.set(target, key, original);
+    target[key] = original;
   };
 }
 

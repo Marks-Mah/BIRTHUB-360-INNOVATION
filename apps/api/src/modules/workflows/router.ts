@@ -88,9 +88,8 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
     asyncHandler(async (request, response) => {
       await assertAdminRole(request);
       const tenantId = requireTenantId(request);
-      const payload = workflowCreateSchema.parse(request.body);
 
-      const workflow = await createWorkflow(config, tenantId, payload);
+      const workflow = await createWorkflow(config, tenantId, request.body);
       response.status(201).json({
         requestId: request.context.requestId,
         workflow
@@ -132,7 +131,7 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
         config,
         workflowId,
         tenantId,
-        workflowUpdateSchema.parse(request.body)
+        request.body
       );
       response.status(200).json({
         requestId: request.context.requestId,
@@ -166,7 +165,7 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
           config,
           workflowId,
           tenantId,
-          workflowRunSchema.parse(request.body),
+          request.body,
           WorkflowTriggerType.MANUAL
         );
         response.status(result.mode === "async" ? 202 : 200).json({

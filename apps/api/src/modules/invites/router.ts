@@ -39,7 +39,6 @@ export function createInvitesRouter(): Router {
       })(async (request, response) => {
         const tenantId = requireTenantId(request.tenantContext?.tenantId ?? request.context.tenantId);
         const organizationId = readTrimmedString(request.header("x-org-id"));
-        const createInviteInput = createInviteRequestSchema.parse(request.body);
 
         if (!organizationId) {
           throw new ProblemDetailsError({
@@ -50,12 +49,12 @@ export function createInvitesRouter(): Router {
         }
 
         const invite = await createInvite({
-          email: createInviteInput.email,
+          email: request.body.email,
+          expiresAt: request.body.expiresAt,
           invitedByUserId: request.context.userId,
           organizationId,
-          role: createInviteInput.role as Role,
-          tenantId,
-          ...(createInviteInput.expiresAt ? { expiresAt: createInviteInput.expiresAt } : {})
+          role: request.body.role as Role,
+          tenantId
         });
 
         response.status(201).json(invite);
@@ -94,12 +93,7 @@ export function createInvitesRouter(): Router {
         resolveTenantId: (_request, _response, result) =>
           typeof result === "object" && result && "tenantId" in result ? String(result.tenantId) : undefined
       })(async (request, response) => {
-        const payload = acceptInviteRequestSchema.parse(request.body);
-        const result = await acceptInvite({
-          token: payload.token,
-          ...(payload.name ? { name: payload.name } : {}),
-          ...(payload.userId ? { userId: payload.userId } : {})
-        });
+        const result = await acceptInvite(request.body);
         response.status(200).json(result);
         return result;
       })

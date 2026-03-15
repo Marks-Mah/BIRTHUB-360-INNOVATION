@@ -80,6 +80,7 @@ test.describe("Release master smoke flow", () => {
       await route.fulfill({
         body: JSON.stringify({
           plan: {
+            creditBalanceCents: 4200,
             currentPeriodEnd: "2026-04-13T00:00:00.000Z",
             isPaid: true,
             name: "Professional",
@@ -129,6 +130,17 @@ test.describe("Release master smoke flow", () => {
     await page.goto("/settings/billing");
     await expect(page.getByText("Plano atual, renovacao e consumo")).toBeVisible();
     await expect(page.getByText("Professional")).toBeVisible();
+    await expect(page.getByText("US$ 42.00")).toBeVisible();
+
+    await page.goto("/workflows/demo/edit");
+    await expect(page.getByText("Workflow Canvas - demo")).toBeVisible();
+    await page.getByRole("button", { name: "Organizar Canvas" }).click();
+    await expect(page.getByText("Canvas valido. Pronto para salvar/publicar.")).toBeVisible();
+
+    await page.goto("/workflows/demo/runs");
+    await expect(page.getByText("Workflow Runs - demo")).toBeVisible();
+    await page.getByText("Condition").first().click();
+    await expect(page.getByText('"result": true')).toBeVisible();
 
     await page.goto("/billing/cancel");
     await expect(page.getByText("Nenhuma cobranca foi realizada")).toBeVisible();

@@ -718,12 +718,12 @@ async function createTenant(
     }
   });
 
-  const agentsLimit = unlimitedToLargeNumber((selectedPlan.limits as Record<string, unknown>).agents);
+  const agentsLimit = unlimitedToLargeNumber(selectedPlan.limits.agents);
   const workflowsLimit = unlimitedToLargeNumber(
-    (selectedPlan.limits as Record<string, unknown>).workflows
+    selectedPlan.limits.workflows
   );
   const tokensLimit = unlimitedToLargeNumber(
-    (selectedPlan.limits as Record<string, unknown>).monthlyTokens
+    selectedPlan.limits.monthlyTokens
   );
 
   await Promise.all(

@@ -12,7 +12,8 @@
       "outputs": [
         "dist/**",
         ".next/**",
-        "!.next/cache/**"
+        "!.next/cache/**",
+        "coverage/**"
       ]
     },
     "lint": {
@@ -32,19 +33,13 @@
       "dependsOn": [
         "^build"
       ],
-      "outputs": [
-        "coverage/**",
-        "test-results/**"
-      ]
+      "outputs": []
     },
     "test:isolation": {
       "dependsOn": [
         "^build"
       ],
-      "outputs": [
-        "coverage/**",
-        "test-results/**"
-      ]
+      "outputs": []
     },
     "docs": {
       "dependsOn": [

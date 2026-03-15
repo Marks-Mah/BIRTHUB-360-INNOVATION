@@ -5,22 +5,22 @@
     "baseUrl": ".",
     "paths": {
       "@birthub/config": [
-        "../../packages/config/dist/index.js"
+        "../../packages/config/src/index.ts"
       ],
       "@birthub/config/*": [
-        "../../packages/config/dist/*"
+        "../../packages/config/src/*"
       ],
       "@birthub/logger": [
-        "../../packages/logger/dist/index.js"
+        "../../packages/logger/src/index.ts"
       ],
       "@birthub/logger/*": [
-        "../../packages/logger/dist/*"
+        "../../packages/logger/src/*"
       ],
       "@birthub/workflows-core": [
-        "../../packages/workflows-core/dist/src/index.js"
+        "../../packages/workflows-core/src/index.ts"
       ],
       "@birthub/workflows-core/*": [
-        "../../packages/workflows-core/dist/src/*"
+        "../../packages/workflows-core/src/*"
       ]
     },
     "plugins": [

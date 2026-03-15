@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const requestId = request.cookies.get("bh_request_id")?.value ?? crypto.randomUUID();
   const requestHeaders = new Headers(request.headers);
   const secureCookie = process.env.NODE_ENV === "production";

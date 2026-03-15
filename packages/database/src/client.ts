@@ -15,7 +15,7 @@ const globalForPrisma = globalThis as typeof globalThis & {
 function raceWithTimeout<T>(
   promise: Promise<T>,
   operation: string,
-  model?: string | undefined
+  model?: string
 ): Promise<T> {
   return Promise.race([
     promise,
@@ -24,7 +24,7 @@ function raceWithTimeout<T>(
         reject(new PrismaQueryTimeoutError(operation, QUERY_TIMEOUT_MS, model));
       }, QUERY_TIMEOUT_MS);
 
-      promise.finally(() => {
+      void promise.finally(() => {
         clearTimeout(timer);
       });
     })

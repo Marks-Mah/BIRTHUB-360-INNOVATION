@@ -1,0 +1,291 @@
+{
+  "generatedAt": "2026-03-15T15:18:42.588Z",
+  "git": {
+    "branch": "main",
+    "commit": "c1c30e5611b769fa39210e3fcd7707c175bfb891",
+    "status": [
+      {
+        "path": ".dockerignore",
+        "raw": " M .dockerignore",
+        "status": " M"
+      },
+      {
+        "path": ".github/workflows/ci.yml",
+        "raw": " M .github/workflows/ci.yml",
+        "status": " M"
+      },
+      {
+        "path": ".gitignore",
+        "raw": " M .gitignore",
+        "status": " M"
+      },
+      {
+        "path": "apps/api/src/modules/webhooks/stripe.router.ts",
+        "raw": " M apps/api/src/modules/webhooks/stripe.router.ts",
+        "status": " M"
+      },
+      {
+        "path": "apps/api/tests/billing.checkout.test.ts",
+        "raw": " M apps/api/tests/billing.checkout.test.ts",
+        "status": " M"
+      },
+      {
+        "path": "apps/web/app/(dashboard)/workflows/[id]/edit/page.tsx",
+        "raw": " M apps/web/app/(dashboard)/workflows/[id]/edit/page.tsx",
+        "status": " M"
+      },
+      {
+        "path": "apps/web/app/(dashboard)/workflows/[id]/runs/page.tsx",
+        "raw": " M apps/web/app/(dashboard)/workflows/[id]/runs/page.tsx",
+        "status": " M"
+      },
+      {
+        "path": "apps/web/tsconfig.tsbuildinfo",
+        "raw": " M apps/web/tsconfig.tsbuildinfo",
+        "status": " M"
+      },
+      {
+        "path": "ci-local.ps1",
+        "raw": " M ci-local.ps1",
+        "status": " M"
+      },
+      {
+        "path": "docs/ci/local-ci.md",
+        "raw": " M docs/ci/local-ci.md",
+        "status": " M"
+      },
+      {
+        "path": "docs/evidence/ci-readiness.md",
+        "raw": " M docs/evidence/ci-readiness.md",
+        "status": " M"
+      },
+      {
+        "path": "docs/evidence/lint-cleanup.md",
+        "raw": " M docs/evidence/lint-cleanup.md",
+        "status": " M"
+      },
+      {
+        "path": "docs/evidence/pipeline-local.md",
+        "raw": " M docs/evidence/pipeline-local.md",
+        "status": " M"
+      },
+      {
+        "path": "package.json",
+        "raw": " M package.json",
+        "status": " M"
+      },
+      {
+        "path": "packages/logger/src/index.ts",
+        "raw": " M packages/logger/src/index.ts",
+        "status": " M"
+      },
+      {
+        "path": "playwright.config.ts",
+        "raw": " M playwright.config.ts",
+        "status": " M"
+      },
+      {
+        "path": "scripts/agent/generate-snapshot.mjs",
+        "raw": " M scripts/agent/generate-snapshot.mjs",
+        "status": " M"
+      },
+      {
+        "path": "scripts/billing/generate-billing-coverage-report.ts",
+        "raw": " M scripts/billing/generate-billing-coverage-report.ts",
+        "status": " M"
+      },
+      {
+        "path": "scripts/ci/check-dirty-tree.mjs",
+        "raw": " M scripts/ci/check-dirty-tree.mjs",
+        "status": " M"
+      },
+      {
+        "path": "scripts/ci/full.mjs",
+        "raw": " M scripts/ci/full.mjs",
+        "status": " M"
+      },
+      {
+        "path": "scripts/ci/local-ci.sh",
+        "raw": " M scripts/ci/local-ci.sh",
+        "status": " M"
+      },
+      {
+        "path": "test-results/.last-run.json",
+        "raw": " M test-results/.last-run.json",
+        "status": " M"
+      },
+      {
+        "path": "test-results/bullmq-overload.txt",
+        "raw": " D test-results/bullmq-overload.txt",
+        "status": " D"
+      },
+      {
+        "path": "test-results/k6-results.txt",
+        "raw": " D test-results/k6-results.txt",
+        "status": " D"
+      },
+      {
+        "path": "test-results/k6/README.md",
+        "raw": " D test-results/k6/README.md",
+        "status": " D"
+      },
+      {
+        "path": "tests/e2e/release-master.spec.ts",
+        "raw": " M tests/e2e/release-master.spec.ts",
+        "status": " M"
+      },
+      {
+        "path": "tests/e2e/workflow-editor-evidence.spec.ts",
+        "raw": " M tests/e2e/workflow-editor-evidence.spec.ts",
+        "status": " M"
+      },
+      {
+        "path": "artifacts/workflows/workflow-editor-10-nodes.png",
+        "raw": "?? artifacts/workflows/workflow-editor-10-nodes.png",
+        "status": "??"
+      },
+      {
+        "path": "docs/evidence/billing-coverage.md",
+        "raw": "?? docs/evidence/billing-coverage.md",
+        "status": "??"
+      },
+      {
+        "path": "packages/config/src/worker.config.test.ts",
+        "raw": "?? packages/config/src/worker.config.test.ts",
+        "status": "??"
+      },
+      {
+        "path": "packages/logger/src/index.test.ts",
+        "raw": "?? packages/logger/src/index.test.ts",
+        "status": "??"
+      },
+      {
+        "path": "scripts/bootstrap/bootstrap-local.ps1",
+        "raw": "?? scripts/bootstrap/bootstrap-local.ps1",
+        "status": "??"
+      }
+    ]
+  },
+  "baselineDirtyArtifacts": [
+    "apps/web/tsconfig.tsbuildinfo"
+  ],
+  "dirtyPaths": [
+    ".dockerignore",
+    ".github/workflows/ci.yml",
+    ".gitignore",
+    "apps/api/src/modules/webhooks/stripe.router.ts",
+    "apps/api/tests/billing.checkout.test.ts",
+    "apps/web/app/(dashboard)/workflows/[id]/edit/page.tsx",
+    "apps/web/app/(dashboard)/workflows/[id]/runs/page.tsx",
+    "apps/web/tsconfig.tsbuildinfo",
+    "ci-local.ps1",
+    "docs/ci/local-ci.md",
+    "docs/evidence/ci-readiness.md",
+    "docs/evidence/lint-cleanup.md",
+    "docs/evidence/pipeline-local.md",
+    "package.json",
+    "packages/logger/src/index.ts",
+    "playwright.config.ts",
+    "scripts/agent/generate-snapshot.mjs",
+    "scripts/billing/generate-billing-coverage-report.ts",
+    "scripts/ci/check-dirty-tree.mjs",
+    "scripts/ci/full.mjs",
+    "scripts/ci/local-ci.sh",
+    "test-results/.last-run.json",
+    "test-results/bullmq-overload.txt",
+    "test-results/k6-results.txt",
+    "test-results/k6/README.md",
+    "tests/e2e/release-master.spec.ts",
+    "tests/e2e/workflow-editor-evidence.spec.ts",
+    "artifacts/workflows/workflow-editor-10-nodes.png",
+    "docs/evidence/billing-coverage.md",
+    "packages/config/src/worker.config.test.ts",
+    "packages/logger/src/index.test.ts",
+    "scripts/bootstrap/bootstrap-local.ps1"
+  ],
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "agents/*"
+  ],
+  "scripts": {
+    "build": "turbo run build --filter=@birthub/web... --filter=@birthub/api... --filter=@birthub/worker... --filter=@birthub/testing",
+    "bootstrap:local:windows": "powershell -ExecutionPolicy Bypass -File ./scripts/bootstrap/bootstrap-local.ps1",
+    "bootstrap:node:windows": "powershell -ExecutionPolicy Bypass -File ./scripts/bootstrap/install-node-portable.ps1",
+    "ci:dirty-tree": "node scripts/ci/check-dirty-tree.mjs",
+    "ci:full": "node scripts/ci/full.mjs full",
+    "dev": "turbo run dev --filter=@birthub/web --filter=@birthub/api --filter=@birthub/worker --parallel",
+    "dev:legacy": "turbo run dev",
+    "lint": "turbo run lint --filter=@birthub/web... --filter=@birthub/api... --filter=@birthub/worker... --filter=@birthub/testing",
+    "typecheck": "turbo run typecheck --filter=@birthub/web... --filter=@birthub/api... --filter=@birthub/worker... --filter=@birthub/testing",
+    "test": "turbo run test --filter=@birthub/web... --filter=@birthub/api... --filter=@birthub/worker... --filter=@birthub/testing",
+    "test:isolation": "turbo run test:isolation --filter=@birthub/api --filter=@birthub/worker",
+    "test:workflows": "pnpm --filter @birthub/workflows-core test && pnpm --filter @birthub/worker test && node --import tsx scripts/verify-workflow-step-coverage.ts",
+    "test:auth": "pnpm --filter @birthub/api test:auth",
+    "test:rbac": "pnpm --filter @birthub/api test:rbac",
+    "test:security": "pnpm --filter @birthub/api test:security",
+    "security:report": "tsx scripts/security/generate-security-report.ts",
+    "security:guards": "tsx scripts/security/check-auth-guards.ts",
+    "packs:validate": "pnpm --filter @birthub/agent-packs validate",
+    "packs:test": "pnpm --filter @birthub/agent-packs test",
+    "packs:smoke": "pnpm --filter @birthub/agent-packs smoke",
+    "packs:regression": "pnpm --filter @birthub/agent-packs regression",
+    "packs:docs": "pnpm --filter @birthub/agent-packs docs",
+    "packs:qa-report": "node --import tsx scripts/pack-qa-report.ts",
+    "format": "prettier --write .",
+    "lint:workflows": "pnpm --filter @birthub/workflows-core exec eslint . --config eslint.config.mjs --max-warnings=0",
+    "db:generate": "pnpm --filter @birthub/database db:generate",
+    "db:migrate": "pnpm --filter @birthub/database db:migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @birthub/database db:migrate:deploy",
+    "db:reset": "pnpm --filter @birthub/database db:reset",
+    "db:seed": "pnpm --filter @birthub/database db:seed",
+    "billing:sync": "pnpm --filter @birthub/api billing:sync",
+    "privacy:verify": "tsx scripts/privacy/verify-anonymization.ts",
+    "release:migrate": "tsx scripts/release/final-data-migration.ts",
+    "release:smoke": "tsx scripts/release/global-smoke.ts",
+    "setup:local": "bash ./scripts/setup/setup-local.sh",
+    "reset:local": "bash ./scripts/reset-local.sh",
+    "clean": "node scripts/clean.mjs",
+    "ci:task": "node scripts/ci/full.mjs task",
+    "agent:snapshot": "node scripts/agent/generate-snapshot.mjs",
+    "postinstall": "pnpm db:generate",
+    "test:e2e": "playwright test",
+    "test:e2e:release": "playwright test tests/e2e/release-master.spec.ts",
+    "test:workflows:evidence": "playwright test tests/e2e/workflow-editor-evidence.spec.ts",
+    "test:billing:coverage": "node --import tsx scripts/billing/generate-billing-coverage-report.ts",
+    "test:agents": "pytest agents tests/integration",
+    "test:coverage": "pytest agents tests/integration --cov=agents/ae --cov=agents/ldr --cov=agents/sdr --cov=agents/shared --cov-fail-under=80",
+    "test:load:k6": "k6 run scripts/load-tests/stress.js",
+    "test:worker:overload": "tsx scripts/load-tests/worker-overload.ts",
+    "test:load": "pnpm --filter @birthub/queue test:load",
+    "dev:ldr-worker": "tsx agents/ldr/worker.ts",
+    "dev:sdr-worker": "tsx agents/sdr/worker.ts",
+    "dev:financeiro-worker": "tsx agents/financeiro/worker.ts",
+    "dev:juridico-worker": "tsx agents/juridico/worker.ts",
+    "dev:analista-worker": "tsx agents/analista/worker.ts",
+    "dev:pos-venda-worker": "tsx agents/pos-venda/worker.ts",
+    "dev:all-workers": "pnpm -r --parallel --filter \"*-agent-worker\" dev",
+    "dev:ae-worker": "tsx agents/ae/worker.ts",
+    "dev:marketing-worker": "tsx agents/marketing/worker.ts",
+    "ci:local": "bash ./scripts/ci/local-ci.sh"
+  },
+  "workflows": [
+    "ci.yml",
+    "security-scan.yml"
+  ],
+  "runtimes": {
+    "docker": null,
+    "node": "v22.22.1",
+    "pnpm": "9.1.0",
+    "python": null
+  },
+  "conflictMarkers": [
+    "ci-local.ps1",
+    "scripts/agent/generate-snapshot.mjs",
+    "scripts/verify-tenant-isolation.sh"
+  ],
+  "notes": [
+    "This snapshot is generated from the current workspace state.",
+    "If you need a pre-change baseline, regenerate it before editing tracked files."
+  ]
+}

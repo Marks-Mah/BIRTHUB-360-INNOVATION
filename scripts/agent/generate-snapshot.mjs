@@ -20,7 +20,7 @@ function listWorkflowFiles() {
 }
 
 function parseGitStatus() {
-  const result = runCapture("git", ["status", "--porcelain"]);
+  const result = runCapture("git", ["status", "--porcelain", "--untracked-files=all"]);
   if ((result.status ?? 1) !== 0) {
     return [];
   }
@@ -86,10 +86,16 @@ const gitStatus = parseGitStatus();
 const dirtyPaths = gitStatus.map((entry) => entry.path).filter(Boolean);
 const dirtyArtifacts = dirtyPaths.filter((entry) =>
   [
+    ".next",
+    ".nuxt",
+    ".pytest_cache",
+    ".turbo",
     "/.next/",
     "/.turbo/",
     "/coverage/",
     "/dist/",
+    "/build/",
+    "__pycache__",
     ".pyc",
     ".tsbuildinfo"
   ].some((segment) => entry.includes(segment) || entry.endsWith(segment))

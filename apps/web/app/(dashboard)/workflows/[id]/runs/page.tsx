@@ -2,7 +2,7 @@
 
 import "reactflow/dist/style.css";
 
-import { useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 
 import ReactFlow, { Background, MiniMap, type Edge, type Node } from "reactflow";
 
@@ -105,7 +105,8 @@ function maskSecrets(payload: Record<string, unknown>): string {
   return JSON.stringify(clone, null, 2);
 }
 
-export default function WorkflowRunsPage({ params }: { params: { id: string } }) {
+export default function WorkflowRunsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [runs, setRuns] = useState(initialRuns);
   const [selectedRunId, setSelectedRunId] = useState(initialRuns[0]?.id ?? "");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -181,7 +182,7 @@ export default function WorkflowRunsPage({ params }: { params: { id: string } })
   return (
     <section style={{ display: "grid", gap: "0.85rem" }}>
       <header>
-        <h2 style={{ margin: 0 }}>Workflow Runs - {params.id}</h2>
+        <h2 style={{ margin: 0 }}>Workflow Runs - {id}</h2>
         <p style={{ color: "var(--muted)", marginBottom: 0 }}>
           Histórico de execuções, debugger visual e retry a partir do nó com falha.
         </p>

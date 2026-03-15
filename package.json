@@ -5,6 +5,7 @@
   "packageManager": "pnpm@9.1.0",
   "scripts": {
     "build": "turbo run build --filter=@birthub/web... --filter=@birthub/api... --filter=@birthub/worker... --filter=@birthub/testing",
+    "bootstrap:local:windows": "powershell -ExecutionPolicy Bypass -File ./scripts/bootstrap/bootstrap-local.ps1",
     "bootstrap:node:windows": "powershell -ExecutionPolicy Bypass -File ./scripts/bootstrap/install-node-portable.ps1",
     "ci:dirty-tree": "node scripts/ci/check-dirty-tree.mjs",
     "ci:full": "node scripts/ci/full.mjs full",

@@ -1,0 +1,121 @@
+[
+    {
+        "command":  "pnpm install --frozen-lockfile",
+        "log":  "install.log",
+        "name":  "install",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm db:generate",
+        "log":  "db-generate.log",
+        "name":  "db-generate",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm lint",
+        "log":  "lint.log",
+        "name":  "lint",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm typecheck",
+        "log":  "typecheck.log",
+        "name":  "typecheck",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm test",
+        "log":  "test.log",
+        "name":  "test",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm test:isolation",
+        "log":  "test-isolation.log",
+        "name":  "test-isolation",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm build",
+        "log":  "build.log",
+        "name":  "build",
+        "status":  "FAIL",
+        "exitCode":  1
+    },
+    {
+        "command":  "pnpm packs:validate",
+        "log":  "packs-validate.log",
+        "name":  "packs-validate",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm packs:test",
+        "log":  "packs-test.log",
+        "name":  "packs-test",
+        "status":  "FAIL",
+        "exitCode":  1
+    },
+    {
+        "command":  "pnpm packs:smoke",
+        "log":  "packs-smoke.log",
+        "name":  "packs-smoke",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm packs:regression",
+        "log":  "packs-regression.log",
+        "name":  "packs-regression",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm test:workflows",
+        "log":  "test-workflows.log",
+        "name":  "test-workflows",
+        "status":  "FAIL",
+        "exitCode":  1
+    },
+    {
+        "command":  "pnpm security:guards",
+        "log":  "security-guards.log",
+        "name":  "security-guards",
+        "status":  "FAIL",
+        "exitCode":  1
+    },
+    {
+        "command":  "pnpm security:report",
+        "log":  "security-report.log",
+        "name":  "security-report",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm test:e2e",
+        "log":  "test-e2e.log",
+        "name":  "test-e2e",
+        "status":  "PASS",
+        "exitCode":  0
+    },
+    {
+        "command":  "pnpm test:agents",
+        "log":  "test-agents.log",
+        "name":  "test-agents",
+        "status":  "FAIL",
+        "exitCode":  1
+    },
+    {
+        "command":  "pnpm ci:dirty-tree",
+        "log":  "ci-dirty-tree.log",
+        "name":  "ci-dirty-tree",
+        "status":  "FAIL",
+        "exitCode":  1
+    }
+]

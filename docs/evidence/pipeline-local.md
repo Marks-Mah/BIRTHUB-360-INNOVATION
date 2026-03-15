@@ -1,87 +1,36 @@
-# Ciclo 1 — Pipeline Local
+# Ciclo 1 - Pipeline Local
 
-## 1) Diagnóstico
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-- **Problema encontrado:** o pipeline local precisava ser validado ponta a ponta para confirmar reprodutibilidade do monorepo.
-- **Causa raiz:** ausência de evidência consolidada desta execução no ciclo atual.
-- **Impacto:** sem essa validação, falhas de integração poderiam aparecer apenas em CI.
+## 1) Diagnostico
+
+- Problema encontrado: o pipeline local precisava sair de uma sequencia ad hoc para um baseline reproduzivel em um unico comando.
+- Causa raiz: o wrapper PowerShell estava apontando para outro workspace e o fluxo shell ainda nao refletia todos os gates do prompt v2.
+- Impacto: o time nao tinha uma historia unica para `install -> lint -> typecheck -> test -> build`.
 
 ## 2) Plano
-- Executar a sequência obrigatória localmente: `pnpm install`, `pnpm build`, `pnpm test`, `pnpm lint`, `pnpm typecheck`.
-- Registrar sucesso/falha de cada etapa com foco em causa raiz.
 
-## 3) Execução
-- Comandos executados com sucesso:
-  - `pnpm install`
-  - `pnpm build`
-  - `pnpm test`
-  - `pnpm typecheck`
-- Comando com falha:
-  - `pnpm lint` (falha concentrada no pacote `@birthub/api` com violações de tipagem/segurança e `no-floating-promises`).
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-- **Problema encontrado:** o pipeline local estava incompleto porque `pnpm lint` falhava no `apps/api`.
-- **Causa raiz:** violações de lint ligadas a `any`, argumentos inseguros, `no-floating-promises`, stringificação insegura e imports dinâmicos inseguros.
-- **Impacto:** pipeline local não fechava em verde e bloqueava a prontidão para CI.
+- Criar um comando canonico (`pnpm ci:full`) com ordem fixa.
+- Reexecutar o baseline tecnico viavel no ambiente atual.
+- Documentar separadamente os gates bloqueados por runtime externo.
 
-## 2) Plano
-- Corrigir os erros de lint sem enfraquecer tipagem.
-- Reexecutar obrigatoriamente: `pnpm install`, `pnpm build`, `pnpm test`, `pnpm lint`, `pnpm typecheck`.
+## 3) Execucao
 
-## 3) Execução
-- Corrigidos os erros no `apps/api` (código de produção e testes), mantendo tipagem estrita.
-- Sequência obrigatória reexecutada integralmente.
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
+- Bootstrapado Node 22.x portatil com pnpm 9.1.0.
+- `pnpm install --frozen-lockfile` validado com sucesso.
+- `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:isolation` e `pnpm build` foram estabilizados apos os ajustes em `apps/web` e `apps/worker`.
+- `pnpm ci:full` foi implementado para encadear todos os gates do prompt, incluindo dirty-tree check.
 
-## 4) Validação
-- `pnpm install` ✅
-- `pnpm build` ✅
-- `pnpm test` ✅
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-- `pnpm lint` ❌
-=======
-- `pnpm lint` ✅
->>>>>>> theirs
-=======
-- `pnpm lint` ✅
->>>>>>> theirs
-=======
-- `pnpm lint` ✅
->>>>>>> theirs
-=======
-- `pnpm lint` ✅
->>>>>>> theirs
-=======
-- `pnpm lint` ✅
->>>>>>> theirs
-- `pnpm typecheck` ✅
+## 4) Validacao
 
-## 5) Evidência
-- Este arquivo: `docs/evidence/pipeline-local.md`.
+- `pnpm install --frozen-lockfile`: OK
+- `pnpm lint`: OK
+- `pnpm typecheck`: OK
+- `pnpm test`: OK
+- `pnpm test:isolation`: OK
+- `pnpm build`: OK
+- `pnpm test:e2e`: BLOCKED localmente ate instalar browsers do Playwright
+- `pnpm test:agents`: BLOCKED localmente ate instalar Python 3.12+ e dependencias dos agentes
+
+## 5) Evidencia
+
+- Comando canonico: `package.json`, `scripts/ci/full.mjs`
+- Wrappers locais: `ci-local.ps1`, `scripts/ci/local-ci.sh`

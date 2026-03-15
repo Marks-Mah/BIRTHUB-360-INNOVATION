@@ -1,48 +1,76 @@
 $ErrorActionPreference = "Stop"
 
-$repo = "C:\Users\marce\OneDrive\Documents\GitHub\PROJETO-FINAL-BIRTHUB-360-INNOVATION"
-$log = "$repo\docs\evidence\ci-local.log"
+param(
+    [string]$Target = "full"
+)
 
-if (!(Test-Path "$repo\docs\evidence")) {
-    New-Item -ItemType Directory -Path "$repo\docs\evidence" -Force
+$repoRoot = Split-Path -Parent $PSCommandPath
+$artifactRoot = Join-Path $repoRoot "artifacts\agent-prompt-v2\local-ci"
+$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$logPath = Join-Path $artifactRoot "ci-local-$timestamp.log"
+$portableNodeHome = Join-Path $repoRoot ".tools\node-v22.22.1-win-x64"
+$portableNodeExe = Join-Path $portableNodeHome "node.exe"
+$runnerScript = Join-Path $repoRoot "scripts\ci\full.mjs"
+$bootstrapScript = Join-Path $repoRoot "scripts\bootstrap\install-node-portable.ps1"
+
+New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
+
+function Set-DefaultEnv {
+    param(
+        [string]$Key,
+        [string]$Value
+    )
+
+    $current = [Environment]::GetEnvironmentVariable($Key)
+    if ([string]::IsNullOrWhiteSpace($current)) {
+        Set-Item -Path "Env:$Key" -Value $Value
+    }
 }
 
-Start-Transcript -Path $log
+if (!(Get-Command node -ErrorAction SilentlyContinue) -and !(Test-Path $portableNodeExe)) {
+    & $bootstrapScript
+}
 
-Write-Host ""
-Write-Host "=============================="
-Write-Host "BIRTHHUB LOCAL CI"
-Write-Host "=============================="
-Write-Host ""
+$nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) {
+    (Get-Command node).Source
+} elseif (Test-Path $portableNodeExe) {
+    $portableNodeExe
+} else {
+    throw "Node runtime could not be resolved. Run ./scripts/bootstrap/install-node-portable.ps1 first."
+}
 
-cd $repo
+Set-DefaultEnv "API_CORS_ORIGINS" "http://localhost:3001"
+Set-DefaultEnv "API_PORT" "3000"
+Set-DefaultEnv "DATABASE_URL" "postgresql://postgres:postgrespassword@localhost:5432/birthub_cycle1"
+Set-DefaultEnv "NEXT_PUBLIC_API_URL" "http://localhost:3000"
+Set-DefaultEnv "NEXT_PUBLIC_APP_URL" "http://localhost:3001"
+Set-DefaultEnv "NEXT_PUBLIC_ENVIRONMENT" "ci-local"
+Set-DefaultEnv "NODE_ENV" "test"
+Set-DefaultEnv "QUEUE_NAME" "birthub-cycle1"
+Set-DefaultEnv "REDIS_URL" "redis://localhost:6379"
+Set-DefaultEnv "SESSION_SECRET" "ci-local-secret"
+Set-DefaultEnv "WEB_BASE_URL" "http://localhost:3001"
 
-Write-Host "STEP 1 — Install dependencies"
-pnpm install
+Start-Transcript -Path $logPath | Out-Null
 
-Write-Host ""
-Write-Host "STEP 2 — Prisma Generate"
-pnpm prisma generate
+try {
+    Push-Location $repoRoot
 
-Write-Host ""
-Write-Host "STEP 3 — Typecheck"
-pnpm -r exec tsc --noEmit
+    Write-Host ""
+    Write-Host "=============================="
+    Write-Host "BIRTHHUB LOCAL CI"
+    Write-Host "=============================="
+    Write-Host "Target: $Target"
+    Write-Host "Node:   $nodeExe"
+    Write-Host "Log:    $logPath"
+    Write-Host ""
 
-Write-Host ""
-Write-Host "STEP 4 — Build"
-pnpm build
-
-Write-Host ""
-Write-Host "STEP 5 — Tests"
-pnpm test
-
-Write-Host ""
-Write-Host "STEP 6 — Agents Tests"
-pnpm test:agents
-
-Write-Host ""
-Write-Host "=============================="
-Write-Host "CI LOCAL COMPLETED"
-Write-Host "=============================="
-
-Stop-Transcript
+    if ($Target -eq "full") {
+        & $nodeExe $runnerScript full
+    } else {
+        & $nodeExe $runnerScript task $Target
+    }
+} finally {
+    Pop-Location
+    Stop-Transcript | Out-Null
+}

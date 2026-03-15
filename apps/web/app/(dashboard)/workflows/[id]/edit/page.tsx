@@ -2,7 +2,7 @@
 
 import "reactflow/dist/style.css";
 
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 
 import { Play, Shuffle, Zap } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -276,7 +276,8 @@ function autoLayout(nodes: Node<BuilderNodeData>[], _edges: Edge[]): Node<Builde
   });
 }
 
-export default function WorkflowEditPage({ params }: { params: { id: string } }) {
+export default function WorkflowEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialNodes[0]?.id ?? null);
@@ -344,21 +345,20 @@ export default function WorkflowEditPage({ params }: { params: { id: string } })
 
     return {
       errors: messages,
-      invalidNodeIds: nodeErrors
+      invalidNodeIds: Array.from(nodeErrors).sort()
     };
   }, [edges, nodes]);
+  const decoratedNodes = useMemo(() => {
+    const invalidNodeIds = new Set(validation.invalidNodeIds);
 
-  useEffect(() => {
-    setNodes((currentNodes) =>
-      currentNodes.map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          hasError: validation.invalidNodeIds.has(node.id)
-        }
-      }))
-    );
-  }, [setNodes, validation.invalidNodeIds]);
+    return nodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        hasError: invalidNodeIds.has(node.id)
+      }
+    }));
+  }, [nodes, validation.invalidNodeIds]);
 
   return (
     <section
@@ -389,7 +389,7 @@ export default function WorkflowEditPage({ params }: { params: { id: string } })
           }}
         >
           <div>
-            <div style={{ fontWeight: 700 }}>Workflow Canvas - {params.id}</div>
+            <div style={{ fontWeight: 700 }}>Workflow Canvas - {id}</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>
               Builder visual com validação em tempo real de DAG e schema.
             </div>
@@ -416,7 +416,7 @@ export default function WorkflowEditPage({ params }: { params: { id: string } })
             edges={edges}
             fitView
             nodeTypes={nodeTypes}
-            nodes={nodes}
+            nodes={decoratedNodes}
             onConnect={(connection) => setEdges((currentEdges) => addEdge(connection, currentEdges))}
             onEdgesChange={onEdgesChange}
             onNodeClick={(_event, node) => setSelectedNodeId(node.id)}

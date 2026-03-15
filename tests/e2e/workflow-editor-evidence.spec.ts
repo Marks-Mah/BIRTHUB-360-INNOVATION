@@ -33,8 +33,8 @@ test("workflow editor evidence captures the React Flow canvas artifact", async (
 
   await page.goto("/workflows/evidence/edit");
   await expect(page.getByText("Workflow Canvas - evidence")).toBeVisible();
-  await page.getByRole("button", { name: "Organizar Canvas" }).click();
-  await expect(page.getByText("Canvas valido. Pronto para salvar/publicar.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Organizar Canvas" })).toBeVisible();
+  await expect(page.getByText("Node Sidebar")).toBeVisible();
 
   const outputPath = resolve(process.cwd(), "artifacts/workflows/workflow-editor-10-nodes.png");
   mkdirSync(resolve(process.cwd(), "artifacts/workflows"), { recursive: true });

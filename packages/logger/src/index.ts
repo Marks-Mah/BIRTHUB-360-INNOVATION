@@ -60,8 +60,9 @@ export function createLogger(service: string, options?: LoggerOptions): Logger {
       })
     },
     level: process.env.LOG_LEVEL ?? "info",
+    messageKey: "message",
     mixin: () => getLogContext(),
-    timestamp: pino.stdTimeFunctions.isoTime
+    timestamp: () => `,"timestamp":"${new Date().toISOString()}"`
   };
 
   if (!isProduction) {

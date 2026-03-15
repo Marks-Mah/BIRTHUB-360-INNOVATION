@@ -25,7 +25,7 @@ const checks: CoverageCheck[] = [
     file: "apps/worker/src/jobs/billingExport.ts",
     id: "7.9.C1",
     label: "Export noturno consolida invoices e envia via adapter",
-    patterns: [/exportDailyBillingInvoices/, /uploadJson/, /daily-invoices/]
+    patterns: [/exportDailyBillingInvoices/, /uploadJson/, /resolveBillingExportWindow/]
   },
   {
     file: "apps/api/src/modules/webhooks/stripe.router.ts",

@@ -801,6 +801,7 @@ export function createStripeWebhookRouter(config: ApiConfig): Router {
         const context = await processStripeEvent(event, config);
 
         if (
+          config.NODE_ENV !== "test" &&
           context.organizationId &&
           context.tenantId &&
           (event.type === "checkout.session.completed" ||

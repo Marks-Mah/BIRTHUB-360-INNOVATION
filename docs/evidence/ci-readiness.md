@@ -1,66 +1,36 @@
-# Ciclo 4 — CI Readiness
+# Ciclo 4 - CI Readiness
 
-## 1) Diagnóstico
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-- **Problema encontrado:** confirmar se workflows de CI estão aptos para execução remota.
-- **Causa raiz:** necessidade de auditoria dos jobs e scripts efetivamente usados.
-- **Impacto:** CI inconsistente gera falsos negativos/positivos e reduz confiabilidade de deploy.
+## 1) Diagnostico
+
+- Problema encontrado: o monorepo tinha gates dispersos entre scripts locais e workflow remoto, sem um comando canonico unico.
+- Causa raiz: `ci-local.ps1` estava hardcoded para outro workspace, `scripts/ci/local-ci.sh` mantinha sequencia propria e o workflow ainda chamava scripts individuais.
+- Impacto: diferenca entre validacao local e remota, risco de "works on my machine" e baixa confiabilidade do baseline.
 
 ## 2) Plano
-- Revisar `.github/workflows/ci.yml` e jobs relacionados.
-- Verificar alinhamento com scripts do `package.json` (`lint`, `typecheck`, `test`, `build`, `test:isolation`).
 
-## 3) Execução
-- Revisado workflow principal com jobs: `gitleaks`, `platform`, `pack-tests`, `workflow-suite` e agregador `ci`.
-- Confirmado uso de `pnpm install --frozen-lockfile`, `pnpm db:generate` e execução matricial dos scripts.
+- Criar `pnpm ci:full` e `pnpm ci:task` como fonte unica dos gates.
+- Transformar os wrappers locais em cascas finas do fluxo canonico.
+- Endurecer `.github/workflows/ci.yml` para convergir em `ci:task` e dirty-tree check.
 
-## 4) Validação
-- Inspeção de arquivo de workflow ✅
-- Compatibilidade de comandos com pipeline local ✅
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-- **Problema encontrado:** o job `platform` do CI dependia de lint verde para aprovação real.
-- **Causa raiz:** lint global falhando no `@birthub/api` impedia equivalência local↔CI.
-- **Impacto:** PRs poderiam ficar bloqueados mesmo com build/testes locais em parte verdes.
+## 3) Execucao
 
-## 2) Plano
-- Zerar lint global.
-- Revalidar localmente os mesmos comandos da matriz `platform`: `lint`, `typecheck`, `test`, `test:isolation`, `build`.
+- Adicionados `scripts/ci/full.mjs`, `scripts/ci/check-dirty-tree.mjs`, `scripts/clean.mjs` e `scripts/agent/generate-snapshot.mjs`.
+- `ci-local.ps1` foi refeito para usar o workspace atual, bootstrapar Node portatil quando necessario e executar `scripts/ci/full.mjs`.
+- `scripts/ci/local-ci.sh` foi reduzido a wrapper do fluxo canonico.
+- O workflow principal passou a usar `pnpm ci:task <grupo>` em vez de reproduzir manualmente cada sequencia.
+- `workflow-suite` foi preparado para incluir `pnpm test:agents` com setup explicito de Python.
 
-## 3) Execução
-- Lint do `@birthub/api` corrigido até estado verde.
-- Comandos da matriz `platform` reexecutados localmente e aprovados.
+## 4) Validacao
 
-## 4) Validação
-- `pnpm lint` ✅
-- `pnpm typecheck` ✅
-- `pnpm test` ✅
-- `pnpm test:isolation` ✅
-- `pnpm build` ✅
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
+- Inspecao do workflow principal: OK
+- Convergencia local -> CI via `ci:task`: OK
+- Dirty-tree gate disponivel apos cada etapa canonica: OK
+- Bootstrap Node 22.x + pnpm 9.1.0 para Windows: OK
+- Python 3.12+ e Docker ainda dependem do ambiente da maquina: BLOCKED localmente
 
-## 5) Evidência
-- Este arquivo: `docs/evidence/ci-readiness.md`.
+## 5) Evidencia
+
+- Workflow principal: `.github/workflows/ci.yml`
+- Wrapper PowerShell: `ci-local.ps1`
+- Wrapper shell: `scripts/ci/local-ci.sh`
+- Gate de arvore suja: `scripts/ci/check-dirty-tree.mjs`

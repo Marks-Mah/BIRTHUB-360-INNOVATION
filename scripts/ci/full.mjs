@@ -2,6 +2,20 @@ import path from "node:path";
 
 import { projectRoot, run, runPnpm } from "./shared.mjs";
 
+const ciEnvironmentDefaults = {
+  API_CORS_ORIGINS: "http://localhost:3001",
+  API_PORT: "3000",
+  DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/birthub_cycle1",
+  NEXT_PUBLIC_API_URL: "http://localhost:3000",
+  NEXT_PUBLIC_APP_URL: "http://localhost:3001",
+  NEXT_PUBLIC_ENVIRONMENT: "ci-local",
+  NODE_ENV: "test",
+  QUEUE_NAME: "birthub-cycle1",
+  REDIS_URL: "redis://localhost:6379",
+  SESSION_SECRET: "ci-local-secret",
+  WEB_BASE_URL: "http://localhost:3001"
+};
+
 const stepDefinitions = {
   build: { kind: "pnpm", args: ["build"] },
   "db:generate": { kind: "pnpm", args: ["db:generate"] },
@@ -43,7 +57,13 @@ const taskGroups = {
   ],
   "pack-tests": ["packs:validate", "packs:test", "packs:smoke", "packs:regression"],
   platform: ["lint", "typecheck", "test", "test:isolation", "build"],
-  "workflow-suite": ["lint:workflows", "test:workflows", "security:guards", "security:report"]
+  "workflow-suite": [
+    "lint:workflows",
+    "test:workflows",
+    "security:guards",
+    "security:report",
+    "test:agents"
+  ]
 };
 
 function runDirtyTreeCheck() {
@@ -58,7 +78,7 @@ function runNamedStep(name) {
   }
 
   if (definition.kind === "pnpm") {
-    runPnpm(definition.args);
+    runPnpm(definition.args, { env: ciEnvironmentDefaults });
     return;
   }
 
@@ -69,12 +89,12 @@ function runTask(target) {
   if (taskGroups[target]) {
     for (const step of taskGroups[target]) {
       runNamedStep(step);
+      runDirtyTreeCheck();
     }
   } else {
     runNamedStep(target);
+    runDirtyTreeCheck();
   }
-
-  runDirtyTreeCheck();
 }
 
 function parseTarget(mode, rest) {

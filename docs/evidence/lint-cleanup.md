@@ -1,70 +1,31 @@
-# Ciclo 2 — Lint Global
+# Ciclo 2 - Lint Global
 
-## 1) Diagnóstico
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-- **Problema encontrado:** `pnpm lint` falhando com 48 erros iniciais no `@birthub/api`.
-- **Causa raiz:** mistura de `any`, argumentos inseguros, `no-floating-promises` em testes e asserções de tipo desnecessárias.
-- **Impacto:** bloqueio da qualidade estática e risco de regressões no CI.
+## 1) Diagnostico
+
+- Problema encontrado: o baseline de lint ja tinha sido recuperado, mas faltava consolidar a evidencia final sem markers de merge e refletindo os ajustes recentes em `apps/web` e `apps/worker`.
+- Causa raiz: o arquivo de evidencia ficou preso em duas narrativas de ciclos diferentes.
+- Impacto: rastreabilidade operacional incompleta para o gate `pnpm lint`.
 
 ## 2) Plano
-- Corrigir automaticamente o que for seguro com ESLint `--fix`.
-- Remover asserções redundantes (`no-unnecessary-type-assertion`) sem enfraquecer tipagem.
-- Registrar pendências residuais para próximos commits menores.
 
-## 3) Execução
-- Rodado: `pnpm --filter @birthub/api exec eslint . --fix`.
-- Ajustes aplicados automaticamente:
-  - remoção de type assertions desnecessárias em `apps/api/src/modules/webhooks/stripe.router.ts`;
-  - remoção de assertion desnecessária em `apps/api/tests/marketplace-budget.smoke.test.ts`.
-- Resultado parcial: total caiu de 48 para 42 erros.
+- Preservar o historico util do cleanup no `@birthub/api`.
+- Acrescentar as correcoes mais recentes que destravaram lint/build do `@birthub/web` e o teste do worker.
+- Revalidar o lint global com o baseline atual.
 
-## 4) Validação
-- `pnpm lint` ❌ (ainda com erros remanescentes em `@birthub/api`).
-- `pnpm --filter @birthub/api exec eslint . --fix` ⚠️ (corrige parte, não zera).
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-- **Problema encontrado:** `pnpm lint` falhava com 48 erros iniciais no `@birthub/api`.
-- **Causa raiz:** uso de `any`, `no-floating-promises`, `no-base-to-string`, `no-unsafe-argument`, `no-implied-eval` e variáveis/imports não usados.
-- **Impacto:** bloqueio de qualidade estática e risco de regressões no CI.
+## 3) Execucao
 
-## 2) Plano
-- Corrigir violações com mudanças tipadas e seguras, sem desabilitar regras.
-- Fechar completamente o lint global (`pnpm lint` verde).
+- Mantidas as correcoes que zeraram o lint do `@birthub/api`.
+- Ajustado `apps/web/tsconfig.json` para resolver `@birthub/config` e `@birthub/workflows-core` sem depender de artefatos `dist` preexistentes.
+- Atualizados `packages/config/package.json` e `packages/workflows-core/package.json` para expor tipos a partir de `src`, mantendo import runtime em `dist`.
+- Corrigido `apps/worker/src/worker.ts` para assinar o payload canonico completo dos jobs legados, fechando a falha de teste que contaminava a rodada de validacao.
 
-## 3) Execução
-- Substituição de pontos com `any` por tipagem explícita e narrowing seguro.
-- Ajustes em rotas para parse explícito com schemas Zod antes de chamadas de serviço.
-- Correções de `no-floating-promises` em testes de isolamento.
-- Remoção de import dinâmico via `Function` no auth crypto.
-- Ajustes de serialização segura para JSON/CSV e remoção de código morto.
+## 4) Validacao
 
-## 4) Validação
-- `pnpm --filter @birthub/api exec eslint .` ✅
-- `pnpm lint` ✅
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
+- `pnpm lint`: OK
+- `pnpm typecheck`: OK
+- `pnpm --filter @birthub/worker test`: OK
 
-## 5) Evidência
-- Este arquivo: `docs/evidence/lint-cleanup.md`.
+## 5) Evidencia
+
+- Ajustes de import/tipos: `apps/web/tsconfig.json`, `packages/config/package.json`, `packages/workflows-core/package.json`
+- Ajuste do worker: `apps/worker/src/worker.ts`

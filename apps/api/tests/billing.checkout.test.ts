@@ -62,7 +62,7 @@ void test("checkout session enables automatic tax and propagates locale/country"
       stripeClient: {
         checkout: {
           sessions: {
-            create: async (input) => {
+            create: async (input: Stripe.Checkout.SessionCreateParams) => {
               checkoutCalls.push(input);
               return {
                 id: "cs_test_checkout",
@@ -72,10 +72,18 @@ void test("checkout session enables automatic tax and propagates locale/country"
           }
         },
         customers: {
-          update: async (customerId, input) => {
+          update: async (customerId: string, input: Stripe.CustomerUpdateParams) => {
+            const country =
+              typeof input.address === "object" &&
+              input.address !== null &&
+              "country" in input.address &&
+              typeof input.address.country === "string"
+                ? input.address.country
+                : "";
+
             customerUpdates.push({
               address: {
-                country: input.address?.country ?? ""
+                country
               },
               customerId
             });

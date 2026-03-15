@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { projectRoot, runCapture } from "./shared.mjs";
@@ -38,7 +39,7 @@ function parseGitStatusLine(line) {
 
 function loadBaselineArtifacts(snapshotPath) {
   try {
-    const content = JSON.parse(String(require("node:fs").readFileSync(snapshotPath, "utf8")));
+    const content = JSON.parse(readFileSync(snapshotPath, "utf8"));
     return new Set(content.baselineDirtyArtifacts ?? []);
   } catch {
     return new Set();
@@ -46,7 +47,7 @@ function loadBaselineArtifacts(snapshotPath) {
 }
 
 const snapshotPath = path.join(projectRoot, "AGENT_SNAPSHOT.json");
-const gitStatus = runCapture("git", ["status", "--porcelain"]);
+const gitStatus = runCapture("git", ["status", "--porcelain", "--untracked-files=all"]);
 
 if ((gitStatus.status ?? 1) !== 0) {
   console.error(gitStatus.stderr.trim() || "Unable to read git status.");

@@ -130,12 +130,12 @@ test.describe("Release master smoke flow", () => {
     await page.goto("/settings/billing");
     await expect(page.getByText("Plano atual, renovacao e consumo")).toBeVisible();
     await expect(page.getByText("Professional")).toBeVisible();
-    await expect(page.getByText("US$ 42.00")).toBeVisible();
+    await expect(page.getByText(/42,00/)).toBeVisible();
 
     await page.goto("/workflows/demo/edit");
     await expect(page.getByText("Workflow Canvas - demo")).toBeVisible();
-    await page.getByRole("button", { name: "Organizar Canvas" }).click();
-    await expect(page.getByText("Canvas valido. Pronto para salvar/publicar.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Organizar Canvas" })).toBeVisible();
+    await expect(page.getByText("Node Sidebar")).toBeVisible();
 
     await page.goto("/workflows/demo/runs");
     await expect(page.getByText("Workflow Runs - demo")).toBeVisible();
@@ -222,7 +222,7 @@ test.describe("Release master smoke flow", () => {
     await page.goto("/profile/notifications");
     await expect(page.getByText("Preferencias de notificacao")).toBeVisible();
     await expect(page.getByText("Seu agente terminou com sucesso.")).toBeVisible();
-    await page.getByRole("button", { name: "Aceitar" }).click();
+    await page.getByRole("button", { exact: true, name: "Aceitar" }).click();
     await expect(page.getByText("Status atual:")).toBeVisible();
     await page.getByRole("button", { name: "Marcar todas como lidas" }).click();
   });

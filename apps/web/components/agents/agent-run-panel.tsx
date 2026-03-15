@@ -89,7 +89,11 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
       );
 
       source.addEventListener("log", (event) => {
-        const parsed = JSON.parse((event as MessageEvent).data) as StreamLog;
+        if (!(event instanceof MessageEvent) || typeof event.data !== "string") {
+          return;
+        }
+
+        const parsed = JSON.parse(event.data) as StreamLog;
         setLogs((current) => [...current, parsed]);
       });
 
@@ -171,4 +175,3 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
     </section>
   );
 }
-

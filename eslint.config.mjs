@@ -9,6 +9,8 @@ const ignored = [
   "**/node_modules/**",
   "**/test-results/**",
   "**/*.cjs",
+  "**/*.mjs",
+  "**/*.js",
   "**/*.d.ts"
 ];
 

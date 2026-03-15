@@ -5,7 +5,7 @@ import { WorkflowTransitionRoute } from "@birthub/database";
 
 import { calculateBackoff, shouldFollowTransition } from "./runner.js";
 
-test("Runner routes condition branch to THEN path when result=true", () => {
+void test("Runner routes condition branch to THEN path when result=true", () => {
   const output = { result: true };
   assert.equal(
     shouldFollowTransition(WorkflowTransitionRoute.IF_TRUE, output, false),
@@ -17,7 +17,7 @@ test("Runner routes condition branch to THEN path when result=true", () => {
   );
 });
 
-test("Runner routes condition branch to ELSE path when result=false", () => {
+void test("Runner routes condition branch to ELSE path when result=false", () => {
   const output = { result: false };
   assert.equal(
     shouldFollowTransition(WorkflowTransitionRoute.IF_TRUE, output, false),
@@ -29,7 +29,7 @@ test("Runner routes condition branch to ELSE path when result=false", () => {
   );
 });
 
-test("Runner only follows failure routes when step fails", () => {
+void test("Runner only follows failure routes when step fails", () => {
   assert.equal(
     shouldFollowTransition(WorkflowTransitionRoute.ON_FAILURE, null, true),
     true
@@ -44,7 +44,7 @@ test("Runner only follows failure routes when step fails", () => {
   );
 });
 
-test("Runner retry backoff is exponential and capped", () => {
+void test("Runner retry backoff is exponential and capped", () => {
   assert.equal(calculateBackoff(1), 2000);
   assert.equal(calculateBackoff(2), 4000);
   assert.equal(calculateBackoff(8), 60000);

@@ -46,9 +46,26 @@ function renderLayout(input: {
 </html>`;
 }
 
+function readContextText(
+  context: Record<string, unknown>,
+  key: string,
+  fallback: string
+): string {
+  const value = context[key];
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return String(value);
+  }
+
+  return fallback;
+}
+
 function renderWorkflowCompletedHtml(context: Record<string, unknown>) {
-  const executionId = String(context.executionId ?? "n/a");
-  const agentId = String(context.agentId ?? "workflow");
+  const executionId = readContextText(context, "executionId", "n/a");
+  const agentId = readContextText(context, "agentId", "workflow");
   const link = typeof context.link === "string" ? context.link : "";
 
   return renderLayout({
@@ -68,9 +85,9 @@ function renderWorkflowCompletedHtml(context: Record<string, unknown>) {
 }
 
 function renderCriticalErrorHtml(context: Record<string, unknown>) {
-  const executionId = String(context.executionId ?? "n/a");
-  const agentId = String(context.agentId ?? "agent");
-  const errorMessage = String(context.errorMessage ?? "Erro nao informado.");
+  const executionId = readContextText(context, "executionId", "n/a");
+  const agentId = readContextText(context, "agentId", "agent");
+  const errorMessage = readContextText(context, "errorMessage", "Erro nao informado.");
   const link = typeof context.link === "string" ? context.link : "";
 
   return renderLayout({

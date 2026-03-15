@@ -63,9 +63,8 @@ export class AgentQueueRouter {
       }
     });
 
-    const typedQueue = queue as Queue<AgentQueuePayload>;
-    this.queues.set(queueName, typedQueue);
-    return typedQueue;
+    this.queues.set(queueName, queue);
+    return queue;
   }
 
   async enqueue(payload: AgentQueuePayload, options?: JobsOptions): Promise<void> {

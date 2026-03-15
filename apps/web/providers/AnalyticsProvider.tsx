@@ -76,7 +76,7 @@ function sanitizeString(keyPath: string[], value: string): string {
 
   return value
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
-    .replace(/\b(sk|pk|rk|whsec|sg)\_[A-Za-z0-9_\-]+\b/g, "[redacted-token]")
+    .replace(/\b(sk|pk|rk|whsec|sg)_[A-Za-z0-9_-]+\b/g, "[redacted-token]")
     .replace(/\bBearer\s+[A-Za-z0-9\-._~+/]+=*\b/gi, "Bearer [redacted-token]")
     .slice(0, 180);
 }
@@ -111,7 +111,15 @@ function sanitizeValue(keyPath: string[], value: unknown): unknown {
     );
   }
 
-  return String(value);
+  if (typeof value === "bigint") {
+    return value.toString();
+  }
+
+  if (typeof value === "symbol") {
+    return value.description ?? "[symbol]";
+  }
+
+  return "[unsupported]";
 }
 
 function buildAnalyticsClient(input: {
@@ -252,4 +260,3 @@ export function AnalyticsProvider({ children }: Readonly<{ children: ReactNode }
 export function useAnalytics(): AnalyticsContextValue {
   return useContext(AnalyticsContext);
 }
-

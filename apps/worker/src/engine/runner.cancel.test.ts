@@ -4,11 +4,11 @@ import test from "node:test";
 import { prisma, WorkflowExecutionStatus, WorkflowTriggerType } from "@birthub/database";
 import type { Queue } from "bullmq";
 
-import { WorkflowRunner } from "./runner.js";
+import { type WorkflowExecutionJobPayload, WorkflowRunner } from "./runner.js";
 
-test("Cancelled execution does not enqueue or process further steps", async () => {
-  const originalFindExecution = prisma.workflowExecution.findUnique;
-  const originalFindWorkflow = prisma.workflow.findFirst;
+void test("Cancelled execution does not enqueue or process further steps", async () => {
+  const originalFindExecution = prisma.workflowExecution.findUnique.bind(prisma.workflowExecution);
+  const originalFindWorkflow = prisma.workflow.findFirst.bind(prisma.workflow);
 
   let workflowLookupCalled = false;
   (prisma.workflowExecution.findUnique as unknown as (args: unknown) => Promise<unknown>) =
@@ -24,7 +24,7 @@ test("Cancelled execution does not enqueue or process further steps", async () =
   try {
     const fakeQueue = {
       add: async () => undefined
-    } as unknown as Queue<any>;
+    } as unknown as Queue<WorkflowExecutionJobPayload>;
     const runner = new WorkflowRunner(fakeQueue);
 
     await runner.processExecutionJob({
@@ -44,4 +44,3 @@ test("Cancelled execution does not enqueue or process further steps", async () =
     prisma.workflow.findFirst = originalFindWorkflow;
   }
 });
-

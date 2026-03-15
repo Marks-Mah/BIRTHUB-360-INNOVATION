@@ -1,5 +1,11 @@
 import type { ApiConfig } from "@birthub/config";
-import { Prisma, Role, SubscriptionStatus, prisma } from "@birthub/database";
+import {
+  BillingCreditReason,
+  Prisma,
+  Role,
+  SubscriptionStatus,
+  prisma
+} from "@birthub/database";
 import Stripe from "stripe";
 
 import {
@@ -280,6 +286,23 @@ async function findOrganizationByReference(
   });
 }
 
+async function getBillingCreditBalanceCents(
+  organizationId: string,
+  client: DatabaseClient = prisma
+): Promise<number> {
+  const aggregate = await client.billingCredit.aggregate({
+    _sum: {
+      amountCents: true
+    },
+    where: {
+      organizationId,
+      reason: BillingCreditReason.DOWNGRADE_PRORATION
+    }
+  });
+
+  return aggregate._sum.amountCents ?? 0;
+}
+
 export async function ensurePlanByCode(code: string, client: DatabaseClient = prisma) {
   const normalized = normalizePlanCode(code);
   const plan = await client.plan.findUnique({
@@ -317,6 +340,7 @@ export async function ensurePlanByCode(code: string, client: DatabaseClient = pr
 }
 
 export interface BillingSnapshot {
+  creditBalanceCents: number;
   currentPeriodEnd: Date | null;
   gracePeriodEndsAt: Date | null;
   hardLocked: boolean;
@@ -377,6 +401,7 @@ export async function getBillingSnapshot(
 
   const subscription = organization.subscriptions[0] ?? null;
   const plan = subscription?.plan ?? organization.plan ?? (await ensurePlanByCode("starter"));
+  const creditBalanceCents = await getBillingCreditBalanceCents(organization.id);
   const gracePeriodEndsAt = resolveGracePeriodEndsAt(subscription, gracePeriodDays);
   const isPastDue = subscription?.status === SubscriptionStatus.past_due;
   const hardLocked = Boolean(
@@ -388,6 +413,7 @@ export async function getBillingSnapshot(
       : null;
 
   const snapshot: BillingSnapshot = {
+    creditBalanceCents,
     currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
     gracePeriodEndsAt,
     hardLocked,
@@ -543,6 +569,7 @@ export async function createCheckoutSessionForOrganization(input: {
   locale?: string | null;
   organizationReference: string;
   planId: string;
+  stripeClient?: Stripe;
 }) {
   const organization = await findOrganizationByReference(input.organizationReference);
 
@@ -576,7 +603,7 @@ export async function createCheckoutSessionForOrganization(input: {
     });
   }
 
-  const stripe = createStripeClient(input.config);
+  const stripe = input.stripeClient ?? createStripeClient(input.config);
   const customerId = await resolveCustomerForCheckout({
     config: input.config,
     organizationReference: input.organizationReference
@@ -649,6 +676,7 @@ export async function createCheckoutSessionForOrganization(input: {
 export async function createCustomerPortalSessionForOrganization(input: {
   config: ApiConfig;
   organizationReference: string;
+  stripeClient?: Stripe;
 }): Promise<{ url: string }> {
   const organization = await findOrganizationByReference(input.organizationReference);
 
@@ -660,7 +688,7 @@ export async function createCustomerPortalSessionForOrganization(input: {
     });
   }
 
-  const stripe = createStripeClient(input.config);
+  const stripe = input.stripeClient ?? createStripeClient(input.config);
   const portal = await stripe.billingPortal.sessions.create({
     customer: organization.stripeCustomerId,
     return_url: input.config.STRIPE_PORTAL_RETURN_URL

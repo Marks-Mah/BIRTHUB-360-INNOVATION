@@ -7,6 +7,7 @@ import { fetchWithSession } from "../../../../lib/auth-client";
 type MePayload = {
   plan?: {
     code?: string;
+    creditBalanceCents?: number;
     currentPeriodEnd?: string | null;
     isPaid?: boolean;
     name?: string;
@@ -201,6 +202,11 @@ export default function BillingSettingsPage() {
                 : "Sem data"}
             </strong>
             <p>Proxima data de cobranca estimada.</p>
+          </article>
+          <article>
+            <span className="badge">Creditos</span>
+            <strong>{asCurrency(me?.plan?.creditBalanceCents ?? 0, "usd")}</strong>
+            <p>Saldo acumulado de downgrade/proration disponivel no tenant.</p>
           </article>
         </div>
       </section>

@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { PrismaClient } from "@birthub/database";
@@ -13,6 +14,15 @@ function withSchema(databaseUrl: string, schema: string): string {
 }
 
 function pnpmExecutable(): string {
+  const bundledPnpm = resolve(
+    import.meta.dirname,
+    "../../../.tools/node-v22.22.1-win-x64/node_modules/corepack/dist/pnpm.js"
+  );
+
+  if (existsSync(bundledPnpm)) {
+    return bundledPnpm;
+  }
+
   return process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 }
 
@@ -28,18 +38,20 @@ export async function provisionTestDatabase(baseDatabaseUrl: string): Promise<Te
   const databaseUrl = withSchema(baseDatabaseUrl, schema);
   const databasePackageCwd = resolve(import.meta.dirname, "../../database");
 
-  execFileSync(
-    pnpmExecutable(),
-    ["exec", "prisma", "db", "push", "--skip-generate", "--schema", "prisma/schema.prisma"],
-    {
-      cwd: databasePackageCwd,
-      env: {
-        ...process.env,
-        DATABASE_URL: databaseUrl
-      },
-      stdio: "inherit"
-    }
-  );
+  const pnpm = pnpmExecutable();
+  const command = pnpm.endsWith("pnpm.js") ? process.execPath : pnpm;
+  const args = pnpm.endsWith("pnpm.js")
+    ? [pnpm, "exec", "prisma", "db", "push", "--skip-generate", "--schema", "prisma/schema.prisma"]
+    : ["exec", "prisma", "db", "push", "--skip-generate", "--schema", "prisma/schema.prisma"];
+
+  execFileSync(command, args, {
+    cwd: databasePackageCwd,
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrl
+    },
+    stdio: "inherit"
+  });
 
   const prisma = new PrismaClient({
     datasources: {

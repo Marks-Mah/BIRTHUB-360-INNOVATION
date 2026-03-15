@@ -2,6 +2,7 @@ import { prisma } from "@birthub/database";
 import { createLogger } from "@birthub/logger";
 
 import { flushBufferedAuditEvents } from "./auditFlush.js";
+import { exportDailyBillingInvoices } from "./billingExport.js";
 import { computeAndPersistHealthScores } from "./healthScore.js";
 import { inviteCleanupJob } from "./inviteCleanup.js";
 import { quotaResetJob } from "./quotaReset.js";
@@ -55,6 +56,22 @@ export function startCycle2Jobs(): Cycle2JobsRuntime {
     }, 60 * 60 * 1000),
     setInterval(() => {
       const now = new Date();
+
+      if (now.getUTCHours() === 2) {
+        void exportDailyBillingInvoices(now)
+          .then((result) => {
+            logger.info(
+              {
+                day: result.window.day,
+                exports: result.exports.length
+              },
+              "Nightly billing invoice export finished"
+            );
+          })
+          .catch((error) => {
+            logger.error({ error }, "Nightly billing invoice export failed");
+          });
+      }
 
       if (now.getUTCHours() === 3) {
         void computeAndPersistHealthScores()

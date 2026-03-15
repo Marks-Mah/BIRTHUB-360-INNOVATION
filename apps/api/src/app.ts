@@ -456,6 +456,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
       response.status(200).json({
         plan: {
           code: billing.plan.code,
+          creditBalanceCents: billing.creditBalanceCents,
           currentPeriodEnd: billing.currentPeriodEnd,
           hardLocked: billing.hardLocked,
           isPaid: billing.isPaid,

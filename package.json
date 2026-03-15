@@ -24,7 +24,7 @@
     "packs:docs": "pnpm --filter @birthub/agent-packs docs",
     "packs:qa-report": "node --import tsx scripts/pack-qa-report.ts",
     "format": "prettier --write .",
-    "lint:workflows": "pnpm --filter @birthub/workflows-core lint -- --max-warnings=0",
+    "lint:workflows": "pnpm --filter @birthub/workflows-core lint:strict",
     "db:generate": "pnpm --filter @birthub/database db:generate",
     "db:migrate": "pnpm --filter @birthub/database db:migrate:dev",
     "db:migrate:deploy": "pnpm --filter @birthub/database db:migrate:deploy",

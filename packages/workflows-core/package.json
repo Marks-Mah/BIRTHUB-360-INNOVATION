@@ -14,6 +14,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "eslint . --config eslint.config.mjs",
+    "lint:strict": "eslint . --config eslint.config.mjs --max-warnings=0",
     "test": "node --import tsx --test test/**/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

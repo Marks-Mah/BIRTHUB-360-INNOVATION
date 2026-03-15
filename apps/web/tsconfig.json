@@ -11,16 +11,16 @@
         "../../packages/logger/src/*"
       ],
       "@birthub/config": [
-        "../../packages/config/dist/index.js"
+        "../../packages/config"
       ],
       "@birthub/config/*": [
-        "../../packages/config/dist/*"
+        "../../packages/config/*"
       ],
       "@birthub/workflows-core": [
-        "../../packages/workflows-core/dist/src/index.js"
+        "../../packages/workflows-core"
       ],
       "@birthub/workflows-core/*": [
-        "../../packages/workflows-core/dist/src/*"
+        "../../packages/workflows-core/*"
       ]
     },
     "plugins": [

@@ -52,6 +52,11 @@ function hashPayload(payload: string): string {
   return createHash("sha256").update(payload, "utf8").digest("hex");
 }
 
+function serializeLegacySignedPayload(payload: z.infer<typeof taskJobSchema>): string {
+  const { signature: _signature, ...unsignedPayload } = payload;
+  return JSON.stringify(unsignedPayload);
+}
+
 export function validateLegacyTaskJob(input: {
   fallbackSecret: string;
   jobId: string;
@@ -77,14 +82,9 @@ export function validateLegacyTaskJob(input: {
     throw new Error("JOB_CONTEXT_ID_MISMATCH");
   }
 
-  const signedPayload = JSON.stringify({
-    context,
-    payload: input.payload.payload,
-    requestId: input.payload.requestId,
-    tenantId: input.payload.tenantId,
-    type: input.payload.type,
-    userId: input.payload.userId,
-    version: input.payload.version
+  const signedPayload = serializeLegacySignedPayload({
+    ...input.payload,
+    context
   });
   const expectedSignature = signPayload(
     signedPayload,

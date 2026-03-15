@@ -8,11 +8,11 @@ import { createApp } from "../src/app.js";
 import { createTestApiConfig } from "./test-config.js";
 import { sha256 } from "../src/modules/auth/crypto.js";
 
-function stubMethod(target: any, key: string, value: unknown): () => void {
-  const original = target[key];
-  target[key] = value;
+function stubMethod(target: object, key: string, value: unknown): () => void {
+  const original = Reflect.get(target, key);
+  Reflect.set(target, key, value);
   return () => {
-    target[key] = original;
+    Reflect.set(target, key, original);
   };
 }
 
@@ -42,8 +42,8 @@ void test("RBAC matrix on /api/v1/users enforces role policy", async () => {
       id: "org_1",
       tenantId: "tenant_1"
     })),
-    stubMethod(prisma.session, "findUnique", async ({ where }: any) => {
-      const userId = userByTokenHash[where.token as string];
+    stubMethod(prisma.session, "findUnique", async (args: { where?: { token?: string } }) => {
+      const userId = args.where?.token ? userByTokenHash[args.where.token] : undefined;
 
       if (!userId) {
         return null;
@@ -58,8 +58,8 @@ void test("RBAC matrix on /api/v1/users enforces role policy", async () => {
       };
     }),
     stubMethod(prisma.session, "update", async () => ({ id: "session_any" })),
-    stubMethod(prisma.user, "findUnique", async ({ where }: any) => ({
-      id: where.id as string,
+    stubMethod(prisma.user, "findUnique", async (args: { where?: { id?: string } }) => ({
+      id: args.where?.id ?? "",
       status: UserStatus.ACTIVE
     })),
     stubMethod(prisma.membership, "findMany", async () => [
@@ -76,8 +76,11 @@ void test("RBAC matrix on /api/v1/users enforces role policy", async () => {
         userId: "user_member"
       }
     ]),
-    stubMethod(prisma.membership, "findUnique", async ({ where }: any) => {
-      const userId = where.organizationId_userId.userId as string;
+    stubMethod(
+      prisma.membership,
+      "findUnique",
+      async (args: { where?: { organizationId_userId?: { userId?: string } } }) => {
+      const userId = args.where?.organizationId_userId?.userId ?? "";
       const role = roleByUserId[userId];
 
       if (!role) {
@@ -89,7 +92,8 @@ void test("RBAC matrix on /api/v1/users enforces role policy", async () => {
         role,
         userId
       };
-    })
+      }
+    )
   ];
 
   try {

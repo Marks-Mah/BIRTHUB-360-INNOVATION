@@ -7,7 +7,7 @@ import request from "supertest";
 import { requestContextMiddleware } from "../src/middleware/request-context.js";
 import { tenantContextMiddleware } from "../src/middleware/tenant-context.js";
 
-test("resource ids de outro tenant retornam 404 ou 403 sem enumeracao", async () => {
+void test("resource ids de outro tenant retornam 404 ou 403 sem enumeracao", async () => {
   const app = express();
 
   app.use(requestContextMiddleware);

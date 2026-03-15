@@ -2,7 +2,6 @@ import { getApiConfig } from "@birthub/config";
 import {
   Prisma,
   prisma,
-  type PrismaClient,
   type QuotaResourceType,
   Role,
   SubscriptionStatus,
@@ -14,7 +13,11 @@ import { hashPassword } from "../auth/crypto.js";
 import { ensurePlanByCode, provisionStripeCustomerForOrganization } from "../billing/service.js";
 import { enqueueCrmSync } from "../engagement/queues.js";
 
-type DatabaseClient = PrismaClient | Prisma.TransactionClient;
+type DatabaseClient = {
+  organization: {
+    findFirst: typeof prisma.organization.findFirst;
+  };
+};
 
 const bootstrapQuotas: Array<{ limit: number; resourceType: QuotaResourceType }> = [
   { limit: 5_000, resourceType: "API_REQUESTS" },
@@ -24,11 +27,31 @@ const bootstrapQuotas: Array<{ limit: number; resourceType: QuotaResourceType }>
 
 function buildAuditCsv(rows: Array<Record<string, unknown>>): string {
   const headers = ["createdAt", "actorId", "action", "entityType", "entityId", "ip", "userAgent"];
+  const toCsvCell = (value: unknown): string => {
+    if (value === null || value === undefined) {
+      return JSON.stringify("");
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return JSON.stringify(value);
+    }
+
+    if (typeof value === "bigint") {
+      return JSON.stringify(value.toString());
+    }
+
+    if (value instanceof Date) {
+      return JSON.stringify(value.toISOString());
+    }
+
+    return JSON.stringify(JSON.stringify(value));
+  };
+
   const lines = [
     headers.join(","),
     ...rows.map((row) =>
       headers
-        .map((header) => JSON.stringify(String(row[header] ?? "")))
+        .map((header) => toCsvCell(row[header]))
         .join(",")
     )
   ];

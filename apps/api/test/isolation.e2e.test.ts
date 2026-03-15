@@ -7,7 +7,7 @@ import request from "supertest";
 import { requestContextMiddleware } from "../src/middleware/request-context.js";
 import { tenantContextMiddleware } from "../src/middleware/tenant-context.js";
 
-test("contexto de tenant nao vaza entre requests concorrentes", async () => {
+void test("contexto de tenant nao vaza entre requests concorrentes", async () => {
   const app = express();
 
   app.use(requestContextMiddleware);

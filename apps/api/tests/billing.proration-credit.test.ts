@@ -103,6 +103,10 @@ void test("customer.subscription.updated creates one proration credit for a down
       stripeCustomerId: "cus_alpha",
       tenantId: "tenant_alpha"
     })),
+    stubMethod(prisma.organization, "findUnique", async () => ({
+      id: "org_alpha",
+      tenantId: "tenant_alpha"
+    })),
     stubMethod(prisma.organization, "update", async () => ({
       id: "org_alpha"
     })),

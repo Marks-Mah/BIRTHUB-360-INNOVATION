@@ -52,7 +52,12 @@ void test("pack install is blocked with 402 when agents feature is disabled by p
         slug: "birthhub-alpha",
         tenantId: "tenant_alpha"
       };
-    })
+    }),
+    stubMethod(prisma.billingCredit, "aggregate", async () => ({
+      _sum: {
+        amountCents: 0
+      }
+    }))
   ];
 
   try {

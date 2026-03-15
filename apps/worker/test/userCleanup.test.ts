@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { PrismaClient } from "@birthub/database";
 
 import { cleanupSuspendedUsers } from "../src/jobs/userCleanup.js";
 
@@ -19,7 +20,7 @@ void test("cleanupSuspendedUsers anonymizes stale suspended users", async () => 
         return input;
       }
     }
-  } as any;
+  } as unknown as PrismaClient;
 
   const result = await cleanupSuspendedUsers(
     prismaClient,

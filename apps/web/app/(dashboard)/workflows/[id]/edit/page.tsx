@@ -4,7 +4,6 @@ import "reactflow/dist/style.css";
 
 import { useEffect, useMemo, useState } from "react";
 
-import dagre from "dagre";
 import { Play, Shuffle, Zap } from "lucide-react";
 import { useForm } from "react-hook-form";
 import ReactFlow, {
@@ -263,27 +262,15 @@ type SidebarForm = {
   label: string;
 };
 
-function autoLayout(nodes: Node<BuilderNodeData>[], edges: Edge[]): Node<BuilderNodeData>[] {
-  const graph = new dagre.graphlib.Graph();
-  graph.setDefaultEdgeLabel(() => ({}));
-  graph.setGraph({ rankdir: "LR", ranksep: 100 });
-
-  for (const node of nodes) {
-    graph.setNode(node.id, { height: 92, width: 220 });
-  }
-
-  for (const edge of edges) {
-    graph.setEdge(edge.source, edge.target);
-  }
-
-  dagre.layout(graph);
-  return nodes.map((node) => {
-    const position = graph.node(node.id);
+function autoLayout(nodes: Node<BuilderNodeData>[], _edges: Edge[]): Node<BuilderNodeData>[] {
+  return nodes.map((node, index) => {
+    const column = index % 4;
+    const row = Math.floor(index / 4);
     return {
       ...node,
       position: {
-        x: position.x - 110,
-        y: position.y - 46
+        x: column * 280,
+        y: row * 180
       }
     };
   });
@@ -547,4 +534,3 @@ export default function WorkflowEditPage({ params }: { params: { id: string } })
     </section>
   );
 }
-

@@ -6,6 +6,11 @@ import { provisionTestDatabase } from "@birthub/testing";
 
 import { PlanExecutor } from "./executors/planExecutor.js";
 
+function readSeedValue(data: Record<string, unknown>, key: string, fallback: string): string {
+  const value = data[key];
+  return typeof value === "string" ? value : fallback;
+}
+
 class InMemoryRedis {
   private readonly data = new Map<string, string>();
 
@@ -41,8 +46,8 @@ void test("runtime integration executes db-write and db-read with real database"
     executor: async ({ data }) => {
       const created = await handle.prisma.organization.create({
         data: {
-          name: String(data.name ?? "Integration Agent Org"),
-          slug: String(data.slug ?? `integration-${Date.now()}`)
+          name: readSeedValue(data, "name", "Integration Agent Org"),
+          slug: readSeedValue(data, "slug", `integration-${Date.now()}`)
         }
       });
       return created ? 1 : 0;

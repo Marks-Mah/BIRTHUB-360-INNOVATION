@@ -13,7 +13,7 @@ import type { Queue } from "bullmq";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 
-import { WorkflowRunner } from "./runner.js";
+import { type WorkflowExecutionJobPayload, WorkflowRunner } from "./runner.js";
 
 const server = setupServer();
 
@@ -29,12 +29,12 @@ test.afterEach(() => {
   server.resetHandlers();
 });
 
-test("Workflow runner executes HTTP_REQUEST with MSW intercepting external side-effects", async () => {
-  const originalFindExecution = prisma.workflowExecution.findUnique;
-  const originalFindWorkflow = prisma.workflow.findFirst;
-  const originalFindResults = prisma.stepResult.findMany;
-  const originalCreateResult = prisma.stepResult.create;
-  const originalUpdateExecution = prisma.workflowExecution.update;
+void test("Workflow runner executes HTTP_REQUEST with MSW intercepting external side-effects", async () => {
+  const originalFindExecution = prisma.workflowExecution.findUnique.bind(prisma.workflowExecution);
+  const originalFindWorkflow = prisma.workflow.findFirst.bind(prisma.workflow);
+  const originalFindResults = prisma.stepResult.findMany.bind(prisma.stepResult);
+  const originalCreateResult = prisma.stepResult.create.bind(prisma.stepResult);
+  const originalUpdateExecution = prisma.workflowExecution.update.bind(prisma.workflowExecution);
 
   const queuedJobs: Array<{ name: string; options?: Record<string, unknown>; payload: Record<string, unknown> }> = [];
   const createdResults: Array<Record<string, unknown>> = [];
@@ -123,7 +123,7 @@ test("Workflow runner executes HTTP_REQUEST with MSW intercepting external side-
           ...(options ? { options } : {})
         });
       }
-    } as unknown as Queue<any>;
+    } as unknown as Queue<WorkflowExecutionJobPayload>;
     const runner = new WorkflowRunner(fakeQueue);
 
     await runner.processExecutionJob({

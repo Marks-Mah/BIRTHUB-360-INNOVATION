@@ -10,15 +10,15 @@ import {
 } from "@birthub/database";
 import type { Queue } from "bullmq";
 
-import { WorkflowRunner } from "./runner.js";
+import { type WorkflowExecutionJobPayload, WorkflowRunner } from "./runner.js";
 
-test("Workflow runner smoke test executes CEO agent and persists the result", async () => {
-  const originalFindExecution = prisma.workflowExecution.findUnique;
-  const originalFindWorkflow = prisma.workflow.findFirst;
-  const originalFindResults = prisma.stepResult.findMany;
-  const originalCreateResult = prisma.stepResult.create;
-  const originalUpdateExecution = prisma.workflowExecution.update;
-  const originalFindQuota = prisma.quotaUsage.findFirst;
+void test("Workflow runner smoke test executes CEO agent and persists the result", async () => {
+  const originalFindExecution = prisma.workflowExecution.findUnique.bind(prisma.workflowExecution);
+  const originalFindWorkflow = prisma.workflow.findFirst.bind(prisma.workflow);
+  const originalFindResults = prisma.stepResult.findMany.bind(prisma.stepResult);
+  const originalCreateResult = prisma.stepResult.create.bind(prisma.stepResult);
+  const originalUpdateExecution = prisma.workflowExecution.update.bind(prisma.workflowExecution);
+  const originalFindQuota = prisma.quotaUsage.findFirst.bind(prisma.quotaUsage);
 
   const createdResults: Array<Record<string, unknown>> = [];
   const executionUpdates: Array<Record<string, unknown>> = [];
@@ -70,7 +70,7 @@ test("Workflow runner smoke test executes CEO agent and persists the result", as
   try {
     const fakeQueue = {
       add: async () => undefined
-    } as unknown as Queue<any>;
+    } as unknown as Queue<WorkflowExecutionJobPayload>;
     const runner = new WorkflowRunner(fakeQueue, {
       agentExecutor: {
         execute: async (args) => {

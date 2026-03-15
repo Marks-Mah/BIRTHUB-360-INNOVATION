@@ -79,7 +79,7 @@ class HubspotSyncAdapter {
       const parsed = JSON.parse(body) as { id?: unknown };
       companyId = typeof parsed.id === "string" ? parsed.id : null;
     } catch {
-      companyId = null;
+      // Keep fallback when HubSpot omits an `id` in the response body.
     }
 
     return {

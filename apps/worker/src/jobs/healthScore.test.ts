@@ -6,7 +6,7 @@ import {
   shouldEmitChurnRisk
 } from "./healthScore.js";
 
-test("calculateHealthScore rewards active agent usage", () => {
+void test("calculateHealthScore rewards active agent usage", () => {
   const score = calculateHealthScore({
     activeUsers: 5,
     agentRuns: 12,
@@ -19,7 +19,7 @@ test("calculateHealthScore rewards active agent usage", () => {
   assert.equal(score, 100);
 });
 
-test("calculateHealthScore penalizes critical inactivity and billing failure", () => {
+void test("calculateHealthScore penalizes critical inactivity and billing failure", () => {
   const score = calculateHealthScore({
     activeUsers: 0,
     agentRuns: 0,
@@ -32,7 +32,7 @@ test("calculateHealthScore penalizes critical inactivity and billing failure", (
   assert.equal(score, 15);
 });
 
-test("shouldEmitChurnRisk only triggers on the threshold crossing", () => {
+void test("shouldEmitChurnRisk only triggers on the threshold crossing", () => {
   assert.equal(shouldEmitChurnRisk(55, 39), true);
   assert.equal(shouldEmitChurnRisk(39, 20), false);
   assert.equal(shouldEmitChurnRisk(60, 40), false);

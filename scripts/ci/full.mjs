@@ -30,6 +30,7 @@ const stepDefinitions = {
   "packs:smoke": { kind: "pnpm", args: ["packs:smoke"] },
   "packs:test": { kind: "pnpm", args: ["packs:test"] },
   "packs:validate": { kind: "pnpm", args: ["packs:validate"] },
+  "preflight:agents": { kind: "pnpm", args: ["preflight:agents"] },
   "preflight:core": { kind: "pnpm", args: ["preflight:core"] },
   "preflight:full": { kind: "pnpm", args: ["preflight:full"] },
   "preflight:satellites": { kind: "pnpm", args: ["preflight:satellites"] },
@@ -65,8 +66,7 @@ const taskGroups = {
     "test:billing:coverage",
     "security:guards",
     "security:report",
-    "test:e2e",
-    "test:agents"
+    "test:e2e"
   ],
   core: [
     "preflight:core",
@@ -76,6 +76,7 @@ const taskGroups = {
     "test:isolation",
     "build:core"
   ],
+  "legacy-agents": ["preflight:agents", "test:agents"],
   "pack-tests": ["packs:validate", "packs:test", "packs:smoke", "packs:regression"],
   platform: ["core"],
   satellites: [
@@ -92,8 +93,7 @@ const taskGroups = {
     "test:workflows",
     "test:billing:coverage",
     "security:guards",
-    "security:report",
-    "test:agents"
+    "security:report"
   ]
 };
 

@@ -116,7 +116,12 @@ async function assertPlaywrightBrowsers() {
 }
 
 function requiresPython(target) {
-  return target === "full" || target === "workflow-suite" || target === "satellites";
+  return (
+    target === "agents" ||
+    target === "full" ||
+    target === "workflow-suite" ||
+    target === "satellites"
+  );
 }
 
 function requiresPlaywright(target) {

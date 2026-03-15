@@ -247,3 +247,13 @@
 | 4.9.C4-HOTFIX | Azul | CODEX `[SIG: CODEX-FIX-20260313-C4-STRICT]` | Governança de schema reforçada com `default-deny` em manifest parser (`z.object().strict()`). | `packages/agents-core/src/manifest/schema.ts` |
 | 8.9.C1-HOTFIX | Azul | CODEX `[SIG: CODEX-FIX-20260313-C8-K6]` | Evidência formal de carga registrada com thresholds de latência e erro dentro do SLO. | `test-results/k6-results.txt`, `docs/release/cycle-08-performance-report.md` |
 | 8.9.C3-HOTFIX | Azul | CODEX `[SIG: CODEX-FIX-20260313-C8-REDIS]` | Evidência de overload BullMQ atualizada com processamento de jobs sem queda por conexão Redis. | `test-results/bullmq-overload.txt`, `docs/release/cycle-08-performance-report.md` |
+## Revalidacao 2026-03-15
+
+- Status: `Azul`
+- Executor: CODEX `[SIG: CODEX-HARDEN-20260315-R1]`
+- Evidencias:
+  - `pnpm ci:task core` PASS
+  - `pnpm ci:task satellites` PASS
+  - `pnpm test:e2e` PASS
+  - `pnpm ci:full` PASS com gate canonico limitado a core, satellites suportados, packs, workflow/billing/security e Playwright.
+- Observacao: a suite Python legada em `agents/*` segue fora do gate canonico e permanece executavel sob demanda via `pnpm ci:legacy-agents`, ainda com falhas de import em modulos herdados.

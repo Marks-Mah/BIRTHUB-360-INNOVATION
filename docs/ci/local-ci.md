@@ -1,6 +1,6 @@
 # CI local reproduzivel
 
-O baseline local agora converge para o mesmo fluxo canonico usado pelos gates de CI. As referencias principais sao `pnpm ci:task core`, `pnpm ci:task satellites` e `pnpm ci:full`.
+O baseline local agora converge para o mesmo fluxo canonico usado pelos gates de CI. As referencias principais sao `pnpm ci:task core`, `pnpm ci:task satellites` e `pnpm ci:full`. A suite Python legada de `agents/*` passou a rodar em lane separado via `pnpm ci:legacy-agents`.
 
 ## Bootstrap
 
@@ -18,6 +18,7 @@ Esse bootstrap instala Node 22.x portatil e audita a presenca de Python 3.12+ e 
 pnpm ci:task core
 pnpm ci:task satellites
 pnpm ci:full
+pnpm ci:legacy-agents
 pnpm ci:task pack-tests
 pnpm ci:task workflow-suite
 pnpm clean
@@ -48,7 +49,6 @@ Ordem canonica:
 12. `pnpm security:guards`
 13. `pnpm security:report`
 14. `pnpm test:e2e`
-15. `pnpm test:agents`
 
 Cada etapa roda com defaults compativeis com CI e encerra com dirty-tree check.
 
@@ -56,7 +56,8 @@ Cada etapa roda com defaults compativeis com CI e encerra com dirty-tree check.
 
 - `pnpm ci:task core`: preflight Node/pnpm + lint/typecheck/test/test:isolation/build do trio `apps/web`, `apps/api`, `apps/worker`.
 - `pnpm ci:task satellites`: preflight Python + gates suportados dos satelites.
-- `pnpm ci:task workflow-suite`: preflight Python + suite de workflow/billing/seguranca/agents.
+- `pnpm ci:task workflow-suite`: preflight Python + suite de workflow/billing/seguranca suportada pelo release gate.
+- `pnpm ci:legacy-agents`: preflight Python + `pnpm test:agents` para o legado Python em `agents/*` e `tests/integration`.
 
 ## Matriz dos satelites
 
@@ -65,6 +66,7 @@ Cada etapa roda com defaults compativeis com CI e encerra com dirty-tree check.
 - `apps/agent-orchestrator`: gate suportado em contrato TS (`test`) e smokes Python (`pytest`) para `/health`, `/events/run` e `/events/metrics`.
 - `apps/webhook-receiver`: gate suportado em smokes Python (`pytest`) para `/health` e `/webhooks/{provider}`; `src/server.ts` permanece apenas como stub legado.
 - `apps/dashboard`: superficie secundaria/legada; nesta fase participa apenas do smoke lane.
+- `agents/*`: superficie Python legada fora do gate canonico de release; permanece executavel sob demanda em `pnpm ci:legacy-agents`.
 
 ## Divida legada fora do gate bloqueante
 

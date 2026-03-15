@@ -53,6 +53,7 @@ void test("RBAC matrix on /api/v1/users enforces role policy", async () => {
         expiresAt: new Date(Date.now() + 60_000),
         id: `session_${userId}`,
         organizationId: "org_1",
+        tenantId: "tenant_1",
         revokedAt: null,
         userId
       };
@@ -90,6 +91,7 @@ void test("RBAC matrix on /api/v1/users enforces role policy", async () => {
       return {
         organizationId: "org_1",
         role,
+        status: MembershipStatus.ACTIVE,
         userId
       };
       }

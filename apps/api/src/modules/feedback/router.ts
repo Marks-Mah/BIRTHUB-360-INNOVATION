@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 
-import { requireAuthenticated } from "../../common/guards/index.js";
+import { requireAuthenticatedSession } from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { getExecutionFeedback, saveExecutionFeedback } from "./service.js";
 
@@ -36,7 +36,7 @@ export function createFeedbackRouter(): Router {
 
   router.get(
     "/executions/:id/feedback",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const identity = requireIdentity({
         tenantId: request.context.tenantId,
@@ -57,7 +57,7 @@ export function createFeedbackRouter(): Router {
 
   router.post(
     "/executions/:id/feedback",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const identity = requireIdentity({
         tenantId: request.context.tenantId,

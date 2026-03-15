@@ -1,9 +1,19 @@
 export const SESSION_COOKIE = "birthub_dashboard_session";
 
 export function getSessionToken() {
-  return process.env.DASHBOARD_SESSION_TOKEN ?? "birthub-demo-session";
+  const token = process.env.DASHBOARD_SESSION_TOKEN?.trim();
+
+  if (!token) {
+    throw new Error("DASHBOARD_SESSION_TOKEN_MISSING");
+  }
+
+  return token;
 }
 
 export function isValidSessionToken(token?: string) {
-  return Boolean(token) && token === getSessionToken();
+  try {
+    return Boolean(token) && token === getSessionToken();
+  } catch {
+    return false;
+  }
 }

@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from pydantic import BaseModel, Field
 
 class GeneratePaymentInput(BaseModel):
@@ -13,3 +15,10 @@ class EmitNFeInput(BaseModel):
 class ConciliateInput(BaseModel):
     start_date: str = Field(..., description="Start date for reconciliation")
     end_date: str = Field(..., description="End date for reconciliation")
+
+
+class AgentRequest(BaseModel):
+    lead_id: str | None = None
+    deal_id: str | None = None
+    customer_id: str | None = None
+    context: Dict[str, Any] = Field(default_factory=dict)

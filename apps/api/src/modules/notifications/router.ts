@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 
-import { requireAuthenticated } from "../../common/guards/index.js";
+import { requireAuthenticatedSession } from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import {
   getNotificationFeed,
@@ -49,7 +49,7 @@ export function createNotificationsRouter(): Router {
 
   router.get(
     "/notifications",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const identity = requireUserContext({
         tenantId: request.context.tenantId,
@@ -74,7 +74,7 @@ export function createNotificationsRouter(): Router {
 
   router.patch(
     "/notifications/read-all",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const identity = requireUserContext({
         tenantId: request.context.tenantId,
@@ -94,7 +94,7 @@ export function createNotificationsRouter(): Router {
 
   router.patch(
     "/notifications/:id/read",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const identity = requireUserContext({
         tenantId: request.context.tenantId,
@@ -115,7 +115,7 @@ export function createNotificationsRouter(): Router {
 
   router.get(
     "/notifications/preferences",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const identity = requireUserContext({
         tenantId: request.context.tenantId,
@@ -135,7 +135,7 @@ export function createNotificationsRouter(): Router {
 
   router.put(
     "/notifications/preferences",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const identity = requireUserContext({
         tenantId: request.context.tenantId,

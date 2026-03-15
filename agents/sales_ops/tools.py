@@ -45,6 +45,39 @@ async def _assign_leads(lead_ids: List[str], rules: Dict[str, Any]) -> Dict[str,
         "assignments": assignments,
         "method": rules.get("method", "round_robin")
     }
+
+
+async def assign_leads(lead_ids: List[str], rules: Dict[str, Any]) -> Dict[str, Any]:
+    return await run_tool(
+        tool_name="sales_ops.assign_leads",
+        handler=_assign_leads,
+        payload={"lead_ids": lead_ids, "rules": rules},
+        idempotent=True,
+    )
+
+
+async def audit_crm_hygiene(context: Dict[str, Any]) -> Dict[str, Any]:
+    score = min(100, max(0, int(context.get("lead_score", 75))))
+    return {
+        "score": score,
+        "issues": [] if score >= 80 else ["missing_owner", "stale_stage"],
+    }
+
+
+async def generate_ops_backlog(context: Dict[str, Any]) -> Dict[str, Any]:
+    base_value = float(context.get("base_value", 0))
+    confidence = float(context.get("confidence", 0.7))
+    return {
+        "projected_value": round(base_value * confidence, 2),
+        "items": ["limpeza_crm", "padronizar_campos", "automatizar_handoffs"],
+    }
+
+
+async def score_process_automation_readiness(context: Dict[str, Any]) -> Dict[str, Any]:
+    standardization = float(context.get("standardization", 0))
+    data_quality = float(context.get("data_quality", 0))
+    readiness = round((standardization + data_quality) / 2, 2)
+    return {"readiness": readiness, "band": "high" if readiness >= 80 else "medium" if readiness >= 60 else "low"}
 async def normalize_pipeline_fields(context: Dict[str, Any]) -> Dict[str, Any]:
     required = ["owner", "stage", "amount", "close_date"]
     available = context.get("fields", required)

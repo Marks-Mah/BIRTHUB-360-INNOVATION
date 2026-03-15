@@ -7,6 +7,7 @@ import request from "supertest";
 import { createApp } from "../src/app.js";
 import { createTestApiConfig } from "./test-config.js";
 import { sha256 } from "../src/modules/auth/crypto.js";
+import { budgetService } from "../src/modules/budget/budget.service.js";
 
 function stubMethod(target: object, key: string, value: unknown): () => void {
   const original = Reflect.get(target, key);
@@ -28,6 +29,7 @@ void test("security sanitizes XSS payloads before queueing tasks", async () => {
         expiresAt: new Date(Date.now() + 60_000),
         id: "session_1",
         organizationId: "org_1",
+        tenantId: "tenant_1",
         revokedAt: null,
         userId: "user_1"
       };
@@ -40,6 +42,15 @@ void test("security sanitizes XSS payloads before queueing tasks", async () => {
     stubMethod(prisma.jobSigningSecret, "findUnique", async () => ({
       organizationId: "org_1",
       secret: "tenant-secret"
+    })),
+    stubMethod(budgetService, "consumeBudget", async () => ({
+      agentId: "ceo-pack",
+      consumed: 0,
+      currency: "BRL",
+      id: "budget_1",
+      limit: 100,
+      tenantId: "tenant_1",
+      updatedAt: new Date().toISOString()
     }))
   ];
 

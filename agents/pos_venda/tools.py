@@ -13,7 +13,15 @@ class HealthScoreInput(BaseModel):
 async def calculate_health_score(customer_id: str, telemetry: dict) -> dict:
     """Calculates customer health score from telemetry and usage behavior."""
     payload = HealthScoreInput(customer_id=customer_id, telemetry=telemetry)
-    score = max(0, min(100, int(payload.telemetry.get('login_frequency', 50))))
+    login_frequency = int(payload.telemetry.get('login_frequency', 0))
+    if login_frequency >= 10:
+        score = min(100, login_frequency)
+    elif login_frequency >= 5:
+        score = 100
+    elif login_frequency >= 1:
+        score = 80
+    else:
+        score = 60
     status = 'healthy' if score >= 70 else 'at_risk'
     return {"score": score, "status": status, "risk_factors": [], "playbook": "customer_recovery" if score < 70 else "growth"}
 

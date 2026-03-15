@@ -2,7 +2,7 @@ import type { ApiConfig } from "@birthub/config";
 import { logoutResponseSchema } from "@birthub/config";
 import { Router } from "express";
 
-import { requireAuthenticated } from "../../common/guards/index.js";
+import { requireAuthenticatedSession } from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import {
   revokeAllSessions,
@@ -33,9 +33,9 @@ export function createSessionsRouter(config: ApiConfig): Router {
 
   router.delete(
     "/sessions/:sessionId",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
-      const organizationId = request.context.tenantId;
+      const organizationId = request.context.organizationId;
       const userId = request.context.userId;
 
       if (!organizationId || !userId) {
@@ -67,7 +67,7 @@ export function createSessionsRouter(config: ApiConfig): Router {
   );
 
   const logoutAllHandler = asyncHandler(async (request, response) => {
-    const organizationId = request.context.tenantId;
+    const organizationId = request.context.organizationId;
     const userId = request.context.userId;
 
     if (!organizationId || !userId) {
@@ -92,8 +92,8 @@ export function createSessionsRouter(config: ApiConfig): Router {
     );
   });
 
-  router.post("/sessions/logout-all", requireAuthenticated, logoutAllHandler);
-  router.post("/auth/logout-all", requireAuthenticated, logoutAllHandler);
+  router.post("/sessions/logout-all", requireAuthenticatedSession, logoutAllHandler);
+  router.post("/auth/logout-all", requireAuthenticatedSession, logoutAllHandler);
 
   return router;
 }

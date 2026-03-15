@@ -1,7 +1,22 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
+function getJwtSecret(): string {
+  const configured = process.env.JWT_SECRET?.trim();
+
+  if (configured) {
+    return configured;
+  }
+
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.LEGACY_ALLOW_INSECURE_DEV_AUTH === "true"
+  ) {
+    return "dev-secret-change-me";
+  }
+
+  throw new Error("LEGACY_JWT_SECRET_MISSING");
+}
 
 export type AuthenticatedRequest = Request & {
   auth?: {
@@ -27,7 +42,7 @@ export function requireJwt(
   const token = authHeader.slice("Bearer ".length);
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, getJwtSecret());
     const authPayload: AuthPayload =
       typeof payload === "object" && payload
         ? (payload as AuthPayload)

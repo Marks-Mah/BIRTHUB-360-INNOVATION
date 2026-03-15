@@ -3,7 +3,10 @@ import { prisma, Role } from "@birthub/database";
 import { Router } from "express";
 import { z } from "zod";
 
-import { RequireRole, requireAuthenticated } from "../../common/guards/index.js";
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { createSession } from "../auth/auth.service.js";
 import { setAuthCookies } from "../auth/cookies.js";
@@ -60,7 +63,7 @@ export function createAdminRouter(config: ApiConfig): Router {
 
   router.post(
     "/api/v1/admin/impersonations",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.SUPER_ADMIN),
     asyncHandler(async (request, response) => {
       const actorUserId = request.context.userId;

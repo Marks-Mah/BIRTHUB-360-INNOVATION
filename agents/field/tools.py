@@ -51,3 +51,20 @@ async def check_inventory_nearby(location: str, sku: str) -> Dict[str, Any]:
         payload={"location": location, "sku": sku},
         idempotent=True,
     )
+
+
+async def estimate_visit_coverage(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"coverage_pct": min(100, int(context.get("coverage_pct", 84)))}
+
+
+async def prioritize_daily_route(visits: List[Dict[str, Any]]) -> Dict[str, Any]:
+    prioritized = sorted(visits, key=lambda item: item.get("priority", 0), reverse=True)
+    return {"prioritized": prioritized}
+
+
+async def summarize_visit_outcomes(outcomes: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return {"completed": sum(1 for item in outcomes if item.get("status") == "completed"), "total": len(outcomes)}
+
+
+async def draft_checkin_message(account: Dict[str, Any]) -> Dict[str, Any]:
+    return {"message": f"Checando próximos passos com {account.get('name', 'conta')}."}

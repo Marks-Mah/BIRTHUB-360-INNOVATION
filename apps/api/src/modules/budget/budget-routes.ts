@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
+import { Role } from "@birthub/database";
 
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { budgetService } from "./budget.service.js";
 import { BudgetExceededError } from "./budget.types.js";
@@ -15,9 +20,21 @@ export function createBudgetRouter(): Router {
 
   router.get(
     "/usage",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
-      const usage = budgetService.getUsage(tenantId);
+      const tenantId = request.context.tenantId;
+      const organizationId = request.context.organizationId;
+
+      if (!tenantId || !organizationId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
+
+      const usage = await budgetService.getUsage(organizationId, tenantId);
 
       response.status(200).json({
         requestId: request.context.requestId,
@@ -28,11 +45,27 @@ export function createBudgetRouter(): Router {
 
   router.post(
     "/limits",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
+      const tenantId = request.context.tenantId;
+      const organizationId = request.context.organizationId;
+
+      if (!tenantId || !organizationId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const payload = limitSchema.parse(request.body);
 
-      const updated = budgetService.setLimit(tenantId, payload.agentId, payload.limit);
+      const updated = await budgetService.setLimit(
+        organizationId,
+        tenantId,
+        payload.agentId,
+        payload.limit
+      );
 
       response.status(200).json({
         record: updated,
@@ -43,6 +76,7 @@ export function createBudgetRouter(): Router {
 
   router.get(
     "/estimate",
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const agentId = (request.query.agentId as string | undefined) ?? "ceo-pack";
       const estimate = await budgetService.estimateCost(agentId);
@@ -57,9 +91,21 @@ export function createBudgetRouter(): Router {
 
   router.get(
     "/export.csv",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
-      const csv = budgetService.exportUsageCsv(tenantId);
+      const tenantId = request.context.tenantId;
+      const organizationId = request.context.organizationId;
+
+      if (!tenantId || !organizationId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
+
+      const csv = await budgetService.exportUsageCsv(organizationId, tenantId);
 
       response.setHeader("content-type", "text/csv; charset=utf-8");
       response.setHeader("content-disposition", "attachment; filename=budget-usage.csv");
@@ -69,8 +115,20 @@ export function createBudgetRouter(): Router {
 
   router.post(
     "/consume",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
+      const tenantId = request.context.tenantId;
+      const organizationId = request.context.organizationId;
+      const actorId = request.context.userId;
+
+      if (!tenantId || !organizationId || !actorId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
 
       const payload = z
         .object({
@@ -81,10 +139,13 @@ export function createBudgetRouter(): Router {
         .parse(request.body);
 
       try {
-        const record = budgetService.consumeBudget({
+        const record = await budgetService.consumeBudget({
+          actorId,
           agentId: payload.agentId,
           costBRL: payload.costBRL,
           executionMode: payload.executionMode,
+          organizationId,
+          requestId: request.context.requestId,
           tenantId
         });
 

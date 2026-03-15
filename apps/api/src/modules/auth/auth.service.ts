@@ -1,4 +1,10 @@
-import { ApiKeyStatus, Role, UserStatus, prisma } from "@birthub/database";
+import {
+  ApiKeyStatus,
+  MembershipStatus,
+  Role,
+  UserStatus,
+  prisma
+} from "@birthub/database";
 import type { ApiConfig } from "@birthub/config";
 
 import {
@@ -28,6 +34,7 @@ export interface AuthenticatedContext {
   authType: "api-key" | "session";
   organizationId: string;
   sessionId: string | null;
+  tenantId: string;
   userId: string;
 }
 
@@ -72,12 +79,7 @@ export function canManageRole(currentRole: Role, targetRole: Role): boolean {
 }
 
 export async function resolveOrganizationId(tenantId: string): Promise<string | null> {
-  const organization = await prisma.organization.findFirst({
-    where: {
-      OR: [{ id: tenantId }, { slug: tenantId }, { tenantId }]
-    }
-  });
-
+  const organization = await findOrganizationByReference(tenantId);
   return organization?.id ?? null;
 }
 
@@ -89,6 +91,56 @@ async function resolveTenantIdForOrganization(organizationId: string): Promise<s
   });
 
   return organization?.tenantId ?? null;
+}
+
+async function findOrganizationByReference(reference: string) {
+  return prisma.organization.findFirst({
+    where: {
+      OR: [{ id: reference }, { slug: reference }, { tenantId: reference }]
+    }
+  });
+}
+
+export async function resolveAuthorizedTenantContext(input: {
+  tenantReference: string;
+  userId: string;
+}): Promise<
+  | { status: "forbidden" }
+  | { status: "not-found" }
+  | {
+      status: "ok";
+      organizationId: string;
+      role: Role;
+      tenantId: string;
+      tenantSlug: string | null;
+    }
+> {
+  const organization = await findOrganizationByReference(input.tenantReference);
+
+  if (!organization) {
+    return { status: "not-found" };
+  }
+
+  const membership = await prisma.membership.findUnique({
+    where: {
+      organizationId_userId: {
+        organizationId: organization.id,
+        userId: input.userId
+      }
+    }
+  });
+
+  if (!membership || membership.status !== MembershipStatus.ACTIVE) {
+    return { status: "forbidden" };
+  }
+
+  return {
+    organizationId: organization.id,
+    role: membership.role,
+    status: "ok",
+    tenantId: organization.tenantId,
+    tenantSlug: organization.slug ?? null
+  };
 }
 
 function nowPlusHours(hours: number): Date {
@@ -209,7 +261,9 @@ export async function loginWithPassword(input: {
     }
   | {
       mfaRequired: false;
+      organizationId: string;
       sessionId: string;
+      tenantId: string;
       tokens: SessionTokens;
       userId: string;
     }
@@ -220,6 +274,7 @@ export async function loginWithPassword(input: {
     },
     where: {
       organizationId: input.organizationId,
+      status: MembershipStatus.ACTIVE,
       user: {
         email: input.email
       }
@@ -300,7 +355,9 @@ export async function loginWithPassword(input: {
 
   return {
     mfaRequired: false,
+    organizationId: input.organizationId,
     sessionId: session.sessionId,
+    tenantId: membership.tenantId,
     tokens: session.tokens,
     userId: membership.userId
   };
@@ -310,18 +367,23 @@ export async function verifyMfaChallenge(input: {
   challengeToken: string;
   config: ApiConfig;
   ipAddress: string | null;
-  organizationId: string;
   recoveryCode?: string;
   totpCode?: string;
   userAgent: string | null;
-}): Promise<{ sessionId: string; tokens: SessionTokens; userId: string }> {
+}): Promise<{
+  organizationId: string;
+  sessionId: string;
+  tenantId: string;
+  tokens: SessionTokens;
+  userId: string;
+}> {
   const challenge = await prisma.mfaChallenge.findUnique({
     where: {
       tokenHash: sha256(input.challengeToken)
     }
   });
 
-  if (!challenge || challenge.organizationId !== input.organizationId) {
+  if (!challenge) {
     throw new Error("INVALID_MFA_CHALLENGE");
   }
 
@@ -392,14 +454,16 @@ export async function verifyMfaChallenge(input: {
   const createdSession = await createSession({
     config: input.config,
     ipAddress: input.ipAddress,
-    organizationId: input.organizationId,
+    organizationId: challenge.organizationId,
     tenantId: challenge.tenantId,
     userAgent: input.userAgent,
     userId: challenge.userId
   });
 
   return {
+    organizationId: challenge.organizationId,
     sessionId: createdSession.sessionId,
+    tenantId: challenge.tenantId,
     tokens: createdSession.tokens,
     userId: challenge.userId
   };
@@ -536,6 +600,7 @@ export async function authenticateRequest(input: {
       authType: "api-key",
       organizationId,
       sessionId: null,
+      tenantId: apiKey.tenantId,
       userId: apiKey.userId
     };
   }
@@ -583,6 +648,7 @@ export async function authenticateRequest(input: {
     authType: "session",
     organizationId: session.organizationId,
     sessionId: session.id,
+    tenantId: session.tenantId,
     userId: session.userId
   };
 }
@@ -596,6 +662,7 @@ export async function refreshSession(input: {
   breached: boolean;
   organizationId?: string;
   sessionId?: string;
+  tenantId?: string;
   tokens?: SessionTokens;
   userId?: string;
 }> {
@@ -666,6 +733,7 @@ export async function refreshSession(input: {
     breached: false,
     organizationId: current.organizationId,
     sessionId: nextSession.sessionId,
+    tenantId: current.tenantId,
     tokens: nextSession.tokens,
     userId: current.userId
   };
@@ -740,10 +808,18 @@ export async function getRoleForUser(input: {
         organizationId: input.organizationId,
         userId: input.userId
       }
+    },
+    select: {
+      role: true,
+      status: true
     }
   });
 
-  return membership?.role ?? null;
+  if (!membership || membership.status !== MembershipStatus.ACTIVE) {
+    return null;
+  }
+
+  return membership.role;
 }
 
 export async function assertRole(input: {

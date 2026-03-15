@@ -52,3 +52,19 @@ async def check_technical_feasibility(requirement: str) -> Dict[str, Any]:
         payload={"requirement": requirement},
         idempotent=True,
     )
+
+
+async def estimate_demo_readiness(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"readiness": min(100, int(context.get("readiness", 81)))}
+
+
+async def summarize_solution_fit(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"fit_summary": context.get("fit_summary", "Aderência alta para o caso de uso")}
+
+
+async def build_security_checklist(requirements: List[str]) -> Dict[str, Any]:
+    return {"items": requirements, "count": len(requirements)}
+
+
+async def recommend_demo_storyline(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"storyline": ["contexto", "fluxo principal", "resultado"], "persona": context.get("persona", "buyer")}

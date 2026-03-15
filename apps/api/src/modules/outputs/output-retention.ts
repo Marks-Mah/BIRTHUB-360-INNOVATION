@@ -11,8 +11,14 @@ export function startOutputRetentionScheduler(intervalMs = 60 * 60 * 1000): void
   }
 
   retentionTimer = setInterval(() => {
-    const deleted = outputService.prune();
-    logger.info({ deleted }, "Output retention prune executed");
+    void outputService
+      .prune()
+      .then((deleted) => {
+        logger.info({ deleted }, "Output retention prune executed");
+      })
+      .catch((error) => {
+        logger.error({ error }, "Output retention prune failed");
+      });
   }, intervalMs);
 
   retentionTimer.unref();

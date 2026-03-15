@@ -1,11 +1,13 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { enqueueAuditEvent } from "./buffer.js";
+import { ProblemDetailsError } from "../lib/problem-details.js";
 import { readTrimmedString } from "../lib/request-values.js";
 
 type AuditableOptions<TResult> = {
   action: string;
   entityType: string;
+  requireActor?: boolean;
   resolveEntityId?: (
     request: Request,
     response: Response,
@@ -29,7 +31,7 @@ export function Auditable<TResult>(options: AuditableOptions<TResult>) {
     async (request, response, next) => {
       const result = await handler(request, response, next);
 
-      if (!["DELETE", "POST", "PUT"].includes(request.method)) {
+      if (!["DELETE", "PATCH", "POST", "PUT"].includes(request.method)) {
         return result;
       }
 
@@ -41,6 +43,16 @@ export function Auditable<TResult>(options: AuditableOptions<TResult>) {
         return result;
       }
 
+      const actorId = request.context.userId;
+
+      if (options.requireActor && !actorId) {
+        throw new ProblemDetailsError({
+          detail: "An authenticated actor is required for this mutation.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
+
       const entityId =
         readTrimmedString(
           options.resolveEntityId?.(request, response, result) ??
@@ -50,7 +62,7 @@ export function Auditable<TResult>(options: AuditableOptions<TResult>) {
 
       enqueueAuditEvent({
         action: options.action,
-        actorId: request.context.userId ?? null,
+        actorId: actorId ?? null,
         diff: {
           payload: request.body ?? null,
           response: result ?? null

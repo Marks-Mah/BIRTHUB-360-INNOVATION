@@ -5,7 +5,10 @@ import { prisma, Role, WebhookEndpointStatus, WorkflowTriggerType } from "@birth
 import { Router } from "express";
 import { z } from "zod";
 
-import { RequireRole, requireAuthenticated } from "../../common/guards/index.js";
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { dedupeTriggerPayload } from "../workflows/runnerQueue.js";
 import { runWorkflowNow } from "../workflows/service.js";
@@ -102,7 +105,7 @@ export function createWebhooksRouter(config: ApiConfig): Router {
 
   router.get(
     "/api/v1/settings/webhooks",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const tenantReference = request.context.tenantId;
@@ -125,7 +128,7 @@ export function createWebhooksRouter(config: ApiConfig): Router {
 
   router.post(
     "/api/v1/settings/webhooks",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const tenantReference = request.context.tenantId;
@@ -155,7 +158,7 @@ export function createWebhooksRouter(config: ApiConfig): Router {
 
   router.patch(
     "/api/v1/settings/webhooks/:id",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const tenantReference = request.context.tenantId;
@@ -186,7 +189,7 @@ export function createWebhooksRouter(config: ApiConfig): Router {
 
   router.get(
     "/api/v1/settings/webhooks/:id/deliveries",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const tenantReference = request.context.tenantId;
@@ -215,7 +218,7 @@ export function createWebhooksRouter(config: ApiConfig): Router {
 
   router.post(
     "/api/v1/settings/webhooks/deliveries/:id/retry",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const tenantReference = request.context.tenantId;

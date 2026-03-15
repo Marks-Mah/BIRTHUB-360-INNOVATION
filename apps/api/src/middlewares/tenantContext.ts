@@ -1,38 +1,26 @@
-import { Buffer } from "node:buffer";
-
 import { prisma, runWithTenantContext } from "@birthub/database";
 import type { NextFunction, Request, Response } from "express";
 
 import { cacheTenant, getCachedTenant } from "../common/cache/index.js";
 import { ProblemDetailsError } from "../lib/problem-details.js";
+import { resolveAuthorizedTenantContext } from "../modules/auth/auth.service.js";
 import { annotateTenantSpan } from "../tracing.js";
 
-type JwtClaims = {
-  memberships?: string[] | Array<{ tenantId?: string }>;
-  organizationId?: string;
-  planStatus?: {
-    code?: string;
-    hardLocked?: boolean;
-    limits?: Record<string, unknown>;
-    status?: string | null;
-  };
-  plan_status?: {
-    code?: string;
-    hardLocked?: boolean;
-    limits?: Record<string, unknown>;
-    status?: string | null;
-  };
-  sub?: string;
-  tenantId?: string;
-  tenantSlug?: string;
-  userId?: string;
-};
-
 type BoundTenantContext = {
-  source: "active-header" | "header" | "jwt";
+  organizationId: string;
+  source: "active-header" | "authenticated";
   tenantId: string;
   tenantSlug: string | null;
+  userId: string;
 };
+
+declare global {
+  namespace Express {
+    interface Request {
+      tenantContext?: Readonly<BoundTenantContext>;
+    }
+  }
+}
 
 async function findOrganization(tenantReference: string) {
   if (!process.env.DATABASE_URL) {
@@ -46,65 +34,43 @@ async function findOrganization(tenantReference: string) {
       return cachedTenant;
     }
 
-    return await prisma.organization.findFirst({
+    const organization = await prisma.organization.findFirst({
       where: {
         OR: [{ id: tenantReference }, { slug: tenantReference }, { tenantId: tenantReference }]
       }
-    }).then(async (organization) => {
-      if (organization) {
-        await cacheTenant(organization);
-      }
-
-      return organization;
     });
-  } catch {
-    return null;
-  }
-}
 
-declare global {
-  namespace Express {
-    interface Request {
-      tenantContext?: Readonly<BoundTenantContext>;
+    if (organization) {
+      await cacheTenant(organization);
     }
-  }
-}
 
-function decodeJwtPayload(token: string | undefined): JwtClaims | null {
-  if (!token) {
-    return null;
-  }
-
-  const parts = token.split(".");
-
-  if (parts.length < 2 || !parts[1]) {
-    return null;
-  }
-
-  try {
-    const payload = Buffer.from(parts[1], "base64url").toString("utf8");
-    return JSON.parse(payload) as JwtClaims;
+    return organization;
   } catch {
     return null;
   }
 }
 
 async function resolveTenantFromRequest(request: Request): Promise<BoundTenantContext | null> {
-  const authorization = request.header("authorization");
-  const bearerToken = authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined;
-  const claims = decodeJwtPayload(bearerToken);
   const activeTenantHeader = request.header("x-active-tenant")?.trim();
-  const headerTenantId = request.header("x-tenant-id")?.trim();
-  const userId = claims?.userId ?? claims?.sub ?? request.context.userId ?? undefined;
-
-  if (userId) {
-    request.context.userId = userId;
-  }
+  const organizationId = request.context.organizationId;
+  const tenantId = request.context.tenantId;
+  const userId = request.context.userId;
 
   if (activeTenantHeader) {
-    const organization = await findOrganization(activeTenantHeader);
+    if (request.context.authType !== "session" || !userId) {
+      throw new ProblemDetailsError({
+        detail: "An authenticated session is required to switch the active tenant.",
+        status: 401,
+        title: "Unauthorized"
+      });
+    }
 
-    if (!organization) {
+    const authorizedTenant = await resolveAuthorizedTenantContext({
+      tenantReference: activeTenantHeader,
+      userId
+    });
+
+    if (authorizedTenant.status === "not-found") {
       throw new ProblemDetailsError({
         detail: "The requested active tenant was not found.",
         status: 404,
@@ -112,72 +78,36 @@ async function resolveTenantFromRequest(request: Request): Promise<BoundTenantCo
       });
     }
 
-    if (userId) {
-      const membership = await prisma.membership.findFirst({
-        where: {
-          tenantId: organization.tenantId,
-          userId
-        }
+    if (authorizedTenant.status === "forbidden") {
+      throw new ProblemDetailsError({
+        detail: "The authenticated user does not belong to the requested active tenant.",
+        status: 403,
+        title: "Forbidden"
       });
-
-      if (!membership) {
-        throw new ProblemDetailsError({
-          detail: "The authenticated user does not belong to the requested active tenant.",
-          status: 403,
-          title: "Forbidden"
-        });
-      }
     }
 
     return {
+      organizationId: authorizedTenant.organizationId,
       source: "active-header",
-      tenantId: organization.tenantId,
-      tenantSlug: organization.slug ?? claims?.tenantSlug ?? null
+      tenantId: authorizedTenant.tenantId,
+      tenantSlug: authorizedTenant.tenantSlug,
+      userId
     };
   }
 
-  if (claims?.tenantId?.trim() || claims?.organizationId?.trim()) {
-    const tenantReference = claims.tenantId?.trim() ?? claims.organizationId!.trim();
-    const organization = await findOrganization(tenantReference);
-
-    return {
-      source: "jwt",
-      tenantId: organization?.tenantId ?? tenantReference,
-      tenantSlug: organization?.slug ?? claims.tenantSlug ?? null
-    };
-  }
-
-  if (headerTenantId) {
-    const organization = await findOrganization(headerTenantId);
-
-    return {
-      source: "header",
-      tenantId: organization?.tenantId ?? headerTenantId,
-      tenantSlug: organization?.slug ?? null
-    };
-  }
-
-  return null;
-}
-
-function resolvePlanStatusFromClaims(claims: JwtClaims | null) {
-  const planStatus = claims?.plan_status ?? claims?.planStatus;
-
-  if (!planStatus || typeof planStatus !== "object") {
+  if (!organizationId || !tenantId || !userId) {
     return null;
   }
 
+  const organization =
+    (await findOrganization(organizationId)) ?? (await findOrganization(tenantId));
+
   return {
-    ...(typeof planStatus.code === "string" ? { code: planStatus.code } : {}),
-    ...(typeof planStatus.hardLocked === "boolean"
-      ? { hardLocked: planStatus.hardLocked }
-      : {}),
-    ...(typeof planStatus.status === "string" || planStatus.status === null
-      ? { status: planStatus.status ?? null }
-      : {}),
-    ...(planStatus.limits && typeof planStatus.limits === "object"
-      ? { limits: planStatus.limits }
-      : {})
+    organizationId,
+    source: "authenticated",
+    tenantId,
+    tenantSlug: organization?.slug ?? request.context.tenantSlug ?? null,
+    userId
   };
 }
 
@@ -189,12 +119,7 @@ export function tenantContextMiddleware(
 ): void {
   void resolveTenantFromRequest(request)
     .then((tenantContext) => {
-      const authorization = request.header("authorization");
-      const bearerToken = authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined;
-      const claims = decodeJwtPayload(bearerToken);
-
       if (!tenantContext) {
-        request.context.billingPlanStatus = resolvePlanStatusFromClaims(claims);
         next();
         return;
       }
@@ -206,13 +131,12 @@ export function tenantContextMiddleware(
         writable: false
       });
 
+      request.context.organizationId = tenantContext.organizationId;
+      request.context.tenantId = tenantContext.tenantId;
       request.context.tenantSlug = tenantContext.tenantSlug;
-      request.context.billingPlanStatus = resolvePlanStatusFromClaims(claims);
+      request.context.userId = tenantContext.userId;
 
-      if (!request.context.tenantId) {
-        request.context.tenantId = tenantContext.tenantId;
-      }
-
+      response.setHeader("x-organization-id", tenantContext.organizationId);
       response.setHeader("x-tenant-id", tenantContext.tenantId);
 
       if (tenantContext.tenantSlug) {
@@ -229,7 +153,7 @@ export function tenantContextMiddleware(
           source: tenantContext.source,
           tenantId: tenantContext.tenantId,
           tenantSlug: tenantContext.tenantSlug,
-          userId: request.context.userId
+          userId: tenantContext.userId
         },
         () => {
           next();

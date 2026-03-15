@@ -8,6 +8,10 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { Auditable } from "../../audit/auditable.js";
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { readTrimmedString, requireStringValue } from "../../lib/request-values.js";
 import { validateBody } from "../../middleware/validate-body.js";
@@ -77,9 +81,11 @@ export function createOrganizationsRouter(): Router {
 
   router.get(
     "/orgs/:id/members",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const pagination = cursorPaginationQuerySchema.parse(request.query);
-      const tenantId = requireTenantId(request.tenantContext?.tenantId ?? request.context.tenantId);
+      const tenantId = requireTenantId(request.context.tenantId);
       const organizationId = requireStringValue(
         request.params.id,
         "A valid organization id is required."
@@ -98,14 +104,17 @@ export function createOrganizationsRouter(): Router {
 
   router.patch(
     "/orgs/:id/members/:memberId",
+    requireAuthenticatedSession,
+    RequireRole(Role.OWNER),
     validateBody(memberRoleSchema),
     asyncHandler(
       Auditable({
         action: "member.role_updated",
         entityType: "member",
+        requireActor: true,
         resolveEntityId: (request) => readTrimmedString(request.params.memberId)
       })(async (request, response) => {
-        const tenantId = requireTenantId(request.tenantContext?.tenantId ?? request.context.tenantId);
+        const tenantId = requireTenantId(request.context.tenantId);
         const memberId = requireStringValue(request.params.memberId, "A valid member id is required.");
         const organizationId = requireStringValue(
           request.params.id,
@@ -126,13 +135,16 @@ export function createOrganizationsRouter(): Router {
 
   router.delete(
     "/orgs/:id/members/:memberId",
+    requireAuthenticatedSession,
+    RequireRole(Role.OWNER),
     asyncHandler(
       Auditable({
         action: "member.removed",
         entityType: "member",
+        requireActor: true,
         resolveEntityId: (request) => readTrimmedString(request.params.memberId)
       })(async (request, response) => {
-        const tenantId = requireTenantId(request.tenantContext?.tenantId ?? request.context.tenantId);
+        const tenantId = requireTenantId(request.context.tenantId);
         const memberId = requireStringValue(request.params.memberId, "A valid member id is required.");
         const organizationId = requireStringValue(
           request.params.id,
@@ -152,9 +164,11 @@ export function createOrganizationsRouter(): Router {
 
   router.get(
     "/orgs/:id/audit",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const filters = auditFilterSchema.parse(request.query);
-      const tenantId = requireTenantId(request.tenantContext?.tenantId ?? request.context.tenantId);
+      const tenantId = requireTenantId(request.context.tenantId);
       const organizationId = requireStringValue(
         request.params.id,
         "A valid organization id is required."
@@ -177,12 +191,14 @@ export function createOrganizationsRouter(): Router {
 
   router.get(
     "/orgs/:id/audit/export",
+    requireAuthenticatedSession,
+    RequireRole(Role.OWNER),
     asyncHandler(async (request, response) => {
       const filters = auditFilterSchema.partial({
         cursor: true,
         take: true
       }).parse(request.query);
-      const tenantId = requireTenantId(request.tenantContext?.tenantId ?? request.context.tenantId);
+      const tenantId = requireTenantId(request.context.tenantId);
       const organizationId = requireStringValue(
         request.params.id,
         "A valid organization id is required."

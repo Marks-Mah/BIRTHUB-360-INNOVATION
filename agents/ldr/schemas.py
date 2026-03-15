@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 from pydantic import BaseModel, Field
 
 class ScoreICPInput(BaseModel):
@@ -11,3 +13,31 @@ class HandoffLeadInput(BaseModel):
     lead_id: str = Field(..., description="ID of the lead to hand off")
     score: int = Field(..., description="Final ICP score")
     notes: str = Field(..., description="Notes for the AE")
+
+
+class LeadEnrichRequest(BaseModel):
+    lead_id: str
+    company_domain: str
+    email: str | None = None
+
+
+class LeadEnrichResponse(BaseModel):
+    job_id: str
+    status: str
+    message: str
+
+
+class ICPScoreRequest(BaseModel):
+    lead_data: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ICPScoreResponse(BaseModel):
+    score: int = 0
+    tier: str = "T4"
+    reasoning: str = ""
+    missing_data: List[str] = Field(default_factory=list)
+
+
+class RunRequest(BaseModel):
+    lead_id: str | None = None
+    context: Dict[str, Any] = Field(default_factory=dict)

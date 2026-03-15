@@ -11,7 +11,9 @@ import {
 } from "../security/auth-store.js";
 
 export const authRouter = Router();
-
+const legacyAuthBootstrapEnabled =
+  process.env.NODE_ENV === "development" &&
+  process.env.LEGACY_ALLOW_DEV_PRINCIPAL_BOOTSTRAP === "true";
 
 const resolvePrincipal = (body: Record<string, unknown>): Principal => ({
   sub: typeof body.sub === "string" ? body.sub : "user-dev",
@@ -19,6 +21,20 @@ const resolvePrincipal = (body: Record<string, unknown>): Principal => ({
   roles: Array.isArray(body.roles) ? (body.roles as string[]) : ["member"],
   scopes: Array.isArray(body.scopes) ? (body.scopes as string[]) : ["api:read"],
   plan: body.plan === "enterprise" || body.plan === "growth" ? body.plan : "starter",
+});
+
+authRouter.use((req, res, next) => {
+  if (legacyAuthBootstrapEnabled) {
+    return next();
+  }
+
+  return res.status(410).json({
+    error: {
+      code: "LEGACY_AUTH_DISABLED",
+      message:
+        "Legacy api-gateway auth is frozen. Use apps/api for authenticated flows."
+    }
+  });
 });
 
 authRouter.post("/login", (req, res) => {

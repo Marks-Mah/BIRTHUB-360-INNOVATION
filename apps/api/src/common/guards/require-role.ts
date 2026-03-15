@@ -10,7 +10,7 @@ export function RequireRole(minimumRole: Role): RequestHandler {
   return async (request: Request, _response: Response, next: NextFunction) => {
     try {
       const userId = request.context.userId;
-      const organizationId = request.context.tenantId;
+      const organizationId = request.context.organizationId;
 
       if (!userId || !organizationId) {
         throw new ProblemDetailsError({
@@ -42,10 +42,39 @@ export function RequireRole(minimumRole: Role): RequestHandler {
 }
 
 export function requireAuthenticated(request: Request, _response: Response, next: NextFunction): void {
-  if (!request.context.userId || !request.context.tenantId) {
+  if (
+    !request.context.userId ||
+    !request.context.organizationId ||
+    !request.context.tenantId
+  ) {
     next(
       new ProblemDetailsError({
         detail: "A valid session or API key is required.",
+        status: 401,
+        title: "Unauthorized"
+      })
+    );
+    return;
+  }
+
+  next();
+}
+
+export function requireAuthenticatedSession(
+  request: Request,
+  _response: Response,
+  next: NextFunction
+): void {
+  if (
+    request.context.authType !== "session" ||
+    !request.context.userId ||
+    !request.context.organizationId ||
+    !request.context.tenantId ||
+    !request.context.sessionId
+  ) {
+    next(
+      new ProblemDetailsError({
+        detail: "A valid authenticated session is required.",
         status: 401,
         title: "Unauthorized"
       })

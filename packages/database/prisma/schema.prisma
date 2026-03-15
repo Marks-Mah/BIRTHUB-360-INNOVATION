@@ -23,6 +23,8 @@ model Organization {
   memberships      Membership[]
   sessions         Session[]
   agents           Agent[]
+  agentBudgets     AgentBudget[]
+  agentBudgetEvents AgentBudgetEvent[]
   agentExecutions  AgentExecution[]
   agentFeedback    AgentFeedback[]
   workflows        Workflow[]
@@ -45,6 +47,7 @@ model Organization {
   mfaChallenges    MfaChallenge[]
   jobSecrets       JobSigningSecret[]
   notifications    Notification[]
+  outputArtifacts  OutputArtifact[]
   userPreferences  UserPreference[]
   tenantActivityWindows TenantActivityWindow[]
   webhookEndpoints WebhookEndpoint[]
@@ -249,6 +252,68 @@ model Agent {
   @@index([tenantId, id])
   @@index([tenantId, status])
   @@map("agents")
+}
+
+model AgentBudget {
+  id             String       @id @default(cuid())
+  tenantId       String
+  organizationId String
+  agentId        String
+  limitBrl       Float        @default(100)
+  consumedBrl    Float        @default(0)
+  lastAlertLevel String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, agentId])
+  @@index([tenantId])
+  @@index([organizationId, updatedAt])
+  @@map("agent_budgets")
+}
+
+model AgentBudgetEvent {
+  id             String       @id @default(cuid())
+  tenantId       String
+  organizationId String
+  agentId        String
+  actorId        String
+  requestId      String?
+  kind           String
+  costBrl        Float        @default(0)
+  executionMode  String
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([organizationId, createdAt])
+  @@index([tenantId, agentId, createdAt])
+  @@index([tenantId, actorId, createdAt])
+  @@map("agent_budget_events")
+}
+
+model OutputArtifact {
+  id               String       @id @default(cuid())
+  tenantId         String
+  organizationId   String
+  agentId          String
+  createdByUserId  String
+  approvedByUserId String?
+  type             String
+  status           String
+  content          String
+  contentHash      String
+  createdAt        DateTime     @default(now())
+  approvedAt       DateTime?
+  updatedAt        DateTime     @updatedAt
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([organizationId, createdAt])
+  @@index([tenantId, type, createdAt])
+  @@index([tenantId, status, createdAt])
+  @@map("output_artifacts")
 }
 
 model Workflow {

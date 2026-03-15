@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from pydantic import BaseModel, Field
 
 class GenerateContractInput(BaseModel):
@@ -12,3 +14,10 @@ class SendForSignatureInput(BaseModel):
 class AnalyzeContractInput(BaseModel):
     contract_text: str = Field(..., description="Full text of the contract or clause to analyze")
     risk_threshold: str = Field("medium", description="Risk tolerance (low, medium, high)")
+
+
+class AgentRequest(BaseModel):
+    lead_id: str | None = None
+    deal_id: str | None = None
+    customer_id: str | None = None
+    context: Dict[str, Any] = Field(default_factory=dict)

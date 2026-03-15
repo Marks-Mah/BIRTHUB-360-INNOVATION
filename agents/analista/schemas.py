@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from pydantic import BaseModel, Field
 
 class QueryAnalyticsInput(BaseModel):
@@ -13,3 +15,10 @@ class GenerateReportInput(BaseModel):
 class ForecastInput(BaseModel):
     target_metric: str = Field(..., description="Metric to forecast")
     horizon: str = Field("next_3_months", description="Forecast horizon")
+
+
+class AgentRequest(BaseModel):
+    lead_id: str | None = None
+    deal_id: str | None = None
+    customer_id: str | None = None
+    context: Dict[str, Any] = Field(default_factory=dict)

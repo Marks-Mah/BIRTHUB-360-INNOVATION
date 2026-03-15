@@ -1,10 +1,14 @@
 import { createHmac } from "node:crypto";
 
 import type { ApiConfig } from "@birthub/config";
-import { prisma, Role, WorkflowTriggerType } from "@birthub/database";
+import { Role, WorkflowTriggerType } from "@birthub/database";
 import type { Request } from "express";
 import { Router } from "express";
 
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { validateBody } from "../../middleware/validate-body.js";
 import { emitWorkflowInternalEvent } from "../webhooks/eventBus.js";
@@ -35,42 +39,12 @@ function requireTenantId(request: Request): string {
   return tenantId;
 }
 
-async function assertAdminRole(request: Request): Promise<void> {
-  const tenantId = requireTenantId(request);
-  const userId = request.context.userId;
-
-  if (!userId) {
-    throw new ProblemDetailsError({
-      detail: "Authenticated user is required for this operation.",
-      status: 401,
-      title: "Unauthorized"
-    });
-  }
-
-  const membership = await prisma.membership.findFirst({
-    where: {
-      role: {
-        in: [Role.ADMIN, Role.OWNER]
-      },
-      tenantId,
-      userId
-    }
-  });
-
-  if (!membership) {
-    throw new ProblemDetailsError({
-      detail: "Admin or owner role is required for this operation.",
-      status: 403,
-      title: "Forbidden"
-    });
-  }
-}
-
 export function createWorkflowsRouter(config: ApiConfig): Router {
   const router = Router();
 
   router.get(
     "/api/v1/workflows",
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const tenantId = requireTenantId(request);
 
@@ -84,9 +58,10 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
 
   router.post(
     "/api/v1/workflows",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     validateBody(workflowCreateSchema),
     asyncHandler(async (request, response) => {
-      await assertAdminRole(request);
       const tenantId = requireTenantId(request);
       const payload = workflowCreateSchema.parse(request.body);
 
@@ -100,6 +75,7 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
 
   router.get(
     "/api/v1/workflows/:id",
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const tenantId = requireTenantId(request);
       const workflowId = String(request.params.id ?? "");
@@ -122,9 +98,10 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
 
   router.put(
     "/api/v1/workflows/:id",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     validateBody(workflowUpdateSchema),
     asyncHandler(async (request, response) => {
-      await assertAdminRole(request);
       const tenantId = requireTenantId(request);
       const workflowId = String(request.params.id ?? "");
 
@@ -143,8 +120,9 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
 
   router.delete(
     "/api/v1/workflows/:id",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
-      await assertAdminRole(request);
       const tenantId = requireTenantId(request);
       const workflowId = String(request.params.id ?? "");
 
@@ -155,9 +133,10 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
 
   router.post(
     "/api/v1/workflows/:id/run",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     validateBody(workflowRunSchema),
     asyncHandler(async (request, response) => {
-      await assertAdminRole(request);
       const tenantId = requireTenantId(request);
       const workflowId = String(request.params.id ?? "");
 
@@ -189,8 +168,9 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
 
   router.get(
     "/api/v1/workflows/:id/webhook-url",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
-      await assertAdminRole(request);
       const tenantId = requireTenantId(request);
       const workflowId = String(request.params.id ?? "");
 
@@ -225,28 +205,15 @@ export function createWorkflowsRouter(config: ApiConfig): Router {
 
   router.post(
     "/api/v1/workflows/events/:topic",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
-      await assertAdminRole(request);
       const tenantId = requireTenantId(request);
       const topic = String(request.params.topic ?? "");
 
-      const organization = await prisma.organization.findFirst({
-        where: {
-          OR: [{ id: tenantId }, { tenantId }]
-        }
-      });
-
-      if (!organization) {
-        throw new ProblemDetailsError({
-          detail: "Organization not found.",
-          status: 404,
-          title: "Not Found"
-        });
-      }
-
       emitWorkflowInternalEvent({
         payload: (request.body ?? {}) as Record<string, unknown>,
-        tenantId: organization.tenantId,
+        tenantId,
         topic
       });
 

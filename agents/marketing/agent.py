@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from langgraph.graph import END, StateGraph
 from pydantic import BaseModel, Field
 
-from agents.marketing.tools import generate_seo_brief, generate_utm_tags, run_ab_test_analysis
+from agents.marketing.tools import generate_ad_copy, generate_seo_brief, generate_utm_tags, run_ab_test_analysis
 from agents.shared.base_agent import AgentResult, BaseAgent, BaseAgentState
 from agents.shared.tool_runtime import run_tool
 
@@ -36,6 +36,7 @@ class ABTestPayload(BaseModel):
 class AgentState(BaseAgentState):
     task_plan: Optional[List[Dict[str, Any]]]
     campaign_model: Optional[Dict[str, Any]]
+    ad_copy: Optional[Dict[str, Any]]
     seo_brief: Optional[Dict[str, Any]]
     utm_tags: Optional[Dict[str, Any]]
     ab_test: Optional[Dict[str, Any]]
@@ -84,6 +85,19 @@ class MarketingAgent(BaseAgent):
 
     async def _execute_tasks(self, state: AgentState) -> Dict[str, Any]:
         model = state.get("campaign_model", {})
+        context = state.get("context", {})
+        if context.get("task") == "generate_ad":
+            ad_copy = await generate_ad_copy(
+                context.get("platform", "google"),
+                context.get("audience", "buyers"),
+                context.get("goal", "pipeline"),
+                context.get("tone", "consultivo"),
+            )
+            return {
+                "ad_copy": ad_copy,
+                "task_plan": [{"task": "generate_ad_copy", "owner": "marketing", "status": "completed"}],
+                "actions_taken": [{"action": "execute_ad_copy", "status": "completed"}],
+            }
         seo = await run_tool(
             tool_name="marketing.generate_seo_brief",
             handler=generate_seo_brief,
@@ -129,6 +143,16 @@ class MarketingAgent(BaseAgent):
         }
 
     async def _publish_domain_output(self, state: AgentState) -> Dict[str, Any]:
+        if state.get("context", {}).get("task") == "generate_ad":
+            output = {
+                "agent": "marketing",
+                "domain": "growth_marketing",
+                "status": "completed",
+                "tasks": state.get("task_plan", []),
+                "ad_copy": state.get("ad_copy", {}),
+            }
+            return {"data": output, "actions_taken": [{"action": "publish_domain_output", "status": output["status"]}]}
+
         deliverables = {
             "seo_brief": state.get("seo_brief", {}),
             "utm_tags": state.get("utm_tags", {}),

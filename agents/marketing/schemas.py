@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from pydantic import BaseModel, Field
 
 class CreateCampaignInput(BaseModel):
@@ -14,3 +16,10 @@ class GenerateCopyInput(BaseModel):
 
 class GetCACReportInput(BaseModel):
     period: str = Field("last_month", description="Time period")
+
+
+class AgentRequest(BaseModel):
+    lead_id: str | None = None
+    deal_id: str | None = None
+    customer_id: str | None = None
+    context: Dict[str, Any] = Field(default_factory=dict)

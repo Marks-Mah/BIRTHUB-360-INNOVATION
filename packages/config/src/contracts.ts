@@ -109,6 +109,7 @@ export const taskRequestSchema = z.object({
 export const jobContextSchema = z.object({
   actorId: z.string().min(1),
   jobId: z.string().min(1),
+  organizationId: z.string().min(1),
   scopedAt: z.string().datetime(),
   tenantId: z.string().min(1)
 });

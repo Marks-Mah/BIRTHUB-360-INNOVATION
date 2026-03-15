@@ -6,14 +6,27 @@ from typing import Any
 
 import asyncpg
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/agent_orchestrator")
+DATABASE_URL = os.getenv("DATABASE_URL")
 _pool: asyncpg.Pool | None = None
+
+
+def _is_strict_runtime() -> bool:
+    environment = (os.getenv("NODE_ENV") or os.getenv("ENVIRONMENT") or "development").lower()
+    return environment not in {"dev", "development", "test"} or os.getenv("CI") == "true"
+
+
+def _require_database_url() -> str:
+    if DATABASE_URL:
+        return DATABASE_URL
+    if _is_strict_runtime():
+        raise RuntimeError("DATABASE_URL is required for agent orchestrator in strict runtime")
+    return "postgresql://postgres:postgres@localhost:5432/agent_orchestrator"
 
 
 async def get_pool() -> asyncpg.Pool:
     global _pool
     if _pool is None:
-        _pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=10)
+        _pool = await asyncpg.create_pool(_require_database_url(), min_size=1, max_size=10)
     return _pool
 
 
@@ -35,6 +48,12 @@ async def init_db() -> None:
             )
             """
         )
+
+
+async def ping_database() -> None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.fetchval("SELECT 1")
 
 
 async def upsert_agent_task(task_id: str, tenant_id: str, agent_type: str, task: str, payload: dict[str, Any], status: str, result: dict[str, Any] | None = None) -> None:

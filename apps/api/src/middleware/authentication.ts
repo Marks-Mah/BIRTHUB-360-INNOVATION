@@ -70,11 +70,13 @@ export function authenticationMiddleware(sessionCookieName: string) {
 
       request.context.authType = authenticated.authType;
       request.context.apiKeyId = authenticated.apiKeyId;
+      request.context.organizationId = authenticated.organizationId;
       request.context.sessionId = authenticated.sessionId;
-      request.context.tenantId = authenticated.organizationId;
+      request.context.tenantId = authenticated.tenantId;
       request.context.userId = authenticated.userId;
 
-      response.setHeader("x-tenant-id", authenticated.organizationId);
+      response.setHeader("x-organization-id", authenticated.organizationId);
+      response.setHeader("x-tenant-id", authenticated.tenantId);
       response.setHeader("x-user-id", authenticated.userId);
       next();
     } catch (error) {

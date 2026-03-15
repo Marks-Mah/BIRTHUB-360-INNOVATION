@@ -2,7 +2,12 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { sendEtaggedJson } from "../../common/cache/index.js";
-import { RequireFeature } from "../../common/guards/index.js";
+import {
+  RequireFeature,
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
+import { Role } from "@birthub/database";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { requireStringValue } from "../../lib/request-values.js";
 import { installedAgentsService } from "./service.js";
@@ -10,17 +15,11 @@ import { installedAgentsService } from "./service.js";
 const runPayloadSchema = z.record(z.string(), z.unknown()).catch({});
 
 function resolveTenantReference(input: {
-  bodyTenantId?: unknown;
   contextTenantId?: string | null;
-  queryTenantId?: unknown;
 }): string {
-  const candidate =
-    input.contextTenantId ??
-    (typeof input.bodyTenantId === "string" ? input.bodyTenantId : null) ??
-    (typeof input.queryTenantId === "string" ? input.queryTenantId : null) ??
-    "birthhub-alpha";
+  const candidate = input.contextTenantId;
 
-  if (!candidate.trim()) {
+  if (!candidate || !candidate.trim()) {
     throw new ProblemDetailsError({
       detail: "Tenant context is required for installed-agent operations.",
       status: 400,
@@ -36,6 +35,8 @@ export function createInstalledAgentsRouter(): Router {
 
   router.get(
     "/installed",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     RequireFeature("agents"),
     asyncHandler(async (request, response) => {
       const tenantReference = resolveTenantReference({
@@ -52,6 +53,8 @@ export function createInstalledAgentsRouter(): Router {
 
   router.get(
     "/installed/:installedAgentId",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     RequireFeature("agents"),
     asyncHandler(async (request, response) => {
       const tenantReference = resolveTenantReference({
@@ -75,10 +78,11 @@ export function createInstalledAgentsRouter(): Router {
 
   router.post(
     "/installed/:installedAgentId/run",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     RequireFeature("agents"),
     asyncHandler(async (request, response) => {
       const tenantReference = resolveTenantReference({
-        bodyTenantId: request.body?.tenantId,
         contextTenantId: request.context.tenantId
       });
       const payload = runPayloadSchema.parse(request.body ?? {});
@@ -104,6 +108,9 @@ export function createInstalledAgentsRouter(): Router {
 
   router.get(
     "/installed/:installedAgentId/run/stream",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
     asyncHandler(async (request, response) => {
       const executionId = requireStringValue(
         request.query.executionId,
@@ -111,8 +118,7 @@ export function createInstalledAgentsRouter(): Router {
       );
 
       const tenantReference = resolveTenantReference({
-        contextTenantId: request.context.tenantId,
-        queryTenantId: request.query.tenantId
+        contextTenantId: request.context.tenantId
       });
       const installedAgentId = requireStringValue(
         request.params.installedAgentId,

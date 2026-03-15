@@ -4,7 +4,7 @@ import { prisma } from "@birthub/database";
 import { Router } from "express";
 import { z } from "zod";
 
-import { requireAuthenticated } from "../../common/guards/index.js";
+import { requireAuthenticatedSession } from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { validateBody } from "../../middleware/validate-body.js";
 import {
@@ -82,7 +82,7 @@ export function createAuthRouter(config: ApiConfig): Router {
 
   router.post(
     "/mfa/setup",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const userId = request.context.userId;
 
@@ -120,7 +120,7 @@ export function createAuthRouter(config: ApiConfig): Router {
 
   router.post(
     "/mfa/enable",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     validateBody(enableMfaRequestSchema),
     asyncHandler(async (request, response) => {
       const userId = request.context.userId;

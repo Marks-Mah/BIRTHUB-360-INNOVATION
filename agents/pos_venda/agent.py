@@ -132,6 +132,9 @@ class PosVendaAgent(BaseAgent):
             "status": self._overall_status(deliverables),
             "tasks": state.get("task_plan", []),
             "models": {"customer_success": state.get("cs_model", {})},
+            "health_score": state.get("health_result", {}).get("data", {}),
+            "churn_risk": state.get("churn_result", {}).get("data", {}),
+            "nps_analysis": state.get("nps_result", {}).get("data", {}),
             "deliverables": deliverables,
         }
         return {"data": output, "actions_taken": [{"action": "publish_cs_output", "status": output["status"]}]}

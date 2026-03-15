@@ -58,3 +58,20 @@ async def schedule_qbr(account_id: str, contacts: List[str]) -> Dict[str, Any]:
         payload={"account_id": account_id, "contacts": contacts},
         idempotent=True,
     )
+
+
+async def calculate_whitespace(account: Dict[str, Any]) -> Dict[str, Any]:
+    return {"whitespace": float(account.get("whitespace", 250000))}
+
+
+async def prioritize_exec_alignment(stakeholders: List[Dict[str, Any]]) -> Dict[str, Any]:
+    prioritized = sorted(stakeholders, key=lambda item: item.get("influence", 0), reverse=True)
+    return {"prioritized": prioritized}
+
+
+async def build_risk_register(items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return {"risks": items[:5], "count": len(items)}
+
+
+async def recommend_growth_motion(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"motion": context.get("motion", "cross_sell"), "priority": "high"}

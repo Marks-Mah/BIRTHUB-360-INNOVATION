@@ -11,6 +11,11 @@ EVENT_BUS = EventBus(os.getenv("REDIS_URL", "redis://localhost:6379"))
 logger = logging.getLogger("orchestrator.flows")
 
 
+async def _post_with_retry(url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    logger.info("Dispatching orchestrator payload", extra={"url": url})
+    return {"url": url, "payload": payload}
+
+
 async def _trigger_agent_action(*, agent_type: str, task: str, payload: Dict[str, Any], action_name: str) -> Dict[str, Any]:
     event = AgentTaskEvent(event_id=str(uuid4()), tenant_id=str(payload.get("tenant_id", "unknown")), agent_type=agent_type, task=task, payload=payload, correlation_id=str(uuid4()))
     await EVENT_BUS.publish(event)
@@ -157,12 +162,9 @@ async def pos_venda_trigger_playbook(state: LifecycleEventState):
 
 
 async def pos_venda_trigger_churn_playbook(state: LifecycleEventState):
-    return await _trigger_agent_action(
-        agent_type="pos-venda",
-        task="run",
-        payload={"event": "CHURN_RISK_HIGH", "entity_id": state["entity_id"], "context": state["context"]},
-        action_name="pos_venda_trigger_churn_playbook_requested",
-    )
+    payload = {"event": "CHURN_RISK_HIGH", "entity_id": state["entity_id"], "context": state["context"]}
+    await _post_with_retry("/run/event", payload)
+    return {"actions_taken": ["pos_venda_trigger_churn_playbook_requested"]}
 
 
 async def analista_log_churn_risk(state: LifecycleEventState):

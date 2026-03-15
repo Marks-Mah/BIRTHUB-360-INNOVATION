@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
+import { Role } from "@birthub/database";
 
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { readFirstString, requireStringValue } from "../../lib/request-values.js";
 import { outputService } from "./output.service.js";
@@ -10,15 +15,24 @@ export function createOutputRouter(): Router {
 
   router.get(
     "/",
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
+      const tenantId = request.context.tenantId;
+
+      if (!tenantId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const requestedType = readFirstString(request.query.type);
       const type =
         requestedType === "executive-report" || requestedType === "technical-log"
           ? requestedType
           : undefined;
 
-      const outputs = outputService.listByTenant(tenantId, type);
+      const outputs = await outputService.listByTenant(tenantId, type);
 
       response.status(200).json({
         outputs,
@@ -29,8 +43,20 @@ export function createOutputRouter(): Router {
 
   router.post(
     "/",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
+      const tenantId = request.context.tenantId;
+      const organizationId = request.context.organizationId;
+      const createdByUserId = request.context.userId;
+
+      if (!tenantId || !organizationId || !createdByUserId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const payload = z
         .object({
           agentId: z.string().min(1),
@@ -40,9 +66,11 @@ export function createOutputRouter(): Router {
         })
         .parse(request.body);
 
-      const created = outputService.createOutput({
+      const created = await outputService.createOutput({
         agentId: payload.agentId,
         content: payload.content,
+        createdByUserId,
+        organizationId,
         tenantId,
         type: payload.type,
         ...(payload.requireApproval !== undefined
@@ -59,9 +87,19 @@ export function createOutputRouter(): Router {
 
   router.get(
     "/:outputId",
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
+      const tenantId = request.context.tenantId;
+
+      if (!tenantId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const outputId = requireStringValue(request.params.outputId, "A valid output id is required.");
-      const output = outputService.getById(outputId);
+      const output = await outputService.getById(outputId, tenantId);
 
       if (!output) {
         throw new ProblemDetailsError({
@@ -71,7 +109,7 @@ export function createOutputRouter(): Router {
         });
       }
 
-      const integrity = outputService.verifyIntegrity(outputId);
+      const integrity = await outputService.verifyIntegrity(outputId, tenantId);
 
       response.status(200).json({
         integrity,
@@ -83,9 +121,21 @@ export function createOutputRouter(): Router {
 
   router.post(
     "/:outputId/approve",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
+      const tenantId = request.context.tenantId;
+      const approvedByUserId = request.context.userId;
+
+      if (!tenantId || !approvedByUserId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const outputId = requireStringValue(request.params.outputId, "A valid output id is required.");
-      const approved = outputService.approve(outputId);
+      const approved = await outputService.approve(outputId, tenantId, approvedByUserId);
 
       if (!approved) {
         throw new ProblemDetailsError({
@@ -104,9 +154,19 @@ export function createOutputRouter(): Router {
 
   router.get(
     "/:outputId/export",
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
+      const tenantId = request.context.tenantId;
+
+      if (!tenantId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const outputId = requireStringValue(request.params.outputId, "A valid output id is required.");
-      const output = outputService.getById(outputId);
+      const output = await outputService.getById(outputId, tenantId);
 
       if (!output) {
         throw new ProblemDetailsError({
@@ -116,7 +176,7 @@ export function createOutputRouter(): Router {
         });
       }
 
-      const integrity = outputService.verifyIntegrity(outputId);
+      const integrity = await outputService.verifyIntegrity(outputId, tenantId);
 
       if (!integrity?.isValid) {
         throw new ProblemDetailsError({
@@ -139,8 +199,10 @@ export function createOutputRouter(): Router {
 
   router.post(
     "/prune",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
-      const deleted = outputService.prune();
+      const deleted = await outputService.prune();
 
       response.status(200).json({
         deleted,

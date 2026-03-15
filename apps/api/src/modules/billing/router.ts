@@ -5,7 +5,10 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { sendEtaggedJson } from "../../common/cache/index.js";
-import { RequireRole, requireAuthenticated } from "../../common/guards/index.js";
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { validateBody } from "../../middleware/validate-body.js";
 import {
@@ -49,7 +52,7 @@ export function createBillingRouter(config: ApiConfig): Router {
 
   router.post(
     "/checkout",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     validateBody(checkoutRequestSchema),
     asyncHandler(async (request, response) => {
@@ -72,7 +75,7 @@ export function createBillingRouter(config: ApiConfig): Router {
             request.header("x-vercel-ip-country") ??
             null,
           locale: request.header("accept-language")?.split(",")[0] ?? null,
-          organizationReference: request.context.tenantId!,
+          organizationReference: request.context.organizationId!,
           planId: request.body.planId
         });
 
@@ -104,12 +107,12 @@ export function createBillingRouter(config: ApiConfig): Router {
 
   router.get(
     "/portal",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const portal = await createCustomerPortalSessionForOrganization({
         config,
-        organizationReference: request.context.tenantId!
+        organizationReference: request.context.organizationId!
       });
 
       response.status(200).json({
@@ -121,11 +124,11 @@ export function createBillingRouter(config: ApiConfig): Router {
 
   router.get(
     "/invoices",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const pagination = cursorPaginationQuerySchema.parse(request.query);
       const invoices = await listInvoicesForOrganization({
-        organizationReference: request.context.tenantId!,
+        organizationReference: request.context.organizationId!,
         take: pagination.take,
         ...(pagination.cursor ? { cursor: pagination.cursor } : {})
       });
@@ -152,11 +155,11 @@ export function createBillingRouter(config: ApiConfig): Router {
 
   router.get(
     "/usage",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
-      const usage = await listUsageForOrganization(request.context.tenantId!);
+      const usage = await listUsageForOrganization(request.context.organizationId!);
       const snapshot = await getBillingSnapshot(
-        request.context.tenantId!,
+        request.context.organizationId!,
         config.BILLING_GRACE_PERIOD_DAYS
       );
 

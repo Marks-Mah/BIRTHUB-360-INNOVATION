@@ -102,3 +102,11 @@ async def score_geo_expansion_risk(context: Dict[str, Any]) -> Dict[str, Any]:
     regulation = int(context.get("regulatory_complexity", 50))
     competition = int(context.get("competition", 50))
     return {"risk_score": round((regulation + competition) / 2, 2)}
+
+
+async def estimate_partnership_roi(context: Dict[str, Any]) -> Dict[str, Any]:
+    expected_revenue = float(context.get("expected_revenue", 0))
+    cost = float(context.get("cost", 0))
+    if cost <= 0:
+        raise AgentToolError(code="INVALID_COST", message="cost deve ser maior que zero")
+    return {"roi": round((expected_revenue - cost) / cost, 2), "expected_revenue": expected_revenue, "cost": cost}

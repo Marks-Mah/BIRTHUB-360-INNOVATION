@@ -2,12 +2,20 @@ from typing import Dict, Any, List, Optional
 from langgraph.graph import StateGraph, END
 from agents.shared.base_agent import BaseAgent, BaseAgentState
 from agents.closer.prompts import CLOSER_AGENT_SYSTEM
-from agents.closer.tools import analyze_objections, calculate_discount_approval, generate_contract_draft
+from agents.closer.tools import (
+    analyze_objections,
+    build_closing_strategy,
+    calculate_discount_approval,
+    generate_closing_checklist,
+    generate_contract_draft,
+)
 
 class CloserAgentState(BaseAgentState):
     objection_analysis: Optional[Dict[str, Any]]
     discount_status: Optional[Dict[str, Any]]
     contract_draft: Optional[Dict[str, Any]]
+    closing_strategy: Optional[Dict[str, Any]]
+    closing_checklist: Optional[Dict[str, Any]]
 
 class CloserAgent(BaseAgent):
     def __init__(self):
@@ -19,6 +27,7 @@ class CloserAgent(BaseAgent):
         workflow.add_node("analyze_objections", self._analyze_objections)
         workflow.add_node("handle_negotiation", self._handle_negotiation)
         workflow.add_node("draft_contract", self._draft_contract)
+        workflow.add_node("publish", self._publish)
 
         workflow.set_entry_point("analyze_objections")
 
@@ -28,10 +37,11 @@ class CloserAgent(BaseAgent):
             self._check_negotiation_result,
             {
                 "approved": "draft_contract",
-                "rejected": END # Stop if discount rejected
+                "rejected": "publish"
             }
         )
-        workflow.add_edge("draft_contract", END)
+        workflow.add_edge("draft_contract", "publish")
+        workflow.add_edge("publish", END)
 
         return workflow.compile()
 
@@ -84,4 +94,34 @@ class CloserAgent(BaseAgent):
         return {
             "contract_draft": data,
             "actions_taken": [{"action": "draft_contract", "url": data.get("contract_url")}]
+        }
+
+    async def _publish(self, state: CloserAgentState) -> Dict[str, Any]:
+        context = state.get("context", {})
+        strategy = await build_closing_strategy(context)
+        checklist = await generate_closing_checklist(context)
+        tasks = [
+            {"task": "analyze_objections", "status": "completed"},
+            {"task": "handle_negotiation", "status": "completed"},
+            {"task": "build_closing_strategy", "status": "completed"},
+            {"task": "generate_closing_checklist", "status": "completed"},
+        ]
+        output = {
+            "agent": "closer",
+            "domain": "closing",
+            "status": "completed",
+            "tasks": tasks,
+            "deliverables": {
+                "objection_analysis": state.get("objection_analysis", {}),
+                "discount_status": state.get("discount_status", {}),
+                "contract_draft": state.get("contract_draft", {}),
+                "closing_strategy": strategy,
+                "closing_checklist": checklist,
+            },
+        }
+        return {
+            "closing_strategy": strategy,
+            "closing_checklist": checklist,
+            "output": output,
+            "actions_taken": [{"action": "publish", "status": "completed"}],
         }

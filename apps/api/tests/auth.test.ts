@@ -35,10 +35,11 @@ function createAuthTestApp() {
 
 void test("auth login returns 200 and creates a session", async () => {
   const restores = [
-    stubMethod(prisma.organization, "findFirst", async () => ({ id: "org_1" })),
+    stubMethod(prisma.organization, "findFirst", async () => ({ id: "org_1", tenantId: "tenant_1" })),
     stubMethod(prisma.membership, "findFirst", async () => ({
       organizationId: "org_1",
       role: "OWNER",
+      tenantId: "tenant_1",
       user: {
         email: "owner@birthub.local",
         id: "user_1",
@@ -68,6 +69,7 @@ void test("auth login returns 200 and creates a session", async () => {
 
     assert.equal(response.body.mfaRequired, false);
     assert.equal(response.body.session.userId, "user_1");
+    assert.equal(response.body.session.tenantId, "tenant_1");
   } finally {
     for (const restore of restores.reverse()) {
       restore();
@@ -77,10 +79,11 @@ void test("auth login returns 200 and creates a session", async () => {
 
 void test("auth login with MFA enabled returns challenge token", async () => {
   const restores = [
-    stubMethod(prisma.organization, "findFirst", async () => ({ id: "org_1" })),
+    stubMethod(prisma.organization, "findFirst", async () => ({ id: "org_1", tenantId: "tenant_1" })),
     stubMethod(prisma.membership, "findFirst", async () => ({
       organizationId: "org_1",
       role: "OWNER",
+      tenantId: "tenant_1",
       user: {
         email: "owner@birthub.local",
         id: "user_1",
@@ -122,12 +125,12 @@ void test("auth MFA challenge verification accepts valid TOTP", async () => {
   const validTotp = generateCurrentTotp(secret);
 
   const restores = [
-    stubMethod(prisma.organization, "findFirst", async () => ({ id: "org_1" })),
     stubMethod(prisma.mfaChallenge, "findUnique", async () => ({
       consumedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
       id: "challenge_1",
       organizationId: "org_1",
+      tenantId: "tenant_1",
       userId: "user_1"
     })),
     stubMethod(prisma.user, "findUnique", async () => ({
@@ -146,7 +149,6 @@ void test("auth MFA challenge verification accepts valid TOTP", async () => {
 
     const response = await request(app)
       .post("/api/v1/auth/mfa/challenge")
-      .set("x-tenant-id", "org_1")
       .send({
         challengeToken: "mfa_token_for_test",
         totpCode: validTotp
@@ -155,6 +157,7 @@ void test("auth MFA challenge verification accepts valid TOTP", async () => {
 
     assert.equal(response.body.mfaRequired, false);
     assert.equal(response.body.session.userId, "user_1");
+    assert.equal(response.body.session.tenantId, "tenant_1");
   } finally {
     for (const restore of restores.reverse()) {
       restore();
@@ -171,6 +174,7 @@ void test("auth logout returns 200 for a valid session token", async () => {
       expiresAt,
       id: "session_1",
       organizationId: "org_1",
+      tenantId: "tenant_1",
       revokedAt: null,
       userId: "user_1"
     })),
@@ -205,6 +209,7 @@ void test("auth protected endpoint returns 401 for expired or invalid session to
     expiresAt: new Date(Date.now() - 60_000),
     id: "session_expired",
     organizationId: "org_1",
+    tenantId: "tenant_1",
     revokedAt: null,
     userId: "user_1"
   }));

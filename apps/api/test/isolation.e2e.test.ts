@@ -7,13 +7,14 @@ import request from "supertest";
 import { requestContextMiddleware } from "../src/middleware/request-context.js";
 import { tenantContextMiddleware } from "../src/middleware/tenant-context.js";
 
-void test("contexto de tenant nao vaza entre requests concorrentes", async () => {
+void test("contexto de tenant nao e materializado a partir de headers crus", async () => {
   const app = express();
 
   app.use(requestContextMiddleware);
   app.use(tenantContextMiddleware);
   app.get("/echo", (req, res) => {
     res.status(200).json({
+      contextTenantId: req.context.tenantId,
       tenantId: req.tenantContext?.tenantId ?? null
     });
   });
@@ -23,6 +24,8 @@ void test("contexto de tenant nao vaza entre requests concorrentes", async () =>
     request(app).get("/echo").set("x-tenant-id", "tenant-b")
   ]);
 
-  assert.equal(tenantA.body.tenantId, "tenant-a");
-  assert.equal(tenantB.body.tenantId, "tenant-b");
+  assert.equal(tenantA.body.tenantId, null);
+  assert.equal(tenantA.body.contextTenantId, null);
+  assert.equal(tenantB.body.tenantId, null);
+  assert.equal(tenantB.body.contextTenantId, null);
 });

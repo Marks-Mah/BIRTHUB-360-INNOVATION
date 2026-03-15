@@ -70,7 +70,7 @@ export function createWebhookRateLimitMiddleware(config: ApiConfig): RequestHand
       windowMs: config.API_WEBHOOK_RATE_LIMIT_WINDOW_MS
     }),
     keyGenerator: (request) => {
-      const tenantId = request.header("x-tenant-id") ?? "public";
+      const tenantId = request.context.tenantId ?? "public";
       const signature =
         request.header("stripe-signature") ??
         request.header("x-birthhub-signature") ??
@@ -80,7 +80,7 @@ export function createWebhookRateLimitMiddleware(config: ApiConfig): RequestHand
     },
     legacyHeaders: false,
     limit: (request) =>
-      request.header("x-tenant-id")
+      request.context.tenantId
         ? config.API_WEBHOOK_RATE_LIMIT_MAX * config.API_WEBHOOK_RATE_LIMIT_TENANT_MULTIPLIER
         : config.API_WEBHOOK_RATE_LIMIT_MAX,
     standardHeaders: true,

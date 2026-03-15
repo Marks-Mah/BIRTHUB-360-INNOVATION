@@ -57,3 +57,19 @@ async def generate_training_quiz(topic: str, difficulty: str) -> Dict[str, Any]:
         payload={"topic": topic, "difficulty": difficulty},
         idempotent=True,
     )
+
+
+async def score_rep_readiness(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"readiness": min(100, int(context.get("readiness", 78)))}
+
+
+async def build_objection_drill(objections: List[str]) -> Dict[str, Any]:
+    return {"drill": [{"objection": item, "response": "Explorar impacto e ROI"} for item in objections]}
+
+
+async def recommend_training_path(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"path": ["discovery", "negociacao", "forecast"], "focus": context.get("focus", "closing")}
+
+
+async def summarize_manager_notes(notes: List[str]) -> Dict[str, Any]:
+    return {"summary": " ".join(notes[:2]), "note_count": len(notes)}

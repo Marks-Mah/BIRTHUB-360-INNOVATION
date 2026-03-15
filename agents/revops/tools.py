@@ -102,3 +102,10 @@ async def estimate_planning_accuracy(context: Dict[str, Any]) -> Dict[str, Any]:
         raise AgentToolError(code="INVALID_FORECAST", message="forecast deve ser maior que zero")
     error = abs(actual - forecast) / forecast
     return {"accuracy": round(1 - error, 4)}
+
+
+async def calculate_revenue_leakage(context: Dict[str, Any]) -> Dict[str, Any]:
+    expected = float(context.get("expected", 0))
+    realized = float(context.get("realized", 0))
+    leakage = max(0.0, expected - realized)
+    return {"leakage": round(leakage, 2), "expected": expected, "realized": realized}

@@ -108,3 +108,13 @@ async def project_upsell_revenue(context: Dict[str, Any]) -> Dict[str, Any]:
     if not 0 <= conversion <= 1:
         raise AgentToolError(code="INVALID_CONVERSION", message="conversion deve estar entre 0 e 1")
     return {"projected_upsell": round(pipeline * conversion, 2), "conversion": conversion}
+
+
+async def quantify_churn_exposure(context: Dict[str, Any]) -> Dict[str, Any]:
+    mrr = float(context.get("mrr", 0))
+    risk_pct = float(context.get("risk_pct", 0))
+    if mrr < 0:
+        raise AgentToolError(code="INVALID_MRR", message="mrr deve ser >= 0")
+    if not 0 <= risk_pct <= 1:
+        raise AgentToolError(code="INVALID_RISK_PCT", message="risk_pct deve estar entre 0 e 1")
+    return {"churn_exposure": round(mrr * risk_pct, 2), "mrr": mrr, "risk_pct": risk_pct}

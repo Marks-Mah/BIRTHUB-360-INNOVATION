@@ -7,7 +7,10 @@ import {
 } from "@birthub/database";
 import { Router } from "express";
 
-import { RequireRole, requireAuthenticated } from "../../common/guards/index.js";
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { validateBody } from "../../middleware/validate-body.js";
 import {
@@ -283,7 +286,7 @@ export function createUsersRouter(): Router {
 
   router.get(
     "/users",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const organizationReference = request.context.tenantId;
@@ -313,7 +316,7 @@ export function createUsersRouter(): Router {
 
   router.patch(
     "/users/:userId/suspend",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const organizationReference = request.context.tenantId;
@@ -365,7 +368,7 @@ export function createUsersRouter(): Router {
 
   router.patch(
     "/users/:userId/role",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     validateBody(roleUpdateRequestSchema),
     asyncHandler(async (request, response) => {
@@ -376,7 +379,7 @@ export function createUsersRouter(): Router {
 
   router.delete(
     "/users/:userId",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const organizationReference = request.context.tenantId;
@@ -414,7 +417,7 @@ export function createUsersRouter(): Router {
 
   router.get(
     "/team/members",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const organizationReference = request.context.tenantId;
@@ -440,7 +443,7 @@ export function createUsersRouter(): Router {
 
   router.patch(
     "/team/members/:userId/role",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.ADMIN),
     validateBody(roleUpdateRequestSchema),
     asyncHandler(async (request, response) => {

@@ -17,11 +17,11 @@ const SWR_OPTIONS = {
 
 function authHeaders() {
   const token = typeof window !== "undefined" ? localStorage.getItem("birthub_token") : null;
-  const tenantId = typeof window !== "undefined" ? localStorage.getItem("birthub_tenant_id") || "default" : "default";
-  return {
-    Authorization: token ? `Bearer ${token}` : "",
-    "x-tenant-id": tenantId,
-  };
+  return token
+    ? {
+        Authorization: `Bearer ${token}`
+      }
+    : {};
 }
 
 async function fetcher<T>(url: string): Promise<T> {

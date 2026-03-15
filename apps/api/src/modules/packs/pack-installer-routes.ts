@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
+import { Role } from "@birthub/database";
 
-import { RequireFeature } from "../../common/guards/index.js";
+import {
+  RequireFeature,
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { requireStringValue } from "../../lib/request-values.js";
 import { LimitExceededError } from "../billing/index.js";
@@ -12,9 +17,20 @@ export function createPackInstallerRouter(): Router {
 
   router.post(
     "/install",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
     RequireFeature("agents"),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
+      const tenantId = request.context.tenantId;
+      const actorId = request.context.userId;
+
+      if (!tenantId || !actorId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const payload = z
         .object({
           activateAgents: z.boolean().default(true),
@@ -32,6 +48,7 @@ export function createPackInstallerRouter(): Router {
       try {
         result = await packInstallerService.installPackAtomic({
           activateAgents: payload.activateAgents,
+          actorId,
           connectors: payload.connectors,
           tenantId,
           ...(payload.agentId ? { agentId: payload.agentId } : {}),
@@ -58,12 +75,25 @@ export function createPackInstallerRouter(): Router {
 
   router.post(
     "/uninstall",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
+      const tenantId = request.context.tenantId;
+      const actorId = request.context.userId;
+
+      if (!tenantId || !actorId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const payload = z.object({ packId: z.string().min(1) }).parse(request.body);
 
       try {
         const result = await packInstallerService.uninstallPackAtomic({
+          actorId,
           packId: payload.packId,
           tenantId
         });
@@ -87,8 +117,19 @@ export function createPackInstallerRouter(): Router {
 
   router.get(
     "/status",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
+      const tenantId = request.context.tenantId;
+
+      if (!tenantId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const packs = await packInstallerService.getPackStatus(tenantId);
 
       response.status(200).json({
@@ -100,8 +141,20 @@ export function createPackInstallerRouter(): Router {
 
   router.post(
     "/:packId/version",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
+      const tenantId = request.context.tenantId;
+      const actorId = request.context.userId;
+
+      if (!tenantId || !actorId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const payload = z
         .object({
           latestAvailableVersion: z.string().min(1)
@@ -110,6 +163,7 @@ export function createPackInstallerRouter(): Router {
       const packId = requireStringValue(request.params.packId, "A valid pack id is required.");
 
       const result = await packInstallerService.updatePackVersion({
+        actorId,
         latestAvailableVersion: payload.latestAvailableVersion,
         packId,
         tenantId
@@ -124,8 +178,19 @@ export function createPackInstallerRouter(): Router {
 
   router.get(
     "/:packId",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
+      const tenantId = request.context.tenantId;
+
+      if (!tenantId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
       const statuses = await packInstallerService.getPackStatus(tenantId);
       const packId = requireStringValue(request.params.packId, "A valid pack id is required.");
       const pack = statuses.find((item) => item.packId === packId);

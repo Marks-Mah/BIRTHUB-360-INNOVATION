@@ -52,3 +52,19 @@ async def share_collateral(partner_email: str, resource_type: str) -> Dict[str, 
         payload={"partner_email": partner_email, "resource_type": resource_type},
         idempotent=True,
     )
+
+
+async def score_partner_pipeline(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"pipeline_score": min(100, int(context.get("pipeline_score", 73)))}
+
+
+async def recommend_partner_enablement(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"enablement": ["deck", "battlecard", "demo_env"], "track": context.get("track", "growth")}
+
+
+async def summarize_partner_activity(items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return {"activities": len(items), "active": sum(1 for item in items if item.get("active", True))}
+
+
+async def build_partner_follow_up(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"sequence": ["intro", "follow_up", "qbr"], "owner": context.get("owner", "partner_manager")}

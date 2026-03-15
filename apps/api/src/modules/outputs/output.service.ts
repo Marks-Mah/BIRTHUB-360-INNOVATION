@@ -1,12 +1,17 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
+
+import { prisma } from "@birthub/database";
 
 export type OutputType = "executive-report" | "technical-log";
 export type OutputStatus = "COMPLETED" | "WAITING_APPROVAL";
 
 export interface OutputRecord {
   agentId: string;
+  approvedAt: string | null;
+  approvedByUserId: string | null;
   content: string;
   createdAt: string;
+  createdByUserId: string;
   id: string;
   outputHash: string;
   status: OutputStatus;
@@ -18,61 +23,134 @@ function hashContent(content: string): string {
   return createHash("sha256").update(content, "utf8").digest("hex");
 }
 
-export class OutputService {
-  private readonly outputs = new Map<string, OutputRecord>();
+function mapType(type: string): OutputType {
+  return type === "technical-log" ? "technical-log" : "executive-report";
+}
 
-  createOutput(input: {
+function mapStatus(status: string): OutputStatus {
+  return status === "WAITING_APPROVAL" ? "WAITING_APPROVAL" : "COMPLETED";
+}
+
+function toOutputRecord(record: {
+  agentId: string;
+  approvedAt: Date | null;
+  approvedByUserId: string | null;
+  content: string;
+  contentHash: string;
+  createdAt: Date;
+  createdByUserId: string;
+  id: string;
+  status: string;
+  tenantId: string;
+  type: string;
+}): OutputRecord {
+  return {
+    agentId: record.agentId,
+    approvedAt: record.approvedAt?.toISOString() ?? null,
+    approvedByUserId: record.approvedByUserId,
+    content: record.content,
+    createdAt: record.createdAt.toISOString(),
+    createdByUserId: record.createdByUserId,
+    id: record.id,
+    outputHash: record.contentHash,
+    status: mapStatus(record.status),
+    tenantId: record.tenantId,
+    type: mapType(record.type)
+  };
+}
+
+export class OutputService {
+  async createOutput(input: {
     agentId: string;
     content: string;
+    createdByUserId: string;
+    organizationId: string;
     requireApproval?: boolean;
     tenantId: string;
     type: OutputType;
-  }): OutputRecord {
+  }): Promise<OutputRecord> {
     const outputHash = hashContent(input.content);
-    const record: OutputRecord = {
-      agentId: input.agentId,
-      content: input.content,
-      createdAt: new Date().toISOString(),
-      id: randomUUID(),
-      outputHash,
-      status: input.requireApproval ? "WAITING_APPROVAL" : "COMPLETED",
-      tenantId: input.tenantId,
-      type: input.type
-    };
+    const record = await prisma.outputArtifact.create({
+      data: {
+        agentId: input.agentId,
+        content: input.content,
+        contentHash: outputHash,
+        createdByUserId: input.createdByUserId,
+        organizationId: input.organizationId,
+        status: input.requireApproval ? "WAITING_APPROVAL" : "COMPLETED",
+        tenantId: input.tenantId,
+        type: input.type
+      }
+    });
 
-    this.outputs.set(record.id, record);
-    return record;
+    return toOutputRecord(record);
   }
 
-  listByTenant(tenantId: string, type?: OutputType): OutputRecord[] {
-    return [...this.outputs.values()]
-      .filter((record) => record.tenantId === tenantId)
-      .filter((record) => (type ? record.type === type : true))
-      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  async listByTenant(tenantId: string, type?: OutputType): Promise<OutputRecord[]> {
+    const outputs = await prisma.outputArtifact.findMany({
+      orderBy: {
+        createdAt: "desc"
+      },
+      where: {
+        ...(type ? { type } : {}),
+        tenantId
+      }
+    });
+
+    return outputs.map((record) => toOutputRecord(record));
   }
 
-  getById(outputId: string): OutputRecord | null {
-    return this.outputs.get(outputId) ?? null;
+  async getById(outputId: string, tenantId: string): Promise<OutputRecord | null> {
+    const record = await prisma.outputArtifact.findFirst({
+      where: {
+        id: outputId,
+        tenantId
+      }
+    });
+
+    return record ? toOutputRecord(record) : null;
   }
 
-  approve(outputId: string): OutputRecord | null {
-    const current = this.outputs.get(outputId);
+  async approve(
+    outputId: string,
+    tenantId: string,
+    approvedByUserId: string
+  ): Promise<OutputRecord | null> {
+    const current = await prisma.outputArtifact.findFirst({
+      where: {
+        id: outputId,
+        tenantId
+      }
+    });
 
     if (!current) {
       return null;
     }
 
-    const updated: OutputRecord = {
-      ...current,
-      status: "COMPLETED"
-    };
+    const updated = await prisma.outputArtifact.update({
+      data: {
+        approvedAt: new Date(),
+        approvedByUserId,
+        status: "COMPLETED"
+      },
+      where: {
+        id: current.id
+      }
+    });
 
-    this.outputs.set(outputId, updated);
-    return updated;
+    return toOutputRecord(updated);
   }
 
-  verifyIntegrity(outputId: string): { expectedHash: string; isValid: boolean; recalculatedHash: string } | null {
-    const record = this.outputs.get(outputId);
+  async verifyIntegrity(
+    outputId: string,
+    tenantId: string
+  ): Promise<{ expectedHash: string; isValid: boolean; recalculatedHash: string } | null> {
+    const record = await prisma.outputArtifact.findFirst({
+      where: {
+        id: outputId,
+        tenantId
+      }
+    });
 
     if (!record) {
       return null;
@@ -81,32 +159,35 @@ export class OutputService {
     const recalculatedHash = hashContent(record.content);
 
     return {
-      expectedHash: record.outputHash,
-      isValid: recalculatedHash === record.outputHash,
+      expectedHash: record.contentHash,
+      isValid: recalculatedHash === record.contentHash,
       recalculatedHash
     };
   }
 
-  prune(): number {
-    const now = Date.now();
-    let deleted = 0;
+  async prune(): Promise<number> {
+    const technicalCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const reportCutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    const [technicalLogs, executiveReports] = await Promise.all([
+      prisma.outputArtifact.deleteMany({
+        where: {
+          createdAt: {
+            lt: technicalCutoff
+          },
+          type: "technical-log"
+        }
+      }),
+      prisma.outputArtifact.deleteMany({
+        where: {
+          createdAt: {
+            lt: reportCutoff
+          },
+          type: "executive-report"
+        }
+      })
+    ]);
 
-    for (const [id, record] of this.outputs.entries()) {
-      const ageMs = now - new Date(record.createdAt).getTime();
-
-      if (record.type === "technical-log" && ageMs > 30 * 24 * 60 * 60 * 1000) {
-        this.outputs.delete(id);
-        deleted += 1;
-        continue;
-      }
-
-      if (record.type === "executive-report" && ageMs > 365 * 24 * 60 * 60 * 1000) {
-        this.outputs.delete(id);
-        deleted += 1;
-      }
-    }
-
-    return deleted;
+    return technicalLogs.count + executiveReports.count;
   }
 }
 

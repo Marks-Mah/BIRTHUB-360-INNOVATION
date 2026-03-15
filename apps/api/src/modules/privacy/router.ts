@@ -6,7 +6,10 @@ import {
 import { Role } from "@birthub/database";
 import { Router } from "express";
 
-import { RequireRole, requireAuthenticated } from "../../common/guards/index.js";
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler } from "../../lib/problem-details.js";
 import { validateBody } from "../../middleware/validate-body.js";
 import {
@@ -20,16 +23,16 @@ export function createPrivacyRouter(config: ApiConfig): Router {
 
   router.get(
     "/export",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     RequireRole(Role.OWNER),
     asyncHandler(async (request, response) => {
       const payload = await exportTenantData({
-        organizationReference: request.context.tenantId!,
+        organizationReference: request.context.organizationId!,
         requestedByUserId: request.context.userId!
       });
 
       await recordTenantDataExport({
-        organizationReference: request.context.tenantId!,
+        organizationReference: request.context.organizationId!,
         userId: request.context.userId!
       });
 
@@ -43,13 +46,13 @@ export function createPrivacyRouter(config: ApiConfig): Router {
 
   router.post(
     "/delete-account",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     validateBody(privacyDeleteRequestSchema),
     asyncHandler(async (request, response) => {
       const result = await deleteAccountAndPersonalData({
         config,
         confirmationText: request.body.confirmationText,
-        organizationReference: request.context.tenantId!,
+        organizationReference: request.context.organizationId!,
         userId: request.context.userId!
       });
 

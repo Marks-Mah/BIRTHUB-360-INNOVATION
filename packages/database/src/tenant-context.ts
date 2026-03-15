@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 import { TenantRequiredError } from "./errors/tenant-required.error.js";
 
-export type TenantSource = "active-header" | "header" | "jwt" | "seed" | "system";
+export type TenantSource = "active-header" | "authenticated" | "seed" | "system";
 
 export interface TenantContext {
   tenantId: string;

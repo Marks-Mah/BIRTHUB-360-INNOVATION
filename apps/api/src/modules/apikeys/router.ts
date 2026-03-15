@@ -5,8 +5,12 @@ import {
   apiKeyListResponseSchema
 } from "@birthub/config";
 import { Router } from "express";
+import { Role } from "@birthub/database";
 
-import { requireAuthenticated } from "../../common/guards/index.js";
+import {
+  RequireRole,
+  requireAuthenticatedSession
+} from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { validateBody } from "../../middleware/validate-body.js";
 import {
@@ -17,9 +21,9 @@ import {
 } from "../auth/auth.service.js";
 
 function requireAuthScope(request: {
-  context: { tenantId?: string | null; userId?: string | null };
+  context: { organizationId?: string | null; userId?: string | null };
 }): { organizationId: string; userId: string } {
-  const organizationId = request.context.tenantId;
+  const organizationId = request.context.organizationId;
   const userId = request.context.userId;
 
   if (!organizationId || !userId) {
@@ -57,7 +61,8 @@ function readApiKeyId(params: Record<string, string | string[] | undefined>): st
 export function createApiKeysRouter(config: ApiConfig): Router {
   const router = Router();
 
-  router.use(requireAuthenticated);
+  router.use(requireAuthenticatedSession);
+  router.use(RequireRole(Role.ADMIN));
 
   router.get(
     "/",

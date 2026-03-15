@@ -98,3 +98,11 @@ async def score_rep_workload(context: Dict[str, Any]) -> Dict[str, Any]:
 
 async def build_handoff_protocol(context: Dict[str, Any]) -> Dict[str, Any]:
     return {"stages": ["qualificacao", "diagnostico", "agendamento_ae"], "owner": context.get("owner", "coord_comercial")}
+
+
+async def monitor_queue_aging(context: Dict[str, Any]) -> Dict[str, Any]:
+    aging_hours = context.get("aging_hours", [])
+    if not aging_hours:
+        return {"avg_aging_hours": 0.0, "max_aging_hours": 0.0}
+    avg = sum(float(item) for item in aging_hours) / len(aging_hours)
+    return {"avg_aging_hours": round(avg, 2), "max_aging_hours": max(float(item) for item in aging_hours)}

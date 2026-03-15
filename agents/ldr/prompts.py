@@ -20,3 +20,5 @@ Your role is to rigorously qualify inbound or enriched leads based on Ideal Cust
 **Output Format:**
 - Structured JSON with `score`, `tier`, `qualification_status`, and `action_taken`.
 """
+
+LDR_AGENT_SYSTEM = SYSTEM_PROMPT

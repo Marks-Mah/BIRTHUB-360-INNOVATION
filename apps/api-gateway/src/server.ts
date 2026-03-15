@@ -24,6 +24,10 @@ import { createLogger } from "./lib/logger.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const logger = createLogger({ service: "api-gateway" });
+const legacyGatewayEnabled =
+  process.env.NODE_ENV === "development" &&
+  process.env.ALLOW_LEGACY_API_GATEWAY === "true";
+const primaryApiBaseUrl = process.env.PRIMARY_API_URL || "http://localhost:3000";
 
 const app: Express = express();
 app.use(helmet());
@@ -42,7 +46,12 @@ app.use(correlationMiddleware);
 app.use(cloudLoggingMiddleware);
 
 // Public Health Check
-app.get("/health", (_req, res) => res.json({ status: "ok" }));
+app.get("/health", (_req, res) =>
+  res.json({
+    replacement: primaryApiBaseUrl,
+    status: legacyGatewayEnabled ? "ok" : "retired"
+  })
+);
 
 app.get("/openapi.json", (_req, res) => res.json(openApiDocument));
 
@@ -57,6 +66,17 @@ try {
 // Authentication Middleware
 // Apply to all routes except public ones
 app.use((req, res, next) => {
+  if (!legacyGatewayEnabled) {
+    return res.status(410).json({
+      error: {
+        code: "LEGACY_API_GATEWAY_DISABLED",
+        message:
+          "Legacy api-gateway is frozen outside explicit local development. Route traffic to apps/api."
+      },
+      replacement: primaryApiBaseUrl
+    });
+  }
+
   if (
     req.path === "/health" ||
     req.path === "/openapi.json" ||

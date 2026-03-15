@@ -256,4 +256,5 @@
   - `pnpm ci:task satellites` PASS
   - `pnpm test:e2e` PASS
   - `pnpm ci:full` PASS com gate canonico limitado a core, satellites suportados, packs, workflow/billing/security e Playwright.
-- Observacao: a suite Python legada em `agents/*` segue fora do gate canonico e permanece executavel sob demanda via `pnpm ci:legacy-agents`, ainda com falhas de import em modulos herdados.
+  - `pnpm ci:legacy-agents` PASS apos restaurar compatibilidade dos agentes Python legados e dos contratos do orquestrador.
+- Observacao: a suite Python legada em `agents/*` segue fora do gate canonico de release, mas o lane sob demanda `pnpm ci:legacy-agents` esta verde nesta revalidacao.

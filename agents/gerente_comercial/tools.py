@@ -102,3 +102,11 @@ async def estimate_quarter_attainment(context: Dict[str, Any]) -> Dict[str, Any]
     if quota <= 0:
         raise AgentToolError(code="INVALID_QUOTA", message="quota deve ser maior que zero")
     return {"attainment": round(committed / quota, 4)}
+
+
+async def calculate_rep_productivity_index(context: Dict[str, Any]) -> Dict[str, Any]:
+    meetings = max(0, int(context.get("meetings", 0)))
+    proposals = max(0, int(context.get("proposals", 0)))
+    wins = max(0, int(context.get("wins", 0)))
+    productivity = round((meetings * 0.2) + (proposals * 0.3) + (wins * 1.0), 2)
+    return {"productivity_index": productivity, "wins": wins}

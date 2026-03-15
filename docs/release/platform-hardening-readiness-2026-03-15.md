@@ -29,6 +29,7 @@
 - `pnpm packs:test`
 - `pnpm test:e2e`
 - `pnpm ci:full`
+- `pnpm ci:legacy-agents`
 
 ## Generated artifacts
 
@@ -45,10 +46,10 @@
 - `pnpm ci:task satellites`: PASS
 - `pnpm test:e2e`: PASS
 - `pnpm ci:full`: PASS after removing the legacy Python agent suite from the canonical release gate and keeping it in a dedicated lane.
+- `pnpm ci:legacy-agents`: PASS after restoring legacy prompts, schemas, tool exports and orchestrator compatibility routes.
 
 ## Remaining blockers outside the canonical release gate
 
-- `pnpm ci:legacy-agents` still fails during Python test collection in `agents/*` because several legacy modules export missing prompts, schemas or tool helpers.
 - Legacy debt outside this hardening scope still blocks non-smoke gates in some supported or legacy surfaces:
   - `apps/dashboard`: `lint`, `typecheck`, `build`
   - `apps/api-gateway`: `typecheck`, `build`
@@ -58,5 +59,5 @@
 ## Notes
 
 - `pnpm ci:full` is now the canonical release gate for the supported platform scope: core + supported satellites + packs + workflow/billing/security evidence + Playwright.
-- `pnpm ci:legacy-agents` is the explicit lane for the unsupported Python legacy agent stack.
+- `pnpm ci:legacy-agents` remains the explicit lane for the unsupported Python legacy agent stack, but it is green on this workstation snapshot.
 - When docs and code diverged, the executable artifact or test result was treated as the source of truth and the checklist was updated afterward.

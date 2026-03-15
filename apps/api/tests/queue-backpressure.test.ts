@@ -7,6 +7,7 @@ import request from "supertest";
 import { createApp } from "../src/app.js";
 import { QueueBackpressureError } from "../src/lib/queue.js";
 import { sha256 } from "../src/modules/auth/crypto.js";
+import { budgetService } from "../src/modules/budget/budget.service.js";
 import { createTestApiConfig } from "./test-config.js";
 
 function stubMethod(target: object, key: string, value: unknown): () => void {
@@ -28,6 +29,7 @@ void test("tasks endpoint returns 503 when queue backpressure threshold is reach
         expiresAt: new Date(Date.now() + 60_000),
         id: "session_1",
         organizationId: "org_1",
+        tenantId: "tenant_1",
         revokedAt: null,
         userId: "user_1"
       };
@@ -36,6 +38,15 @@ void test("tasks endpoint returns 503 when queue backpressure threshold is reach
     stubMethod(prisma.user, "findUnique", async () => ({
       id: "user_1",
       status: UserStatus.ACTIVE
+    })),
+    stubMethod(budgetService, "consumeBudget", async () => ({
+      agentId: "ceo-pack",
+      consumed: 0.5,
+      currency: "BRL",
+      id: "budget_1",
+      limit: 100,
+      tenantId: "tenant_1",
+      updatedAt: new Date().toISOString()
     }))
   ];
 

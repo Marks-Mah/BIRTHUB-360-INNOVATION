@@ -52,3 +52,19 @@ async def send_connection_request(profile_url: str, message: str) -> Dict[str, A
         payload={"profile_url": profile_url, "message": message},
         idempotent=True,
     )
+
+
+async def score_social_warmth(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"warmth_score": min(100, int(context.get("warmth_score", 68)))}
+
+
+async def draft_follow_up_comment(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"comment": context.get("comment", "Ótimo ponto. Vale aprofundar esse movimento.")}
+
+
+async def summarize_social_touchpoints(items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return {"touchpoints": len(items), "channels": sorted({item.get("channel", "linkedin") for item in items})}
+
+
+async def recommend_social_sequence(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"sequence": ["view_profile", "like_post", "comment", "connect"], "owner": context.get("owner", "social_selling")}

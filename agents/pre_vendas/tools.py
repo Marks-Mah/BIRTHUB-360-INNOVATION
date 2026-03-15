@@ -98,3 +98,9 @@ async def summarize_discovery_call(context: Dict[str, Any]) -> Dict[str, Any]:
 
 async def plan_handoff_to_ae(context: Dict[str, Any]) -> Dict[str, Any]:
     return {"handoff_fields": ["dor", "impacto", "stakeholders", "timeline"], "ready": True}
+
+
+async def calculate_discovery_coverage(context: Dict[str, Any]) -> Dict[str, Any]:
+    answered = max(0, int(context.get("answered_questions", 0)))
+    total = max(1, int(context.get("total_questions", 1)))
+    return {"coverage": round(answered / total, 4), "answered_questions": answered, "total_questions": total}

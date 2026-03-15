@@ -61,3 +61,20 @@ async def generate_outreach_sequence(lead: Dict[str, Any]) -> Dict[str, Any]:
         payload={"lead": lead},
         idempotent=True,
     )
+
+
+async def score_account_fit(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"fit_score": min(100, int(context.get("fit_score", 72)))}
+
+
+async def rank_daily_prospects(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    ranked = sorted(records, key=lambda item: item.get("score", 0), reverse=True)
+    return {"ranked": ranked}
+
+
+async def build_follow_up_plan(context: Dict[str, Any]) -> Dict[str, Any]:
+    return {"plan": ["day_0_email", "day_2_linkedin", "day_5_call"], "owner": context.get("owner", "bdr")}
+
+
+async def summarize_outreach_activity(items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return {"count": len(items), "channels": sorted({item.get("channel", "email") for item in items})}

@@ -54,7 +54,6 @@ export interface InstalledAgentSnapshot {
 
 const MINIMUM_APPROVED_LEARNING_CONFIDENCE = 0.7;
 const SHARED_LEARNING_LIMIT = 8;
-const FALLBACK_TENANT_ID = "birthhub-alpha";
 const sharedLearningMemory = new AgentMemoryService();
 
 function canFallbackDatabase(error: unknown): boolean {
@@ -251,7 +250,15 @@ function buildSnapshot(input: {
 }
 
 async function resolveOrganization(tenantReference: string) {
-  const tenantId = tenantReference.trim() || FALLBACK_TENANT_ID;
+  const tenantId = tenantReference.trim();
+
+  if (!tenantId) {
+    throw new ProblemDetailsError({
+      detail: "Authenticated tenant context is required for installed-agent operations.",
+      status: 401,
+      title: "Unauthorized"
+    });
+  }
 
   try {
     const organization = await prisma.organization.findFirst({
@@ -440,7 +447,7 @@ export class InstalledAgentsService {
     installedAgentId: string;
     payload: Record<string, unknown>;
     tenantReference: string;
-    userId?: string | null;
+    userId: string;
   }): Promise<{
     catalogAgentId: string;
     executionId: string;
@@ -505,14 +512,14 @@ export class InstalledAgentsService {
           startedAt,
           status: "SUCCESS",
           tenantId: resolved.organization.tenantId,
-          userId: input.userId ?? null
+          userId: input.userId
         }
       });
 
       await tx.auditLog.create({
         data: {
           action: "AGENT_DRY_RUN_EXECUTED",
-          actorId: input.userId ?? null,
+          actorId: input.userId,
           diff: toPrismaJsonValue({
             catalogAgentId: resolved.manifest.agent.id,
             executionId,
@@ -528,7 +535,7 @@ export class InstalledAgentsService {
       await tx.auditLog.create({
         data: {
           action: "AGENT_LEARNING_PUBLISHED",
-          actorId: input.userId ?? null,
+          actorId: input.userId,
           diff: toPrismaJsonValue(learningRecord),
           entityId: learningRecord.id,
           entityType: "agent_learning",

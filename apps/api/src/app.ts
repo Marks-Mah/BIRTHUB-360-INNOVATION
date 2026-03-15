@@ -24,7 +24,9 @@ import {
   configureCacheStore,
   registerTenantCacheInvalidationMiddleware
 } from "./common/cache/index.js";
-import { requireAuthenticated } from "./common/guards/index.js";
+import {
+  requireAuthenticatedSession
+} from "./common/guards/index.js";
 import { openApiDocument } from "./docs/openapi.js";
 import { createDeepHealthService, createHealthService } from "./lib/health.js";
 import { asyncHandler, ProblemDetailsError } from "./lib/problem-details.js";
@@ -246,7 +248,8 @@ export function createApp(dependencies: AppDependencies = {}): Express {
         return;
       }
 
-      request.context.tenantId = loginInput.tenantId;
+      request.context.organizationId = login.organizationId;
+      request.context.tenantId = login.tenantId;
       request.context.userId = login.userId;
       request.context.sessionId = login.sessionId;
       request.context.authType = "session";
@@ -261,7 +264,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
             expiresAt: login.tokens.expiresAt.toISOString(),
             id: login.sessionId,
             refreshToken: login.tokens.refreshToken,
-            tenantId: loginInput.tenantId,
+            tenantId: login.tenantId,
             token: login.tokens.token,
             userId: login.userId
           }
@@ -274,26 +277,17 @@ export function createApp(dependencies: AppDependencies = {}): Express {
     "/api/v1/auth/mfa/challenge",
     validateBody(mfaVerifyRequestSchema),
     asyncHandler(async (request, response) => {
-      const organizationId = request.context.tenantId;
-
-      if (!organizationId) {
-        throw new ProblemDetailsError({
-          detail: "Tenant context is required for MFA verification.",
-          status: 400,
-          title: "Bad Request"
-        });
-      }
-
       const session = await verifyMfaChallenge({
         challengeToken: request.body.challengeToken,
         config,
         ipAddress: request.ip ?? null,
-        organizationId,
         recoveryCode: request.body.recoveryCode,
         totpCode: request.body.totpCode,
         userAgent: request.header("user-agent") ?? null
       });
 
+      request.context.organizationId = session.organizationId;
+      request.context.tenantId = session.tenantId;
       request.context.userId = session.userId;
       request.context.sessionId = session.sessionId;
       request.context.authType = "session";
@@ -308,7 +302,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
             expiresAt: session.tokens.expiresAt.toISOString(),
             id: session.sessionId,
             refreshToken: session.tokens.refreshToken,
-            tenantId: organizationId,
+            tenantId: session.tenantId,
             token: session.tokens.token,
             userId: session.userId
           }
@@ -328,7 +322,13 @@ export function createApp(dependencies: AppDependencies = {}): Express {
         userAgent: request.header("user-agent") ?? null
       });
 
-      if (!result.tokens || !result.sessionId || !result.organizationId || !result.userId) {
+      if (
+        !result.tokens ||
+        !result.sessionId ||
+        !result.organizationId ||
+        !result.tenantId ||
+        !result.userId
+      ) {
         throw new ProblemDetailsError({
           detail: result.breached
             ? "Refresh token reuse detected."
@@ -347,7 +347,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
             expiresAt: result.tokens.expiresAt.toISOString(),
             id: result.sessionId,
             refreshToken: result.tokens.refreshToken,
-            tenantId: result.organizationId,
+            tenantId: result.tenantId,
             token: result.tokens.token,
             userId: result.userId
           }
@@ -358,7 +358,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   app.post(
     "/api/v1/auth/logout",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       if (!request.context.sessionId) {
         throw new ProblemDetailsError({
@@ -381,9 +381,9 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   app.get(
     "/api/v1/sessions",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
-      if (!request.context.tenantId || !request.context.userId) {
+      if (!request.context.organizationId || !request.context.userId) {
         throw new ProblemDetailsError({
           detail: "A valid authenticated session is required.",
           status: 401,
@@ -392,7 +392,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
       }
 
       const sessions = await listActiveSessions({
-        organizationId: request.context.tenantId,
+        organizationId: request.context.organizationId,
         userId: request.context.userId
       });
 
@@ -423,6 +423,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
         slug: request.body.slug
       });
 
+      request.context.organizationId = organization.organizationId;
       request.context.tenantId = organization.tenantId ?? null;
       request.context.userId = organization.ownerUserId;
 
@@ -442,9 +443,9 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   app.get(
     "/api/v1/me",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
-      if (!request.context.tenantId) {
+      if (!request.context.organizationId || !request.context.tenantId) {
         throw new ProblemDetailsError({
           detail: "Tenant context is required to resolve profile.",
           status: 401,
@@ -453,7 +454,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
       }
 
       const billing = await getBillingSnapshot(
-        request.context.tenantId,
+        request.context.organizationId,
         config.BILLING_GRACE_PERIOD_DAYS
       );
 
@@ -486,17 +487,29 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   app.post(
     "/api/v1/tasks",
-    requireAuthenticated,
+    requireAuthenticatedSession,
     validateBody(taskRequestSchema),
     asyncHandler(async (request, response) => {
-      const tenantId = request.context.tenantId ?? "default-tenant";
-      const userId = request.context.userId ?? "system";
+      const organizationId = request.context.organizationId;
+      const tenantId = request.context.tenantId;
+      const userId = request.context.userId;
+
+      if (!organizationId || !tenantId || !userId) {
+        throw new ProblemDetailsError({
+          detail: "A valid authenticated session is required.",
+          status: 401,
+          title: "Unauthorized"
+        });
+      }
 
       try {
-        budgetService.consumeBudget({
+        await budgetService.consumeBudget({
+          actorId: userId,
           agentId: request.body.agentId,
           costBRL: request.body.estimatedCostBRL,
           executionMode: request.body.executionMode,
+          organizationId,
+          requestId: request.context.requestId,
           tenantId
         });
       } catch (error) {
@@ -517,14 +530,13 @@ export function createApp(dependencies: AppDependencies = {}): Express {
         job = await enqueueTaskDependency(config, {
           agentId: request.body.agentId,
           approvalRequired: request.body.approvalRequired,
-          context: request.context.tenantId
-            ? {
-                actorId: userId,
-                jobId: request.context.requestId,
-                scopedAt: new Date().toISOString(),
-                tenantId
-              }
-            : undefined,
+          context: {
+            actorId: userId,
+            jobId: request.context.requestId,
+            organizationId,
+            scopedAt: new Date().toISOString(),
+            tenantId
+          },
           estimatedCostBRL: request.body.estimatedCostBRL,
           executionMode: request.body.executionMode,
           payload: request.body.payload,

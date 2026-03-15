@@ -23,6 +23,7 @@ export interface RequestContext {
         status?: string | null;
       }
     | null;
+  organizationId: string | null;
   requestId: string;
   sessionId: string | null;
   tenantId: string | null;
@@ -39,36 +40,22 @@ export function requestContextMiddleware(
 ): void {
   const requestId = request.header("x-request-id") ?? randomUUID();
   const traceId = request.header("x-trace-id") ?? requestId;
-  const tenantId = request.header("x-tenant-id") ?? null;
-  const tenantSlug = request.header("x-tenant-slug") ?? null;
-  const userId = request.header("x-user-id") ?? null;
 
   request.context = {
     apiKeyId: null,
     authType: null,
     billingPlanStatus: null,
+    organizationId: null,
     requestId,
     sessionId: null,
-    tenantId,
-    tenantSlug,
+    tenantId: null,
+    tenantSlug: null,
     traceId,
-    userId
+    userId: null
   };
 
   response.setHeader("x-request-id", requestId);
   response.setHeader("x-trace-id", traceId);
-
-  if (tenantId) {
-    response.setHeader("x-tenant-id", tenantId);
-  }
-
-  if (tenantSlug) {
-    response.setHeader("x-tenant-slug", tenantSlug);
-  }
-
-  if (userId) {
-    response.setHeader("x-user-id", userId);
-  }
 
   runWithLogContext(request.context, () => {
     next();

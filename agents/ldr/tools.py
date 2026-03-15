@@ -46,106 +46,119 @@ async def map_org_chart(company_name: str, linkedin_url: str) -> Dict[str, Any]:
 
 async def score_icp(lead_data: Dict[str, Any], icp_criteria: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Calculates ICP Score (0-100) based on configurable criteria using weighted logic.
+    Calculates ICP Score (0-100) with compatibility for both legacy weighted inputs
+    and enriched lead payloads.
     """
-    score = 0.0
+    weights = icp_criteria.get("weights", icp_criteria) if isinstance(icp_criteria, dict) else ICP_WEIGHTS
+    if not isinstance(weights, dict) or "revenue_range" not in weights:
+        weights = ICP_WEIGHTS
+    tiers = icp_criteria.get("tiers", TIER_THRESHOLDS) if isinstance(icp_criteria, dict) else TIER_THRESHOLDS
 
-    # 1. Revenue Range (Weight 0.25)
-    # Mock logic: if 'revenue' contains 'M' or 'B' => high score
-    revenue = lead_data.get("revenue") or "0"
-    revenue_score = 0
-    if "B" in str(revenue): revenue_score = 100
-    elif "M" in str(revenue):
-        # Check if > 50M
-        try:
-            val = float(str(revenue).replace("M","").replace("$","").strip())
-            if val > 50: revenue_score = 100
-            elif val > 10: revenue_score = 80
-            else: revenue_score = 50
-        except:
-            revenue_score = 50 # Default if parse fail but has M
+    missing_data: list[str] = []
+
+    def clamp(score: float) -> int:
+        return max(0, min(100, int(round(score))))
+
+    revenue_range = lead_data.get("revenue_range")
+    revenue = str(lead_data.get("revenue") or "").strip()
+    if isinstance(revenue_range, (int, float)):
+        revenue_score = clamp(float(revenue_range))
+    elif revenue:
+        if "B" in revenue:
+            revenue_score = 100
+        elif "M" in revenue:
+            try:
+                value = float(revenue.replace("M", "").replace("$", "").strip())
+                revenue_score = 100 if value > 50 else 80 if value > 10 else 55
+            except ValueError:
+                revenue_score = 50
+        else:
+            revenue_score = 40
     else:
-        revenue_score = 20
+        revenue_score = 0
+        missing_data.append("revenue_range")
 
-    score += revenue_score * ICP_WEIGHTS["revenue_range"]
+    employee_count = lead_data.get("employee_count")
+    employees = lead_data.get("employees")
+    if isinstance(employee_count, (int, float)) and employee_count > 0:
+        emp_score = clamp(float(employee_count))
+    elif isinstance(employees, (int, float)) and employees > 0:
+        if employees >= 1000:
+            emp_score = 100
+        elif employees >= 200:
+            emp_score = 85
+        elif employees >= 50:
+            emp_score = 65
+        else:
+            emp_score = 40
+    else:
+        emp_score = 0
+        missing_data.append("employee_count")
 
-    # 2. Employee Count (Weight 0.15)
-    employees = lead_data.get("employees") or 0
-    emp_score = 0
-    if employees > 1000: emp_score = 100
-    elif employees > 200: emp_score = 80
-    elif employees > 50: emp_score = 60
-    else: emp_score = 30
-
-    score += emp_score * ICP_WEIGHTS["employee_count"]
-
-    # 3. Tech Maturity (Weight 0.20)
-    # Assume existence of tech stack implies maturity
-    tech_stack = lead_data.get("techStack")
-    tech_score = 0
-    if tech_stack and len(tech_stack.get("technologies", [])) > 2:
-        tech_score = 100
+    tech_maturity = lead_data.get("tech_maturity")
+    tech_stack = lead_data.get("techStack") or lead_data.get("tech_stack") or {}
+    if isinstance(tech_maturity, (int, float)):
+        tech_score = clamp(float(tech_maturity))
     elif tech_stack:
-        tech_score = 60
+        technologies = tech_stack.get("technologies", []) if isinstance(tech_stack, dict) else tech_stack
+        tech_score = 100 if len(technologies) >= 3 else 75 if technologies else 60
     else:
-        tech_score = 30 # Unknown
+        tech_score = 0
+        missing_data.append("tech_maturity")
 
-    score += tech_score * ICP_WEIGHTS["tech_maturity"]
-
-    # 4. Industry Fit (Weight 0.20)
-    # Simple check for target industries
-    industry = (lead_data.get("industry") or "").lower()
+    industry_fit = lead_data.get("industry_fit")
+    industry = str(lead_data.get("industry") or "").lower()
     target_industries = ["saas", "tech", "finance", "healthcare"]
-    ind_score = 0
-    if any(ind in industry for ind in target_industries):
-        ind_score = 100
+    if isinstance(industry_fit, (int, float)):
+        ind_score = clamp(float(industry_fit))
     elif industry:
+        ind_score = 100 if any(ind in industry for ind in target_industries) else 60
+    else:
         ind_score = 50
-    else:
-        ind_score = 0
 
-    score += ind_score * ICP_WEIGHTS["industry_fit"]
-
-    # 5. Location (Weight 0.05)
-    # Assume we target "US", "BR", "EU"
-    location = (lead_data.get("location") or "").upper()
-    loc_score = 0
-    if "BR" in location or "US" in location:
-        loc_score = 100
+    location_fit = lead_data.get("location")
+    location = str(lead_data.get("location_name") or lead_data.get("country") or lead_data.get("location") or "").upper()
+    if isinstance(location_fit, (int, float)):
+        loc_score = clamp(float(location_fit))
     elif location:
+        loc_score = 100 if any(code in location for code in ["BR", "US", "EU"]) else 60
+    else:
         loc_score = 50
+
+    intent = lead_data.get("intent_signals")
+    if isinstance(intent, (int, float)):
+        intent_score = clamp(float(intent))
+    elif isinstance(intent, dict):
+        signals = intent.get("signals", [])
+        intent_score = 100 if signals else 20
     else:
-        loc_score = 0
+        intent_score = 0
+        missing_data.append("intent_signals")
 
-    score += loc_score * ICP_WEIGHTS["location"]
+    total = (
+        revenue_score * float(weights.get("revenue_range", ICP_WEIGHTS["revenue_range"]))
+        + emp_score * float(weights.get("employee_count", ICP_WEIGHTS["employee_count"]))
+        + tech_score * float(weights.get("tech_maturity", ICP_WEIGHTS["tech_maturity"]))
+        + ind_score * float(weights.get("industry_fit", ICP_WEIGHTS["industry_fit"]))
+        + loc_score * float(weights.get("location", ICP_WEIGHTS["location"]))
+        + intent_score * float(weights.get("intent_signals", ICP_WEIGHTS["intent_signals"]))
+    )
+    final_score = clamp(total)
 
-    # 6. Intent Signals (Weight 0.15)
-    intent = lead_data.get("intent_signals") or {}
-    intent_score = 0
-    if intent.get("signals") and len(intent.get("signals")) > 0:
-        intent_score = 100
-    else:
-        intent_score = 20
-
-    score += intent_score * ICP_WEIGHTS["intent_signals"]
-
-    final_score = int(score)
-
-    # Determine Tier
     tier = "T4"
-    for t_name, (min_s, max_s) in TIER_THRESHOLDS.items():
-        if min_s <= final_score <= max_s:
-            tier = t_name
+    for tier_name, bounds in tiers.items():
+        min_score, max_score = bounds
+        if min_score <= final_score <= max_score:
+            tier = tier_name
             break
-
-    # Fallback if > 100 or unexpected
-    if final_score > 100: tier = "T1"
+    if final_score > 100:
+        tier = "T1"
 
     return {
         "score": final_score,
         "tier": tier,
         "reasoning": f"Calculated based on weights: Rev({revenue_score}), Emp({emp_score}), Tech({tech_score}), Ind({ind_score}), Loc({loc_score}), Intent({intent_score})",
-        "missing_data": []
+        "missing_data": missing_data,
     }
 
 async def detect_intent_signals(company_domain: str) -> Dict[str, Any]:
@@ -153,7 +166,7 @@ async def detect_intent_signals(company_domain: str) -> Dict[str, Any]:
     Monitors buying signals in real-time.
     """
     signals = []
-    if random.random() > 0.5:
+    if company_domain:
         signals.append({
             "type": "hiring",
             "description": "Hiring for Senior DevOps",

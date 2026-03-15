@@ -1,28 +1,44 @@
-# Critérios de Aceite de Segurança Obrigatórios em PRs
+# Security PR Acceptance
 
-Mudanças em bibliotecas de autenticação (NextAuth, Supabase Auth), controle de acesso (Middlewares de RBAC, RLS do banco de dados) e integração financeira em Pull Requests devem seguir um rigor excepcional. Esses são os critérios mandatórios de aceite:
+Every PR that touches `apps/api`, authentication, tenant resolution, RBAC, billing gates,
+dashboard auth, satellites, or legacy entrypoints must satisfy these checks before merge.
 
-## 1. Verificação de Acesso e Escopo (Tenant Isolation)
+## Mandatory Gates
 
-Qualquer nova rota da API desenvolvida (FastAPI/Express) **DEVE**:
+- `requireAuthenticatedSession` protects every sensitive read and every mutating route unless the route is explicitly public by contract.
+- `RequireRole(...)` protects every administrative route.
+- `x-tenant-id` is never used as an authorization source.
+- `x-active-tenant` is only handled in `apps/api/src/middlewares/tenantContext.ts` after a valid authenticated session and a persisted membership check.
+- JWT claims are never decoded without verification to build identity or tenant context.
+- Feature flags never replace authentication or RBAC.
+- No production path uses `default-tenant`, `birthhub-alpha`, or any equivalent tenant fallback.
+- Sensitive mutations never write `actorId: null`.
+- Critical operational state is not kept only in process memory for budgets, outputs, refresh tokens, API keys, or auth state.
+- Health/readiness endpoints fail when mandatory dependencies are down.
+- Legacy `apps/api-gateway` flows stay frozen outside explicit local development escape hatches.
 
-- [ ] Estar blindada por middleware de verificação de token válido, exceto se documentado explicitamente como Webhook público (onde deve checar assinatura HMAC).
-- [ ] Recuperar a entidade pelo Banco de Dados injetando `tenant_id` na cláusula `WHERE`. Exemplo inaceitável: `SELECT * FROM Invoices WHERE id = request.id`. Exemplo correto: `SELECT * FROM Invoices WHERE id = request.id AND tenant_id = context.tenant_id`.
+## Required Negative Coverage
 
-## 2. Tratamento Seguro de Inputs (Sanitization)
+- Anonymous requests fail for sensitive routes.
+- Header-only requests using `x-tenant-id` fail.
+- Forged or invalid bearer tokens fail.
+- Tenant switching without valid membership fails.
+- Administrative routes fail for insufficient roles.
+- Legitimate session-based authorized flows still succeed.
 
-Qualquer endpoint ou função que sirva dados do cliente para a IA ou para um Dashboard **DEVE**:
+## CI Enforcement
 
-- [ ] Possuir Zod/Pydantic schema estrito rejeitando parâmetros não solicitados.
-- [ ] Escapar strings enviadas pelo usuário que passem ao longo dos prompts (prevenção de Injection).
+- `scripts/security/check-auth-guards.ts` must pass.
+- New sensitive routers must be included in the scanner scope.
+- Route changes without updated negative tests must be rejected.
 
-## 3. Gestão de Erros Não Verbosais
+## Review Checklist
 
-- [ ] Certificar-se que try/catch blocks e Fallbacks não retornam Strings complexas como _Stack Traces_ nos JSONs das requisições HTTP públicas do `api-gateway`, prevenindo Information Disclosure. Erros devem sempre ser genéricos no cliente ("Erro interno ao processar"), e granulares apenas nos Logs.
-
-## 4. Validação de Sessão
-
-- [ ] Confirmação que Logouts encerram de fato a sessão ou invalidam os tokens (Blacklist/Short TTL).
-- [ ] Mudanças de papéis (Role) e privilégios re-avaliam tokens existentes, ou exigem login novamente.
-
-Se um Revisor identificar que uma dessas checagens não está coberta na PR com o novo código, ele é **obrigado a rejeitar com "Request Changes"**.
+- [ ] The route is explicitly public or uses `requireAuthenticatedSession`.
+- [ ] The route uses `RequireRole(...)` when it changes state or exposes administrative data.
+- [ ] Tenant binding comes from authenticated context, not from raw headers.
+- [ ] The implementation does not decode unsigned JWT payloads to derive identity.
+- [ ] The implementation does not introduce insecure tenant or secret defaults.
+- [ ] Sensitive mutations record a real actor and a real tenant.
+- [ ] Negative tests cover spoofing, bypass, invalid token, and role failure cases.
+- [ ] Legacy codepaths are frozen or redirected instead of extended.

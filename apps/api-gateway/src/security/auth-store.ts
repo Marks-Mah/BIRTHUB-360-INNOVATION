@@ -1,9 +1,25 @@
 import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const ACCESS_TTL_SECONDS = Number(process.env.JWT_ACCESS_TTL_SECONDS ?? 900);
 const REFRESH_TTL_SECONDS = Number(process.env.JWT_REFRESH_TTL_SECONDS ?? 60 * 60 * 24 * 30);
+
+function getJwtSecret(): string {
+  const configured = process.env.JWT_SECRET?.trim();
+
+  if (configured) {
+    return configured;
+  }
+
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.LEGACY_ALLOW_INSECURE_DEV_AUTH === "true"
+  ) {
+    return "dev-secret-change-me";
+  }
+
+  throw new Error("LEGACY_JWT_SECRET_MISSING");
+}
 
 export type PlanType = "starter" | "growth" | "enterprise";
 
@@ -32,14 +48,23 @@ const refreshSessions = new Map<string, RefreshSession>();
 const apiKeys = new Map<string, ApiKeyRecord>();
 
 const hashSecret = (raw: string) => crypto.createHash("sha256").update(raw).digest("hex");
-const signToken = (principal: Principal, expiresIn: number, extraClaims?: Record<string, unknown>) => jwt.sign({
-  sub: principal.sub,
-  tenantId: principal.tenantId,
-  roles: principal.roles,
-  scopes: principal.scopes,
-  plan: principal.plan,
-  ...extraClaims,
-}, JWT_SECRET, { expiresIn });
+const signToken = (
+  principal: Principal,
+  expiresIn: number,
+  extraClaims?: Record<string, unknown>
+) =>
+  jwt.sign(
+    {
+      sub: principal.sub,
+      tenantId: principal.tenantId,
+      roles: principal.roles,
+      scopes: principal.scopes,
+      plan: principal.plan,
+      ...extraClaims
+    },
+    getJwtSecret(),
+    { expiresIn }
+  );
 
 export function createAccessToken(principal: Principal): string {
   return signToken(principal, ACCESS_TTL_SECONDS);
@@ -54,7 +79,7 @@ export function createRefreshToken(principal: Principal): { token: string; jti: 
 }
 
 export function rotateRefreshToken(refreshToken: string) {
-  const decoded = jwt.verify(refreshToken, JWT_SECRET) as jwt.JwtPayload;
+  const decoded = jwt.verify(refreshToken, getJwtSecret()) as jwt.JwtPayload;
   const jti = typeof decoded.jti === "string" ? decoded.jti : "";
   const session = refreshSessions.get(jti);
   if (!session || session.revoked || session.expiresAt < Date.now()) {

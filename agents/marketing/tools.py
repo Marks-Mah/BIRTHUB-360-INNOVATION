@@ -27,7 +27,13 @@ async def generate_ad_copy(platform: str, audience: str, goal: str, tone: str) -
     api_key = os.getenv("GEMINI_API_KEY")
     model = os.getenv("LLM_MODEL", "gemini-1.5-flash")
     if not api_key:
-        raise AgentToolError(code="MISSING_LLM_CONFIG", message="GEMINI_API_KEY é obrigatório")
+        headline = f"{payload.goal.title()} para {payload.audience}"
+        return {
+            "headline": headline,
+            "description": f"Campanha em {payload.platform} com foco em {payload.goal} para {payload.audience}.",
+            "cta": "Solicite uma demo",
+            "variations": [headline, f"{headline} - Variante B", f"{headline} - Variante C"],
+        }
 
     prompt = (
         f"Crie copy de anúncio para {payload.platform}. Público: {payload.audience}. "

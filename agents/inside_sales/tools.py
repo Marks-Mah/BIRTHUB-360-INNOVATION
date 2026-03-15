@@ -96,3 +96,8 @@ async def score_inbound_hotness(context: Dict[str, Any]) -> Dict[str, Any]:
 
 async def build_followup_sequence(context: Dict[str, Any]) -> Dict[str, Any]:
     return {"sequence": ["dia0_call", "dia1_whatsapp", "dia3_email", "dia5_call"]}
+
+
+async def calculate_speed_to_lead(context: Dict[str, Any]) -> Dict[str, Any]:
+    first_touch_minutes = max(0, float(context.get("first_touch_minutes", 0)))
+    return {"first_touch_minutes": first_touch_minutes, "sla_met": first_touch_minutes <= 15}

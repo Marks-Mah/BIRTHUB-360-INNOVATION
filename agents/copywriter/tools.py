@@ -49,3 +49,19 @@ async def create_linkedin_post(topic: str, style: str) -> Dict[str, Any]:
         payload={"topic": topic, "style": style},
         idempotent=True,
     )
+
+
+async def generate_subject_line(topic: str) -> Dict[str, Any]:
+    return {"subject": f"{topic}: insight rápido"}
+
+
+async def adapt_copy_for_persona(copy: str, persona: str) -> Dict[str, Any]:
+    return {"persona": persona, "adapted_copy": f"{persona}: {copy}"}
+
+
+async def draft_cta_variants(goal: str) -> Dict[str, Any]:
+    return {"variants": [f"Agendar {goal}", f"Ver como {goal}", f"Explorar {goal}"]}
+
+
+async def summarize_message_framework(points: List[str]) -> Dict[str, Any]:
+    return {"summary": " | ".join(points[:3]), "count": len(points)}

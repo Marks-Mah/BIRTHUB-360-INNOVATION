@@ -54,4 +54,6 @@ if (-not $dockerVersion) {
 Write-Host ""
 Write-Host "[bootstrap] Next commands"
 Write-Host "  1. pwsh ./ci-local.ps1"
-Write-Host "  2. pnpm ci:full"
+Write-Host "  2. pnpm ci:task core"
+Write-Host "  3. pnpm ci:task satellites"
+Write-Host "  4. pnpm ci:full"

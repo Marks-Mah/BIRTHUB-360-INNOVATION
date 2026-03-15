@@ -1,6 +1,6 @@
 # Billing Coverage Report
 
-- Generated at: 2026-03-15T15:16:56.635Z
+- Generated at: 2026-03-15T17:51:34.403Z
 - Coverage: 100%
 - Threshold: 100%
 
@@ -10,4 +10,4 @@
 - 7.9.C3 PASS - Downgrade/proration cria credito idempotente (apps/api/src/modules/webhooks/stripe.router.ts)
 - 7.9.C3:test PASS - Teste cobre replay idempotente do credito de proration (apps/api/tests/billing.proration-credit.test.ts)
 - 7.10.C1:guards PASS - Guard de billing/paywall segue coberto (apps/api/tests/billing.paywall.test.ts)
-- 7.10.C3 PASS - E2E cobre pricing -> paid plan -> workflow/node visible (tests/e2e/release-master.spec.ts)
+- 7.10.C3 PASS - E2E cobre pricing -> paid plan -> workflow/node visible (tests/e2e/billing-premium.spec.ts)

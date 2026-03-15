@@ -6,71 +6,117 @@ import { Job } from "bullmq";
 
 dotenv.config();
 
-const API_URL = process.env.ORCHESTRATOR_API_URL || "http://localhost:8000";
-const INTERNAL_SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN;
+const DEFAULT_API_URL = process.env.ORCHESTRATOR_API_URL || "http://localhost:8000";
+const DEFAULT_INTERNAL_SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN;
 
-const QUEUE_TO_EVENT: Record<string, string> = {
-  [QueueName.DEAL_CLOSED_WON]: "DEAL_CLOSED_WON",
-  [QueueName.HEALTH_SCORE_UPDATE]: "HEALTH_ALERT",
+export const QUEUE_TO_EVENT: Record<string, string> = {
   [QueueName.BOARD_REPORT]: "BOARD_REPORT",
   [QueueName.CHURN_RISK_HIGH]: "CHURN_RISK_HIGH",
+  [QueueName.DEAL_CLOSED_WON]: "DEAL_CLOSED_WON",
+  [QueueName.HEALTH_SCORE_UPDATE]: "HEALTH_ALERT"
 };
 
-function resolveEntityId(job: Job, eventType: string): string {
+type MinimalJob = Pick<Job, "data" | "id" | "opts">;
+
+export function resolveEntityId(job: MinimalJob, eventType: string): string {
   if (eventType === "DEAL_CLOSED_WON") {
     return String(job.data.dealId || job.data.deal_id || job.data.entity_id || "unknown");
   }
   return String(job.data.customerId || job.data.customer_id || job.data.entity_id || "unknown");
 }
 
-console.log("Starting Orchestrator Worker...");
-if (INTERNAL_SERVICE_TOKEN) {
-  console.log("Internal service token is enabled for Orchestrator worker requests.");
+export function buildOrchestratorEventPayload(queueName: string, job: MinimalJob) {
+  const eventType = QUEUE_TO_EVENT[queueName];
+  if (!eventType) {
+    throw new Error(`No event mapping configured for queue ${queueName}`);
+  }
+
+  return {
+    context: {
+      job_id: job.id,
+      priority: job.opts.priority ?? 0,
+      queue: queueName,
+      tenant_id: job.data.tenantId || job.data.tenant_id || null,
+      ...job.data
+    },
+    entity_id: resolveEntityId(job, eventType),
+    event_id: `${queueName}:${job.id}`,
+    event_type: eventType
+  };
 }
 
-const queues = [
-  QueueName.DEAL_CLOSED_WON,
-  QueueName.HEALTH_SCORE_UPDATE,
-  QueueName.CHURN_RISK_HIGH,
-  QueueName.BOARD_REPORT,
-];
+export function createJobProcessor(
+  queueName: string,
+  options: {
+    apiUrl?: string;
+    httpClient?: { post: (url: string, payload: unknown, config?: { headers?: Record<string, string> }) => Promise<{ data: unknown }> };
+    internalServiceToken?: string;
+    log?: (...args: unknown[]) => void;
+  } = {}
+) {
+  const apiUrl = options.apiUrl ?? DEFAULT_API_URL;
+  const internalServiceToken = options.internalServiceToken ?? DEFAULT_INTERNAL_SERVICE_TOKEN;
+  const httpClient = options.httpClient ?? axios;
+  const log = options.log ?? console.log;
 
-queues.forEach((queueName) => {
-  console.log(`Initializing worker for queue: ${queueName}`);
+  return async (job: MinimalJob) => {
+    const payload = buildOrchestratorEventPayload(queueName, job);
+    const headers = internalServiceToken ? { "x-service-token": internalServiceToken } : undefined;
 
-  const worker = createWorker(queueName, async (job: Job) => {
-    const eventType = QUEUE_TO_EVENT[queueName];
-    if (!eventType) {
-      throw new Error(`No event mapping configured for queue ${queueName}`);
-    }
-
-    console.log(`Processing job ${job.id} on ${queueName}`);
-
-    const payload = {
-      event_id: `${queueName}:${job.id}`,
-      event_type: eventType,
-      entity_id: resolveEntityId(job, eventType),
-      context: {
-        queue: queueName,
-        job_id: job.id,
-        priority: job.opts.priority ?? 0,
-        tenant_id: job.data.tenantId || job.data.tenant_id || null,
-        ...job.data,
-      },
-    };
-
-    const headers = INTERNAL_SERVICE_TOKEN ? { "x-service-token": INTERNAL_SERVICE_TOKEN } : undefined;
-
-    const response = await axios.post(`${API_URL}/run/event`, payload, { headers });
-    console.log(`Job ${job.id} completed. Result:`, response.data);
+    log(`Processing job ${job.id} on ${queueName}`);
+    const response = await httpClient.post(`${apiUrl}/events/run`, payload, { headers });
+    log(`Job ${job.id} completed. Result:`, response.data);
     return response.data;
-  });
+  };
+}
 
-  worker.on("completed", (job: Job) => {
-    console.log(`Job ${job.id} on ${queueName} has completed.`);
-  });
+export function startOrchestratorWorkers(options: {
+  apiUrl?: string;
+  httpClient?: { post: (url: string, payload: unknown, config?: { headers?: Record<string, string> }) => Promise<{ data: unknown }> };
+  internalServiceToken?: string;
+  log?: (...args: unknown[]) => void;
+  workerFactory?: typeof createWorker;
+} = {}) {
+  const log = options.log ?? console.log;
+  const workerFactory = options.workerFactory ?? createWorker;
 
-  worker.on("failed", (job: Job | undefined, err: Error) => {
-    console.log(`Job ${job?.id} on ${queueName} has failed with ${err.message}`);
+  log("Starting Orchestrator Worker...");
+  if ((options.internalServiceToken ?? DEFAULT_INTERNAL_SERVICE_TOKEN) ) {
+    log("Internal service token is enabled for Orchestrator worker requests.");
+  }
+
+  const queues = [
+    QueueName.DEAL_CLOSED_WON,
+    QueueName.HEALTH_SCORE_UPDATE,
+    QueueName.CHURN_RISK_HIGH,
+    QueueName.BOARD_REPORT
+  ];
+
+  return queues.map((queueName) => {
+    log(`Initializing worker for queue: ${queueName}`);
+
+    const worker = workerFactory(
+      queueName,
+      createJobProcessor(queueName, {
+        apiUrl: options.apiUrl,
+        httpClient: options.httpClient,
+        internalServiceToken: options.internalServiceToken,
+        log
+      })
+    );
+
+    worker.on("completed", (job: Job) => {
+      log(`Job ${job.id} on ${queueName} has completed.`);
+    });
+
+    worker.on("failed", (job: Job | undefined, err: Error) => {
+      log(`Job ${job?.id} on ${queueName} has failed with ${err.message}`);
+    });
+
+    return worker;
   });
-});
+}
+
+if (process.env.BIRTHUB_DISABLE_ORCHESTRATOR_AUTOSTART !== "1") {
+  startOrchestratorWorkers();
+}

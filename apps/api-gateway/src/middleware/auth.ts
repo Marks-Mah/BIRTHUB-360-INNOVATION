@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { UnauthorizedError, ForbiddenError } from "@birthub/utils/dist/errors.js";
+import { HttpError } from "../errors/http-error.js";
 import { logger } from "../lib/logger.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -52,19 +52,19 @@ export const authenticateToken = (
   const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    next(new UnauthorizedError("No token provided"));
+    next(new HttpError(401, "UNAUTHORIZED", "No token provided"));
     return;
   }
 
   jwt.verify(token, JWT_SECRET, (error, decoded) => {
     if (error) {
       logger.warn(`JWT verification failed: ${error.message}`);
-      next(new ForbiddenError("Invalid token"));
+      next(new HttpError(403, "FORBIDDEN", "Invalid token"));
       return;
     }
 
     if (!decoded || typeof decoded === "string") {
-      next(new ForbiddenError("Invalid token payload"));
+      next(new HttpError(403, "FORBIDDEN", "Invalid token payload"));
       return;
     }
 

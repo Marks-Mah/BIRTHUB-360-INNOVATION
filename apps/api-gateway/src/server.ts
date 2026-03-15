@@ -19,9 +19,11 @@ import { advancedWafMiddleware } from "./middleware/waf-advanced.js";
 import { enforceTenantBinding } from "./middleware/tenant-binding.js";
 import { tenantObservabilityMiddleware } from "./middleware/tenant-observability.js";
 import { tenantContextMiddleware } from "./middleware/tenant-context.js";
+import { createLogger } from "./lib/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const logger = createLogger({ service: "api-gateway" });
 
 const app: Express = express();
 app.use(helmet());
@@ -49,7 +51,7 @@ try {
   const swaggerDocument = YAML.load(join(__dirname, "swagger.yaml"));
   app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 } catch (e) {
-  console.error("Failed to load swagger.yaml", e);
+  logger.error("failed-to-load-swagger", { error: e });
 }
 
 // Authentication Middleware
@@ -82,6 +84,6 @@ app.use(errorHandler);
 
 const port = Number(process.env.PORT || 3000);
 if (process.env.NODE_ENV !== "test")
-  app.listen(port, () => console.log(`api-gateway on ${port}`));
+  app.listen(port, () => logger.info("api-gateway-listening", { port }));
 
 export default app;

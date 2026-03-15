@@ -26,6 +26,7 @@ import { resolveTenantId } from "../middleware/tenant-context.js";
 import { requireFeature } from "../middleware/plan-guard.js";
 import { LLMClient, type CompletionOptions, type Message } from "../services/llm-client.js";
 import { validateSchema } from "../middleware/validate.js";
+import { createLogger } from "../lib/logger.js";
 import { authRouter } from "./auth.js";
 import { agentsRouter } from "./agents.js";
 import { campaignsRouter } from "./campaigns.js";
@@ -75,6 +76,7 @@ const customerService = new CustomerService(customerRepository);
 const financialService = new FinancialService(financialRepository);
 const contractService = new ContractService(contractRepository);
 const analyticsService = new AnalyticsService(analyticsRepository);
+const domainLogger = createLogger({ scope: "api-gateway-domain" });
 
 const paymentService = new PaymentService(createPaymentAdapterFromEnv(), {
   timeoutMs: 3_000,
@@ -92,7 +94,7 @@ const parseLeadStatus = (value: unknown): LeadStatus | undefined => {
 };
 
 const logDomainEvent = (event: string, payload: Record<string, unknown>): void => {
-  console.info(JSON.stringify({ event, ...payload, timestamp: new Date().toISOString() }));
+  domainLogger.info("domain-event", { event, ...payload, timestamp: new Date().toISOString() });
 };
 
 const internalOrgPlans = new Map<string, "STARTER" | "PRO" | "ENTERPRISE">();
@@ -148,6 +150,11 @@ apiV1Router.use("/reports", reportsRouter);
 
 apiV1Router.post("/leads", validateSchema({ body: createLeadBodySchema }), asyncHandler(async (req, res) => {
   const lead = await leadService.createLead(resolveTenantId(req), req.body);
+  domainLogger.info("lead-created", {
+    leadId: lead.id,
+    score: lead.score,
+    tenantId: lead.tenantId
+  });
   res.status(201).json(lead);
 }));
 

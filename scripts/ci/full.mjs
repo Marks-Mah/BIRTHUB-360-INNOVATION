@@ -18,48 +18,79 @@ const ciEnvironmentDefaults = {
 
 const stepDefinitions = {
   build: { kind: "pnpm", args: ["build"] },
+  "build:core": { kind: "pnpm", args: ["build:core"] },
+  "build:satellites": { kind: "pnpm", args: ["build:satellites"] },
   "db:generate": { kind: "pnpm", args: ["db:generate"] },
   install: { kind: "pnpm", args: ["install", "--frozen-lockfile"] },
   "lint:workflows": { kind: "pnpm", args: ["lint:workflows"] },
   lint: { kind: "pnpm", args: ["lint"] },
+  "lint:core": { kind: "pnpm", args: ["lint:core"] },
+  "lint:satellites": { kind: "pnpm", args: ["lint:satellites"] },
   "packs:regression": { kind: "pnpm", args: ["packs:regression"] },
   "packs:smoke": { kind: "pnpm", args: ["packs:smoke"] },
   "packs:test": { kind: "pnpm", args: ["packs:test"] },
   "packs:validate": { kind: "pnpm", args: ["packs:validate"] },
+  "preflight:core": { kind: "pnpm", args: ["preflight:core"] },
+  "preflight:full": { kind: "pnpm", args: ["preflight:full"] },
+  "preflight:satellites": { kind: "pnpm", args: ["preflight:satellites"] },
+  "preflight:workflow-suite": { kind: "pnpm", args: ["preflight:workflow-suite"] },
   "security:guards": { kind: "pnpm", args: ["security:guards"] },
   "security:report": { kind: "pnpm", args: ["security:report"] },
+  "smoke:satellites": { kind: "pnpm", args: ["smoke:satellites"] },
   test: { kind: "pnpm", args: ["test"] },
+  "test:billing:coverage": { kind: "pnpm", args: ["test:billing:coverage"] },
+  "test:core": { kind: "pnpm", args: ["test:core"] },
   "test:agents": { kind: "pnpm", args: ["test:agents"] },
   "test:e2e": { kind: "pnpm", args: ["test:e2e"] },
   "test:isolation": { kind: "pnpm", args: ["test:isolation"] },
+  "test:satellites": { kind: "pnpm", args: ["test:satellites"] },
   "test:workflows": { kind: "pnpm", args: ["test:workflows"] },
-  typecheck: { kind: "pnpm", args: ["typecheck"] }
+  typecheck: { kind: "pnpm", args: ["typecheck"] },
+  "typecheck:core": { kind: "pnpm", args: ["typecheck:core"] },
+  "typecheck:satellites": { kind: "pnpm", args: ["typecheck:satellites"] }
 };
 
 const taskGroups = {
   full: [
+    "preflight:full",
     "install",
     "db:generate",
-    "lint",
-    "typecheck",
-    "test",
-    "test:isolation",
-    "build",
+    "core",
+    "satellites",
     "packs:validate",
     "packs:test",
     "packs:smoke",
     "packs:regression",
     "test:workflows",
+    "test:billing:coverage",
     "security:guards",
     "security:report",
     "test:e2e",
     "test:agents"
   ],
+  core: [
+    "preflight:core",
+    "lint:core",
+    "typecheck:core",
+    "test:core",
+    "test:isolation",
+    "build:core"
+  ],
   "pack-tests": ["packs:validate", "packs:test", "packs:smoke", "packs:regression"],
-  platform: ["lint", "typecheck", "test", "test:isolation", "build"],
+  platform: ["core"],
+  satellites: [
+    "preflight:satellites",
+    "lint:satellites",
+    "typecheck:satellites",
+    "test:satellites",
+    "build:satellites",
+    "smoke:satellites"
+  ],
   "workflow-suite": [
+    "preflight:workflow-suite",
     "lint:workflows",
     "test:workflows",
+    "test:billing:coverage",
     "security:guards",
     "security:report",
     "test:agents"
@@ -88,8 +119,12 @@ function runNamedStep(name) {
 function runTask(target) {
   if (taskGroups[target]) {
     for (const step of taskGroups[target]) {
-      runNamedStep(step);
-      runDirtyTreeCheck();
+      if (taskGroups[step]) {
+        runTask(step);
+      } else {
+        runNamedStep(step);
+        runDirtyTreeCheck();
+      }
     }
   } else {
     runNamedStep(target);

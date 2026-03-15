@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import type { ZodType } from "zod";
 
 type ParseResult<T> = { success: true; data: T } | { success: false; errors: string[] };
 
@@ -45,5 +46,26 @@ export function validateSchema(target: ValidationTarget) {
     }
 
     return next();
+  };
+}
+
+export function createZodParser<T>(schema: ZodType<T>): Parser<T> {
+  return (value: unknown) => {
+    const parsed = schema.safeParse(value);
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        errors: parsed.error.issues.map((issue) => {
+          const path = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
+          return `${path}${issue.message}`;
+        })
+      };
+    }
+
+    return {
+      success: true,
+      data: parsed.data
+    };
   };
 }

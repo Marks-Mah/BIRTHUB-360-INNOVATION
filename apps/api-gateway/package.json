@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "test:contract": "node --import tsx --test \"src/**/*.contract.test.ts\"",
     "lint": "node --import tsx src/scripts/check-conventions.ts"
@@ -23,7 +24,8 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "swagger-ui-express": "^5.0.1",
-    "yamljs": "^0.3.0"
+    "yamljs": "^0.3.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

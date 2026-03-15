@@ -12,6 +12,8 @@ export type AuthenticatedRequest = Request & {
   };
 };
 
+type AuthPayload = NonNullable<AuthenticatedRequest["auth"]>;
+
 export function requireJwt(
   req: AuthenticatedRequest,
   res: Response,
@@ -26,10 +28,11 @@ export function requireJwt(
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    req.auth =
-      typeof payload === "object"
-        ? (payload as AuthenticatedRequest["auth"])
+    const authPayload: AuthPayload =
+      typeof payload === "object" && payload
+        ? (payload as AuthPayload)
         : { sub: String(payload) };
+    req.auth = authPayload;
     return next();
   } catch {
     return res.status(401).json({ error: "invalid_token" });

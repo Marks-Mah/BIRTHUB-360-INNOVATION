@@ -46,7 +46,7 @@ const checks: CoverageCheck[] = [
     patterns: [/RequireFeature/, /402/, /Payment Required/]
   },
   {
-    file: "tests/e2e/release-master.spec.ts",
+    file: "tests/e2e/billing-premium.spec.ts",
     id: "7.10.C3",
     label: "E2E cobre pricing -> paid plan -> workflow/node visible",
     patterns: [/\/pricing/, /\/workflows\/demo\/edit/, /Workflow Runs - demo/]

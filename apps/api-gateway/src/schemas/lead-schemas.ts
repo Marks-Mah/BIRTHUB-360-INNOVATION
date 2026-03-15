@@ -1,5 +1,6 @@
 import type { LeadStatus, UpdateLeadInput } from "../repositories/lead-repository.js";
-import type { Parser } from "../middleware/validate.js";
+import { createZodParser, type Parser } from "../middleware/validate.js";
+import { z } from "zod";
 
 type LeadListQuery = {
   cursor?: string;
@@ -18,35 +19,15 @@ function asObject(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-export const createLeadBodySchema: Parser<{
-  name: string;
-  email: string;
-  status: LeadStatus;
-  score: number;
-  assignee: string;
-}> = (value) => {
-  const obj = asObject(value);
-  const errors: string[] = [];
+export const createLeadBodyZodSchema = z.object({
+  assignee: z.string().trim().min(2).max(80),
+  email: z.string().trim().email(),
+  name: z.string().trim().min(2).max(120),
+  score: z.number().int().min(0).max(100),
+  status: z.enum(validStatuses)
+});
 
-  if (!obj) return { success: false, errors: ["body must be an object"] };
-
-  const name = typeof obj.name === "string" ? obj.name.trim() : "";
-  const email = typeof obj.email === "string" ? obj.email.trim() : "";
-  const status = obj.status;
-  const score = typeof obj.score === "number" ? obj.score : Number.NaN;
-  const assignee = typeof obj.assignee === "string" ? obj.assignee.trim() : "";
-
-  if (name.length < 2 || name.length > 120) errors.push("name must be 2..120 chars");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push("email must be valid");
-  if (!validStatuses.includes(status as LeadStatus)) errors.push("status is invalid");
-  if (!Number.isInteger(score) || score < 0 || score > 100)
-    errors.push("score must be an integer between 0 and 100");
-  if (assignee.length < 2 || assignee.length > 80) errors.push("assignee must be 2..80 chars");
-
-  if (errors.length) return { success: false, errors };
-
-  return { success: true, data: { name, email, status: status as LeadStatus, score, assignee } };
-};
+export const createLeadBodySchema = createZodParser(createLeadBodyZodSchema);
 
 export const updateLeadBodySchema: Parser<UpdateLeadInput> = (value) => {
   const obj = asObject(value);

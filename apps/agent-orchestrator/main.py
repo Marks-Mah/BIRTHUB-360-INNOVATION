@@ -57,6 +57,11 @@ async def startup() -> None:
     await init_db()
 
 
+@app.get("/health")
+async def health() -> Dict[str, Any]:
+    return {"status": "ok", "flows": sorted(FLOW_RUNNERS.keys())}
+
+
 @app.post("/run")
 async def run_lead_lifecycle(request: RunRequest, x_service_token: str | None = Header(default=None)):
     validate_internal_service_token(x_service_token)

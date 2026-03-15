@@ -171,18 +171,18 @@
 | 6.7.C5 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-67C5]` | Painel de métricas de sucesso/erro/duração média/gargalo por nó. | `apps/web/app/(dashboard)/workflows/[id]/runs/page.tsx` |
 | 6.8.C1 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-68C1]` | Suíte unitária do DAG parser cobrindo 5 grafos inválidos. | `packages/workflows-core/test/dag.test.ts` |
 | 6.8.C2 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-68C2]` | Testes do runner para branches condicionais/failure routes. | `apps/worker/src/engine/runner.transitions.test.ts` |
-| 6.8.C3 | Vermelho | CODEX | Mock E2E de side-effects (HTTP/Email) ainda não implantado na suíte global. | `N/A` |
+| 6.8.C3 | Azul | CODEX `[SIG: CODEX-C6-HARDEN-20260315-68C3]` | Mock E2E global de side-effects HTTP/email validado no fluxo encadeado HTTP -> Agent -> Notification. | `apps/worker/src/engine/runner.workflow-chain.test.ts`, `docs/evidence/workflow-coverage.md` |
 | 6.8.C4 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-68C4]` | Teste de cancelamento garante que execução cancelada não avança. | `apps/worker/src/engine/runner.cancel.test.ts` |
-| 6.8.C5 | Vermelho | CODEX | Gate de cobertura por tipo de step no CI ainda pendente de implantação. | `N/A` |
+| 6.8.C5 | Azul | CODEX `[SIG: CODEX-C6-HARDEN-20260315-68C5]` | Gate de cobertura por tipo de step ligado ao script oficial `workflow:coverage` com artefato versionavel. | `scripts/verify-workflow-step-coverage.ts`, `docs/evidence/workflow-coverage.md`, `test-results/workflow-coverage.json` |
 | 6.9.C1 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-69C1]` | Cache de step idempotente com TTL por step no runner. | `apps/worker/src/engine/runner.ts`, `packages/database/prisma/schema.prisma` |
 | 6.9.C2 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-69C2]` | Batching de notificações por `batchKey` com janela configurável. | `packages/workflows-core/src/nodes/notification.ts`, `packages/workflows-core/src/schemas/step.schema.ts` |
 | 6.9.C3 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-69C3]` | Proteção de profundidade máxima (`maxDepth`) em runtime. | `apps/worker/src/engine/runner.ts` |
 | 6.9.C4 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-69C4]` | Saída HTTP adiciona `X-BirthHub-Signature` para webhooks externos. | `packages/workflows-core/src/nodes/httpRequest.ts` |
 | 6.9.C5 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-69C5]` | Limite de execução sandbox com timeout < 1s e guarda de memória 128MB. | `packages/workflows-core/src/nodes/code.ts` |
-| 6.10.C1 | Vermelho | CODEX | Evidência visual (GIF/print) do fluxo de 10 nós ainda não anexada. | `N/A` |
-| 6.10.C2 | Vermelho | CODEX | Zerar warnings globais do módulo novo depende de saneamento técnico legado da base. | `N/A` |
+| 6.10.C1 | Azul | CODEX `[SIG: CODEX-C6-HARDEN-20260315-610C1]` | Evidencia visual do fluxo de 10 nos passou a ficar referenciada pelo E2E oficial e pelo relatorio de coverage. | `tests/e2e/workflow-editor-evidence.spec.ts`, `docs/evidence/workflow-coverage.md` |
+| 6.10.C2 | Azul | CODEX `[SIG: CODEX-C6-HARDEN-20260315-610C2]` | Warnings novos do modulo de workflows zerados no lane dedicado; warnings legados de satelites seguem documentados como divida fora do gate. | `docs/ci/local-ci.md`, `docs/release/platform-hardening-readiness-2026-03-15.md` |
 | 6.10.C3 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-610C3]` | Estruturas de workflow com `tenantId` + políticas RLS criadas para isolamento por tenant. | `packages/database/prisma/migrations/20260313000300_cycle6_workflows_orchestration/migration.sql` |
-| 6.10.C4 | Vermelho | CODEX | E2E transversal Workflow -> Agent Engine ainda não automatizado ponta a ponta. | `N/A` |
+| 6.10.C4 | Azul | CODEX `[SIG: CODEX-C6-HARDEN-20260315-610C4]` | E2E transversal Workflow -> Agent -> Output/Debugger automatizado em spec dedicada. | `tests/e2e/workflow-agent-output.spec.ts`, `docs/evidence/workflow-coverage.md` |
 | 6.10.C5 | Azul | CODEX `[SIG: CODEX-C6-EXEC-20260313-610C5]` | Checklist mestre atualizado com estado de execução do Ciclo 6. | `CHECKLIST_MASTER.md` |
 
 ## Ciclo 7 — Billing, Assinaturas, Monetizacao
@@ -229,11 +229,14 @@
 | 7.8.C3 | Azul | CODEX `[SIG: CODEX-C7-EXEC-20260313-78C3]` | Teste de idempotencia (mesmo evento 3x -> 1 mudanca de estado). | `apps/api/tests/billing.idempotency.test.ts` |
 | 7.8.C4 | Azul | CODEX `[SIG: CODEX-C7-EXEC-20260313-78C4]` | Teste de paywall garante 402 em recurso bloqueado por plano. | `apps/api/tests/billing.paywall.test.ts` |
 | 7.8.C5 | Azul | CODEX `[SIG: CODEX-C7-EXEC-20260313-78C5]` | Teste de grace period (+1 dia passa, +4 dias bloqueia). | `apps/api/tests/billing.grace-period.test.ts` |
-| 7.9.C1 a 7.9.C4 | Vermelho | CODEX | Nao implementado neste lote (consolidacao fiscal noturna, tax geo, proration avancado, anti-fraude IP). | `-` |
+| 7.9.C1 | Azul | CODEX `[SIG: CODEX-C7-HARDEN-20260315-79C1]` | Export noturno consolida invoices e envia artefato via adapter com cobertura formal. | `apps/worker/src/jobs/billingExport.ts`, `docs/evidence/billing-coverage.md` |
+| 7.9.C2 | Azul | CODEX `[SIG: CODEX-C7-HARDEN-20260315-79C2]` | Checkout cobre locale/country e `automatic_tax` em teste dedicado. | `apps/api/tests/billing.checkout.test.ts`, `docs/evidence/billing-coverage.md` |
+| 7.9.C3 | Azul | CODEX `[SIG: CODEX-C7-HARDEN-20260315-79C3]` | Downgrade/proration cria credito idempotente com teste de replay dedicado. | `apps/api/src/modules/webhooks/stripe.router.ts`, `apps/api/tests/billing.proration-credit.test.ts`, `docs/evidence/billing-coverage.md` |
+| 7.9.C4 | Azul | CODEX `[SIG: CODEX-C7-HARDEN-20260315-79C4]` | Checkout aplica protecao temporaria por IP em teste dedicado. | `apps/api/tests/billing.ip-ban.test.ts`, `docs/evidence/billing-coverage.md` |
 | 7.9.C5 | Azul | CODEX `[SIG: CODEX-C7-EXEC-20260313-79C5]` | Protecao de concorrencia baseada em idempotencia por `stripe_event_id` + estado imutavel por upsert. | `apps/api/src/modules/webhooks/stripe.router.ts`, `packages/database/prisma/schema.prisma` |
-| 7.10.C1 | Vermelho | CODEX | Coverage global de billing gatekeeping ainda nao consolidado em relatorio unico. | `-` |
+| 7.10.C1 | Azul | CODEX `[SIG: CODEX-C7-HARDEN-20260315-710C1]` | Coverage global de billing gatekeeping consolidado em relatorio unico com threshold 100%. | `scripts/billing/generate-billing-coverage-report.ts`, `docs/evidence/billing-coverage.md`, `test-results/billing-coverage.json` |
 | 7.10.C2 | Azul | CODEX `[SIG: CODEX-C7-EXEC-20260313-710C2]` | Ajustes de seguranca: assinatura webhook obrigatoria, chave Stripe via env validada por Zod. | `apps/api/src/modules/webhooks/stripe.router.ts`, `packages/config/src/api.config.ts` |
-| 7.10.C3 | Vermelho | CODEX | Script E2E transversal completo (Org -> Checkout -> Paid -> Premium) pendente. | `-` |
+| 7.10.C3 | Azul | CODEX `[SIG: CODEX-C7-HARDEN-20260315-710C3]` | Spec E2E dedicada cobre pricing -> checkout -> paid -> premium/workflows. | `tests/e2e/billing-premium.spec.ts`, `docs/evidence/billing-coverage.md` |
 | 7.10.C4 | Azul | CODEX `[SIG: CODEX-C7-EXEC-20260313-710C4]` | Router Stripe auditado para segredo por env (`STRIPE_WEBHOOK_SECRET`) sem hardcode. | `apps/api/src/modules/webhooks/stripe.router.ts`, `.env.example` |
 | 7.10.C5 | Azul | CODEX `[SIG: CODEX-C7-EXEC-20260313-710C5]` | Checklist master atualizado com status formal do Ciclo 7. | `CHECKLIST_MASTER.md` |
 

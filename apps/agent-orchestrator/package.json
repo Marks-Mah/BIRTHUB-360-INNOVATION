@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint worker.ts src",
     "start:worker": "tsx worker.ts",
     "dev": "tsx worker.ts",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "start:sdr-worker": "tsx src/workers/sdr-worker.ts",
     "start:ldr-worker": "tsx src/workers/ldr-worker.ts"
   },
@@ -21,6 +24,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }

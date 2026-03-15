@@ -1,5 +1,6 @@
 import type { ApiConfig } from "@birthub/config";
 import {
+  BillingCreditReason,
   Prisma,
   SubscriptionStatus,
   type InvoiceStatus,
@@ -166,6 +167,110 @@ function resolveSubscriptionPeriodEnd(subscription: Stripe.Subscription): Date |
   }
 
   return unixToDate(Math.max(...periodEnds));
+}
+
+function resolveSubscriptionItemUnitAmount(
+  item:
+    | {
+        plan?: {
+          amount?: number | null;
+        } | null;
+        price?: {
+          unit_amount?: number | null;
+        } | null;
+      }
+    | null
+    | undefined
+): number | null {
+  if (!item) {
+    return null;
+  }
+
+  const fromPrice = item.price?.unit_amount;
+  if (typeof fromPrice === "number") {
+    return fromPrice;
+  }
+
+  const fromPlan = item.plan?.amount;
+  return typeof fromPlan === "number" ? fromPlan : null;
+}
+
+function resolveProrationCreditCents(event: Stripe.Event, subscription: Stripe.Subscription): number {
+  const metadataCredit = Number(subscription.metadata?.proration_credit_cents ?? "");
+
+  if (Number.isFinite(metadataCredit) && metadataCredit > 0) {
+    return metadataCredit;
+  }
+
+  const previousAttributes = (
+    event.data as Stripe.Event.Data & {
+      previous_attributes?: {
+        items?: {
+          data?: Array<{
+            plan?: {
+              amount?: number | null;
+            } | null;
+            price?: {
+              unit_amount?: number | null;
+            } | null;
+          }>;
+        };
+      };
+    }
+  ).previous_attributes;
+  const previousAmount = resolveSubscriptionItemUnitAmount(previousAttributes?.items?.data?.[0]);
+  const currentAmount = resolveSubscriptionItemUnitAmount(subscription.items.data[0]);
+
+  if (
+    typeof previousAmount === "number" &&
+    typeof currentAmount === "number" &&
+    previousAmount > currentAmount
+  ) {
+    return previousAmount - currentAmount;
+  }
+
+  return 0;
+}
+
+async function createDowngradeProrationCredit(input: {
+  amountCents: number;
+  currency: string;
+  organizationId: string;
+  stripeEventId: string;
+  stripeInvoiceId?: string | null;
+  subscriptionId?: string | null;
+  tenantId: string;
+}): Promise<void> {
+  if (input.amountCents <= 0) {
+    return;
+  }
+
+  try {
+    const data: Prisma.BillingCreditUncheckedCreateInput = {
+      amountCents: input.amountCents,
+      currency: input.currency,
+      metadata: {
+        source: "customer.subscription.updated"
+      },
+      organizationId: input.organizationId,
+      reason: BillingCreditReason.DOWNGRADE_PRORATION,
+      stripeEventId: input.stripeEventId,
+      tenantId: input.tenantId,
+      ...(input.stripeInvoiceId ? { stripeInvoiceId: input.stripeInvoiceId } : {}),
+      ...(input.subscriptionId ? { subscriptionId: input.subscriptionId } : {})
+    };
+
+    await prisma.billingCredit.create({
+      data
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      logger.warn({ stripeEventId: input.stripeEventId }, "Duplicate billing credit ignored");
+      return;
+    }
+
+    throw error;
+  }
 }
 
 function buildInvoiceCreateData(input: {
@@ -531,10 +636,11 @@ async function handleCustomerSubscriptionDeleted(subscription: Stripe.Subscripti
   };
 }
 
-async function handleCustomerSubscriptionUpdated(subscription: Stripe.Subscription): Promise<{
+async function handleCustomerSubscriptionUpdated(event: Stripe.Event): Promise<{
   organizationId: string;
   tenantId: string;
 }> {
+  const subscription = event.data.object as Stripe.Subscription;
   const customerId = typeof subscription.customer === "string" ? subscription.customer : null;
 
   if (!customerId) {
@@ -574,7 +680,7 @@ async function handleCustomerSubscriptionUpdated(subscription: Stripe.Subscripti
     }
   });
 
-  await ensureSubscriptionForOrganization({
+  const localSubscription = await ensureSubscriptionForOrganization({
     currentPeriodEnd: resolveSubscriptionPeriodEnd(subscription),
     organizationId: organization.id,
     planId,
@@ -591,6 +697,22 @@ async function handleCustomerSubscriptionUpdated(subscription: Stripe.Subscripti
     where: {
       organizationId: organization.id
     }
+  });
+
+  await createDowngradeProrationCredit({
+    amountCents: resolveProrationCreditCents(event, subscription),
+    currency:
+      subscription.items.data[0]?.price?.currency ??
+      mappedPlan?.currency ??
+      "usd",
+    organizationId: organization.id,
+    stripeEventId: event.id,
+    stripeInvoiceId:
+      typeof subscription.latest_invoice === "string"
+        ? subscription.latest_invoice
+        : subscription.latest_invoice?.id ?? null,
+    subscriptionId: localSubscription.id,
+    tenantId: organization.tenantId
   });
 
   return {
@@ -613,7 +735,7 @@ async function processStripeEvent(
     case "customer.subscription.deleted":
       return handleCustomerSubscriptionDeleted(event.data.object);
     case "customer.subscription.updated":
-      return handleCustomerSubscriptionUpdated(event.data.object);
+      return handleCustomerSubscriptionUpdated(event);
     default:
       return {};
   }

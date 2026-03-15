@@ -8,12 +8,19 @@ import {
   hasRequiredRedisTls,
   nodeEnvSchema,
   nonEmptyString,
+  optionalNonEmptyString,
   optionalUrlString,
   parseEnv,
   urlString
 } from "./shared.js";
 
 export const workerEnvSchema = z.object({
+  BILLING_EXPORT_LOCAL_DIR: nonEmptyString.default("artifacts/billing-exports"),
+  BILLING_EXPORT_S3_BUCKET: optionalNonEmptyString,
+  BILLING_EXPORT_S3_ENDPOINT: optionalUrlString,
+  BILLING_EXPORT_S3_PREFIX: nonEmptyString.default("daily-invoices"),
+  BILLING_EXPORT_S3_REGION: nonEmptyString.default("us-east-1"),
+  BILLING_EXPORT_STORAGE_MODE: z.enum(["local", "s3"]).default("local"),
   BILLING_GRACE_PERIOD_DAYS: z.coerce.number().int().min(0).default(3),
   BILLING_STATUS_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   DATABASE_URL: urlString,
@@ -56,6 +63,10 @@ export function getWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerCon
 
     if (parsed.JOB_HMAC_GLOBAL_SECRET === "dev-job-hmac-secret") {
       issues.push("JOB_HMAC_GLOBAL_SECRET cannot use the development default in production.");
+    }
+
+    if (parsed.BILLING_EXPORT_STORAGE_MODE === "s3" && !parsed.BILLING_EXPORT_S3_BUCKET) {
+      issues.push("BILLING_EXPORT_S3_BUCKET must be set when BILLING_EXPORT_STORAGE_MODE=s3.");
     }
 
     if (issues.length > 0) {

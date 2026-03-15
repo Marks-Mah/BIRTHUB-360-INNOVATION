@@ -37,6 +37,7 @@ model Organization {
   paymentMethods   PaymentMethod[]
   usageRecords     UsageRecord[]
   billingEvents    BillingEvent[]
+  billingCredits   BillingCredit[]
   auditLogs        AuditLog[]        @relation("OrganizationAuditLogs")
   quotaUsages      QuotaUsage[]      @relation("OrganizationQuotaUsages")
   apiKeys          ApiKey[]
@@ -521,6 +522,7 @@ model Subscription {
   plan                Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
   invoices            Invoice[]
   usageRecords        UsageRecord[]
+  billingCredits      BillingCredit[]
 
   @@unique([organizationId])
   @@index([tenantId])
@@ -609,6 +611,29 @@ model BillingEvent {
   @@index([tenantId])
   @@index([organizationId, processedAt])
   @@map("billing_events")
+}
+
+model BillingCredit {
+  id               String              @id @default(cuid())
+  tenantId         String
+  organizationId   String
+  subscriptionId   String?
+  stripeEventId    String              @unique @map("stripe_event_id")
+  stripeInvoiceId  String?             @map("stripe_invoice_id")
+  amountCents      Int                 @map("amount_cents")
+  currency         String              @default("usd")
+  reason           BillingCreditReason
+  metadata         Json?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscription     Subscription?       @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([organizationId, createdAt])
+  @@index([subscriptionId])
+  @@index([tenantId, reason])
+  @@map("billing_credits")
 }
 
 model Notification {
@@ -918,6 +943,10 @@ enum InvoiceStatus {
   uncollectible
   void
   past_due
+}
+
+enum BillingCreditReason {
+  DOWNGRADE_PRORATION
 }
 
 enum ApiKeyStatus {

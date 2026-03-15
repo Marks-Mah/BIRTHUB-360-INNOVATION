@@ -17,7 +17,7 @@ export interface AgentExecutor {
 
 function summarizeContext(context: WorkflowRuntimeContext): string {
   const stepCount = Object.keys(context.steps).length;
-  return `workflow=${context.workflowId}; execution=${context.executionId}; steps=${stepCount}`;
+  return `workflow=${context.workflowId}; execution=${context.executionId}; tenant=${context.tenantId}; steps=${stepCount}`;
 }
 
 export async function executeAgentNode(

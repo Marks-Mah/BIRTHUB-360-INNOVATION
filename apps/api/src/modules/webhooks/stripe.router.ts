@@ -605,15 +605,15 @@ async function processStripeEvent(
 ): Promise<{ organizationId?: string; tenantId?: string }> {
   switch (event.type) {
     case "checkout.session.completed":
-      return handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+      return handleCheckoutSessionCompleted(event.data.object);
     case "invoice.payment_succeeded":
-      return handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
+      return handleInvoicePaymentSucceeded(event.data.object);
     case "invoice.payment_failed":
-      return handleInvoicePaymentFailed(event.data.object as Stripe.Invoice, config);
+      return handleInvoicePaymentFailed(event.data.object, config);
     case "customer.subscription.deleted":
-      return handleCustomerSubscriptionDeleted(event.data.object as Stripe.Subscription);
+      return handleCustomerSubscriptionDeleted(event.data.object);
     case "customer.subscription.updated":
-      return handleCustomerSubscriptionUpdated(event.data.object as Stripe.Subscription);
+      return handleCustomerSubscriptionUpdated(event.data.object);
     default:
       return {};
   }

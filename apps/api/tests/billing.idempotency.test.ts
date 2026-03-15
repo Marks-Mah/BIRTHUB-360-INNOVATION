@@ -12,11 +12,11 @@ import { STRIPE_API_VERSION } from "../src/modules/billing/stripe.client.js";
 import { createStripeWebhookRouter } from "../src/modules/webhooks/stripe.router.js";
 import { createTestApiConfig } from "./test-config.js";
 
-function stubMethod(target: any, key: string, value: unknown): () => void {
-  const original = target[key];
-  target[key] = value;
+function stubMethod(target: object, key: string, value: unknown): () => void {
+  const original = Reflect.get(target, key);
+  Reflect.set(target, key, value);
   return () => {
-    target[key] = original;
+    Reflect.set(target, key, original);
   };
 }
 
@@ -70,16 +70,18 @@ void test("invoice.payment_succeeded event is idempotent when replayed 3 times",
     secret: config.STRIPE_WEBHOOK_SECRET
   });
   const restores = [
-    stubMethod(prisma.billingEvent, "findUnique", async ({ where }: any) => {
-      const eventId = where.stripeEventId as string;
+    stubMethod(prisma.billingEvent, "findUnique", async (args: { where?: { stripeEventId?: string } }) => {
+      const eventId = args.where?.stripeEventId ?? "";
       return processedEvents.has(eventId) ? { id: "be_1" } : null;
     }),
-    stubMethod(prisma.billingEvent, "create", async ({ data }: any) => {
-      processedEvents.add(data.stripeEventId as string);
+    stubMethod(prisma.billingEvent, "create", async (args: { data?: { stripeEventId?: string } }) => {
+      if (typeof args.data?.stripeEventId === "string") {
+        processedEvents.add(args.data.stripeEventId);
+      }
       return { id: "be_1" };
     }),
-    stubMethod(prisma.organization, "findFirst", async ({ where }: any) => {
-      if (where?.stripeCustomerId === "cus_alpha") {
+    stubMethod(prisma.organization, "findFirst", async (args: { where?: { stripeCustomerId?: string } }) => {
+      if (args.where?.stripeCustomerId === "cus_alpha") {
         return {
           id: "org_alpha",
           planId: "plan_professional",
@@ -90,8 +92,8 @@ void test("invoice.payment_succeeded event is idempotent when replayed 3 times",
 
       return null;
     }),
-    stubMethod(prisma.organization, "findUnique", async ({ where }: any) => {
-      if (where?.id === "org_alpha") {
+    stubMethod(prisma.organization, "findUnique", async (args: { where?: { id?: string } }) => {
+      if (args.where?.id === "org_alpha") {
         return {
           id: "org_alpha",
           tenantId: "tenant_alpha"

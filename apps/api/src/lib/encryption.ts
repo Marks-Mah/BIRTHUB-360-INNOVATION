@@ -4,8 +4,6 @@ import { getApiConfig } from "@birthub/config";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
-const SALT_LENGTH = 32;
-const TAG_LENGTH = 16;
 
 /**
  * Derives a 32-byte key from the AUTH_MFA_ENCRYPTION_KEY or another
@@ -57,7 +55,7 @@ export function decryptConnectorToken(encryptedText: string): string {
     decrypted += decipher.final("utf8");
 
     return decrypted;
-  } catch (error) {
+  } catch {
     // Se a decriptação falhar, retornamos o texto original. Isso facilita a migração retroativa
     // de instâncias onde o token foi salvo em plain-text antes.
     return encryptedText;

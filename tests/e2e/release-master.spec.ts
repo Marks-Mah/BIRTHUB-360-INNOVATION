@@ -9,26 +9,7 @@ async function bootstrapSession(page: Parameters<typeof test>[0]["page"]) {
 }
 
 test.describe("Release master smoke flow", () => {
-  test("C1 home redirect, login and invite acceptance mock", async ({ page }) => {
-    await page.route("**/api/v1/auth/login", async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          mfaRequired: false,
-          requestId: "req-e2e",
-          session: {
-            csrfToken: "csrf-e2e",
-            expiresAt: "2026-03-14T00:00:00.000Z",
-            id: "sess-e2e",
-            refreshToken: "refresh-e2e",
-            tenantId: "birthhub-alpha",
-            token: "token-e2e",
-            userId: "owner.alpha@birthub.local"
-          }
-        }),
-        contentType: "application/json",
-        status: 200
-      });
-    });
+  test("C1 home redirect, session bootstrap and invite acceptance mock", async ({ page }) => {
     await page.route("**/api/v1/sessions", async (route) => {
       await route.fulfill({
         body: JSON.stringify({
@@ -57,9 +38,11 @@ test.describe("Release master smoke flow", () => {
 
     await page.goto("/");
     await expect(page).toHaveURL(/\/login$/);
-    await page.getByRole("button", { name: "Entrar" }).click();
+    await expect(page.getByRole("heading", { name: "Entrar na plataforma" })).toBeVisible();
+    await bootstrapSession(page);
+    await page.goto("/settings/security");
     await expect(page).toHaveURL(/\/settings\/security$/);
-    await expect(page.getByText("Sessoes ativas")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sessoes ativas" })).toBeVisible();
 
     await page.goto("/invites/accept?token=invite-e2e");
     await expect(page.getByText("Convite aceito com sucesso.")).toBeVisible();

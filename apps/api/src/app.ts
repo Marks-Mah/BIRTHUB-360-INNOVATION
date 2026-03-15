@@ -24,6 +24,7 @@ import {
   configureCacheStore,
   registerTenantCacheInvalidationMiddleware
 } from "./common/cache/index.js";
+import { requireAuthenticated } from "./common/guards/index.js";
 import { openApiDocument } from "./docs/openapi.js";
 import { createDeepHealthService, createHealthService } from "./lib/health.js";
 import { asyncHandler, ProblemDetailsError } from "./lib/problem-details.js";
@@ -357,6 +358,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   app.post(
     "/api/v1/auth/logout",
+    requireAuthenticated,
     asyncHandler(async (request, response) => {
       if (!request.context.sessionId) {
         throw new ProblemDetailsError({
@@ -379,6 +381,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   app.get(
     "/api/v1/sessions",
+    requireAuthenticated,
     asyncHandler(async (request, response) => {
       if (!request.context.tenantId || !request.context.userId) {
         throw new ProblemDetailsError({
@@ -439,6 +442,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   app.get(
     "/api/v1/me",
+    requireAuthenticated,
     asyncHandler(async (request, response) => {
       if (!request.context.tenantId) {
         throw new ProblemDetailsError({
@@ -482,6 +486,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   app.post(
     "/api/v1/tasks",
+    requireAuthenticated,
     validateBody(taskRequestSchema),
     asyncHandler(async (request, response) => {
       const tenantId = request.context.tenantId ?? "default-tenant";

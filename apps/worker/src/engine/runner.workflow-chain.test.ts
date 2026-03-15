@@ -44,7 +44,7 @@ void test("Workflow runner chains HTTP, agent execution and notification with mo
   const notifications: Array<Record<string, unknown>> = [];
   let outboundBody: unknown = null;
   let executionDepth = 0;
-  let executionStatus = WorkflowExecutionStatus.RUNNING;
+  let executionStatus: WorkflowExecutionStatus = WorkflowExecutionStatus.RUNNING;
 
   const steps = [
     {
@@ -208,11 +208,17 @@ void test("Workflow runner chains HTTP, agent execution and notification with mo
     assert.equal(agentCalls[0]?.agentId, "ceo-pack");
     assert.match(agentCalls[0]?.contextSummary ?? "", /workflow=wf_chain/);
     assert.equal(agentCalls[0]?.input.score, "91");
-    assert.match(String(agentCalls[0]?.input.brief ?? ""), /ada@birthhub\.local/);
+    assert.match(
+      typeof agentCalls[0]?.input.brief === "string" ? agentCalls[0].input.brief : "",
+      /ada@birthhub\.local/
+    );
     assert.equal(notifications.length, 1);
     assert.equal(notifications[0]?.channel, "email");
     assert.equal(notifications[0]?.to, "ops@birthhub.local");
-    assert.match(String(notifications[0]?.message ?? ""), /growth/);
+    assert.match(
+      typeof notifications[0]?.message === "string" ? notifications[0].message : "",
+      /growth/
+    );
     assert.equal(createdResults.length, 3);
     assert.ok(
       createdResults.every((result) => result.status === StepResultStatus.SUCCESS),

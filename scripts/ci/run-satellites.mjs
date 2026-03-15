@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 
-import { projectRoot, run, runPnpm } from "./shared.mjs";
+import { buildEnv, projectRoot, run, runPnpm } from "./shared.mjs";
 
 function runPython(args) {
   const candidates =
@@ -18,6 +18,7 @@ function runPython(args) {
     const probe = spawnSync(candidate.command, ["--version"], {
       cwd: projectRoot,
       encoding: "utf8",
+      env: buildEnv(),
       stdio: "pipe"
     });
 

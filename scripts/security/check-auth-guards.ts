@@ -6,7 +6,10 @@ const source = readFileSync(appPath, "utf8");
 
 const routeRegex = /app\.(get|post|patch|delete)\(\s*"([^"]+)"/g;
 const publicRoutes = new Set([
+  "/health",
+  "/health/deep",
   "/api/openapi.json",
+  "/api/v1/health/deep",
   "/api/v1/health",
   "/api/v1/auth/login",
   "/api/v1/auth/mfa/challenge",

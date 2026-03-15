@@ -1,7 +1,14 @@
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
+
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-import main as webhook_main
+MODULE_PATH = Path(__file__).resolve().parent.parent / "main.py"
+MODULE_SPEC = spec_from_file_location("webhook_receiver_main", MODULE_PATH)
+assert MODULE_SPEC and MODULE_SPEC.loader
+webhook_main = module_from_spec(MODULE_SPEC)
+MODULE_SPEC.loader.exec_module(webhook_main)
 
 
 class DummyRedis:

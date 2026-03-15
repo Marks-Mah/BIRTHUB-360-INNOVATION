@@ -24,11 +24,25 @@ function uniquePathEntries(entries) {
   return [...new Set(entries.filter(Boolean))];
 }
 
-function buildEnv(overrides = {}) {
+function resolvePortablePythonEntries() {
+  const localAppData = process.env.LOCALAPPDATA;
+  if (!localAppData) {
+    return [];
+  }
+
+  return [
+    path.join(localAppData, "Programs", "Python", "Python312"),
+    path.join(localAppData, "Programs", "Python", "Python312", "Scripts"),
+    path.join(localAppData, "Programs", "Python", "Launcher")
+  ].filter((entry) => existsSync(entry));
+}
+
+export function buildEnv(overrides = {}) {
   const pathEntries = uniquePathEntries([
     portableNodeHome,
+    ...resolvePortablePythonEntries(),
+    overrides.PATH,
     process.env.PATH,
-    overrides.PATH
   ]);
 
   return {

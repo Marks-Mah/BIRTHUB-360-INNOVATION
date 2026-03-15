@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 import {
+  buildEnv,
   commandVersion,
   portableNodeExecutable,
   portableNodeHome,
@@ -68,6 +69,7 @@ function resolvePythonCommand() {
     const result = spawnSync(candidate.command, candidate.args, {
       cwd: projectRoot,
       encoding: "utf8",
+      env: buildEnv(),
       stdio: "pipe"
     });
 

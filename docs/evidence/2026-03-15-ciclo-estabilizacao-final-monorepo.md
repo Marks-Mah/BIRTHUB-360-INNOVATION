@@ -25,26 +25,43 @@
    - Ajuste em `apps/web/tsconfig.json` para resolver pacotes internos via `src/` (não `dist/`) durante typecheck.
    - Remove dependência implícita de build prévio para tipagem.
 
-5. **Correção de lint impeditiva em workflows-core**
+5. **Correções de lint impeditivas em workflows-core e database**
    - Remoção de `try/catch` redundante em `packages/workflows-core/src/nodes/httpRequest.ts`.
+   - Em `packages/database`:
+     - Remoção de type assertions desnecessárias em `prisma/seed.ts`.
+     - Ajuste de assinatura opcional e `void` explícito em `Promise.finally` em `src/client.ts`.
+     - Marcação explícita (`void`) de chamadas de `test(...)` em arquivos de teste para resolver `no-floating-promises`.
 
-## Validação local executada
+## Causa raiz das falhas restantes de lint (database)
 
-- `pnpm install --frozen-lockfile` ✅
-- `pnpm --filter @birthub/agents-core build` ✅
-- `pnpm --filter @birthub/agents-core test` ✅
-- `pnpm typecheck` ✅ (após ajuste de paths do web)
-- `pnpm --filter @birthub/web typecheck` ✅
-- `pnpm --filter @birthub/workflows-core lint` ✅
-- `pnpm lint` ❌ (falhas remanescentes em `packages/database`, não mascaradas)
-- `pnpm --filter @birthub/web build` ⚠️ iniciou build e eliminou warning de `middleware`, porém execução não concluiu neste ambiente dentro da janela operacional.
+As 9 falhas em `packages/database` eram todas violações reais de regras `@typescript-eslint`:
+
+1. `no-unnecessary-type-assertion` em `prisma/seed.ts`: casts redundantes em `selectedPlan.limits`.
+2. `no-duplicate-type-constituents` em `src/client.ts`: `model?: string | undefined` duplicava opcionalidade.
+3. `no-floating-promises` em `src/client.ts` e testes: promessas intencionais sem `await`/`void` explícito.
+
+As correções mantêm tipagem/contrato e não usam disables.
+
+## Validação local executada (rodada atual)
+
+- `pnpm --filter @birthub/database lint` ✅
+- `pnpm lint` ⚠️ executado, mas sem conclusão observável dentro da janela operacional (custos altos de lint/build no ambiente atual; sem novas falhas explícitas emitidas durante a execução).
+- `pnpm ci:local` ⚠️ executado até etapa de `build`; bloqueado por tempo de execução prolongado no `@birthub/web build`.
+- `pnpm --filter @birthub/web build` ⚠️ iniciado e ficou em `Creating an optimized production build ...` sem conclusão na janela operacional.
+
+## Status de readiness (parcial)
+
+- **Lint do pacote crítico (`packages/database`)**: saneado.
+- **Governança local de CI**: pronta e documentada.
+- **Typecheck**: estabilizado em rodada anterior (incluindo `@birthub/web`).
+- **Build web**: ainda precisa fechamento observável fim-a-fim neste ambiente.
 
 ## Bloqueadores remanescentes
 
 1. Billing do GitHub Actions (externo).
-2. Pendências de lint reais no `packages/database`.
-3. Build full do web ainda requer fechamento observável fim-a-fim neste ambiente.
+2. Conclusão observável de `pnpm lint` global e `@birthub/web build` neste ambiente (tempo/capacidade).
+3. Execução completa `pnpm ci:local` até o fim, dependente do item 2.
 
 ## Conclusão
 
-Mesmo sem CI remoto, o repositório ficou mais próximo de um pipeline reproduzível e com sinais mais claros de saúde local, sem mascarar erros reais.
+O gargalo técnico de lint em `packages/database` foi eliminado sem enfraquecer segurança/tipos. O próximo passo é obter execução completa de build/lint globais em uma janela com recursos/tempo suficientes para consolidar readiness final.

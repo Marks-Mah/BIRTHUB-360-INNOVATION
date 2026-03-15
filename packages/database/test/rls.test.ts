@@ -6,7 +6,7 @@ import { PrismaClient, WorkflowStatus } from "@prisma/client";
 const databaseUrl = process.env.DATABASE_URL ?? "";
 const testIfDatabase = databaseUrl ? test : test.skip;
 
-testIfDatabase("RLS bloqueia SELECT de tenant B quando a sessao esta fixada no tenant A", async () => {
+void testIfDatabase("RLS bloqueia SELECT de tenant B quando a sessao esta fixada no tenant A", async () => {
   const prisma = new PrismaClient({
     datasources: {
       db: {

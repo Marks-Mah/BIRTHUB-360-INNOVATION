@@ -39,7 +39,7 @@ function createDelegate() {
   };
 }
 
-test("query sem tenantId lança TenantRequiredError", async () => {
+void test("query sem tenantId lança TenantRequiredError", async () => {
   const { delegate } = createDelegate();
   const repository = new BaseRepository<Where, Data, RecordModel>(delegate);
 
@@ -47,7 +47,7 @@ test("query sem tenantId lança TenantRequiredError", async () => {
   await assert.rejects(repository.create({ data: { name: "Acme" } }), TenantRequiredError);
 });
 
-test("injeta tenantId do AsyncLocalStorage e ignora tenantId externo", async () => {
+void test("injeta tenantId do AsyncLocalStorage e ignora tenantId externo", async () => {
   const { calls, delegate } = createDelegate();
   const repository = new BaseRepository<Where, Data, RecordModel>(delegate);
 

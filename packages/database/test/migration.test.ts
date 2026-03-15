@@ -6,7 +6,7 @@ import { PrismaClient, WorkflowStatus } from "@prisma/client";
 const databaseUrl = process.env.DATABASE_URL ?? "";
 const testIfDatabase = databaseUrl ? test : test.skip;
 
-testIfDatabase("migracao preserva integridade referencial por tenant", async () => {
+void testIfDatabase("migracao preserva integridade referencial por tenant", async () => {
   const prisma = new PrismaClient({
     datasources: {
       db: {

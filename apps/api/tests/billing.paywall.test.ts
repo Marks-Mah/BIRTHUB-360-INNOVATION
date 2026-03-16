@@ -63,15 +63,20 @@ void test("pack install is blocked with 402 when agents feature is disabled by p
   try {
     const app = express();
     app.use(requestContextMiddleware);
+    app.use((request, _response, next) => {
+      request.context.authType = "session";
+      request.context.organizationId = "org_alpha";
+      request.context.sessionId = "session_alpha";
+      request.context.tenantId = "tenant_alpha";
+      request.context.userId = "user_alpha";
+      next();
+    });
     app.post("/guarded", RequireFeature("agents"), (_request, response) => {
       response.status(200).json({ ok: true });
     });
     app.use(errorHandler);
 
-    const response = await request(app)
-      .post("/guarded")
-      .set("x-tenant-id", "tenant_alpha")
-      .expect(402);
+    const response = await request(app).post("/guarded").expect(402);
 
     assert.equal(response.body.title, "Payment Required");
   } finally {

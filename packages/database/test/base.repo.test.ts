@@ -53,7 +53,7 @@ void test("injeta tenantId do AsyncLocalStorage e ignora tenantId externo", asyn
 
   await runWithTenantContext(
     {
-      source: "header",
+      source: "authenticated",
       tenantId: "tenant-alpha"
     },
     async () => {

@@ -21,6 +21,11 @@ type ScanResult = {
   textViolations: TextViolation[];
 };
 
+type AdminMatcher = {
+  methods?: string[];
+  pattern: RegExp;
+};
+
 const workspaceRoot = process.cwd();
 const apiSourceRoot = resolve(workspaceRoot, "apps/api/src");
 const routeFilePattern = /(?:^|[\\/])(app|server|router)\.ts$|(?:^|[\\/]).+-routes\.ts$/;
@@ -52,18 +57,57 @@ const sensitiveReadMatchers = [
   /^\/invites$/
 ];
 
-const adminMatchers = [
-  /^\/api\/v1\/workflows(?:\/.*)?$/,
-  /^\/orgs\/[^/]+\/(?:members|audit)(?:\/export)?$/,
-  /^\/api\/v1\/agents\/installed(?:\/.*)?$/,
-  /^\/api\/v1\/budgets(?:\/usage|\/limits|\/consume|\/export\.csv)?$/,
-  /^\/api\/v1\/outputs\/(?:[^/]+\/approve|prune)$/,
-  /^\/api\/v1\/packs(?:\/.*)?$/,
-  /^\/api\/v1\/(?:apikeys|users|team\/members)(?:\/.*)?$/,
-  /^\/api\/v1\/settings\/webhooks(?:\/.*)?$/,
-  /^\/invites(?:\/[^/]+\/revoke)?$/,
-  /^\/api\/v1\/privacy\/export$/,
-  /^\/api\/v1\/billing\/(?:checkout|portal)$/
+const adminMatchers: AdminMatcher[] = [
+  {
+    methods: ["post"],
+    pattern: /^\/api\/v1\/workflows$/
+  },
+  {
+    methods: ["put", "delete"],
+    pattern: /^\/api\/v1\/workflows\/:id$/
+  },
+  {
+    methods: ["post"],
+    pattern: /^\/api\/v1\/workflows\/:id\/run$/
+  },
+  {
+    methods: ["get"],
+    pattern: /^\/api\/v1\/workflows\/:id\/webhook-url$/
+  },
+  {
+    methods: ["post"],
+    pattern: /^\/api\/v1\/workflows\/events\/:topic$/
+  },
+  {
+    pattern: /^\/orgs\/[^/]+\/(?:members|audit)(?:\/export)?$/
+  },
+  {
+    pattern: /^\/api\/v1\/agents\/installed(?:\/.*)?$/
+  },
+  {
+    pattern: /^\/api\/v1\/budgets(?:\/usage|\/limits|\/consume|\/export\.csv)?$/
+  },
+  {
+    pattern: /^\/api\/v1\/outputs\/(?:[^/]+\/approve|prune)$/
+  },
+  {
+    pattern: /^\/api\/v1\/packs(?:\/.*)?$/
+  },
+  {
+    pattern: /^\/api\/v1\/(?:apikeys|users|team\/members)(?:\/.*)?$/
+  },
+  {
+    pattern: /^\/api\/v1\/settings\/webhooks(?:\/.*)?$/
+  },
+  {
+    pattern: /^\/invites(?:\/[^/]+\/revoke)?$/
+  },
+  {
+    pattern: /^\/api\/v1\/privacy\/export$/
+  },
+  {
+    pattern: /^\/api\/v1\/billing\/(?:checkout|portal)$/
+  }
 ];
 
 const allowedRawHeaderFiles = new Map<string, Set<string>>([
@@ -139,8 +183,18 @@ function isSensitiveRead(path: string): boolean {
   return sensitiveReadMatchers.some((matcher) => matcher.test(path));
 }
 
-function isAdministrative(path: string): boolean {
-  return adminMatchers.some((matcher) => matcher.test(path));
+function isAdministrative(method: string, path: string): boolean {
+  return adminMatchers.some((matcher) => {
+    if (!matcher.pattern.test(path)) {
+      return false;
+    }
+
+    if (!matcher.methods) {
+      return true;
+    }
+
+    return matcher.methods.includes(method);
+  });
 }
 
 function extractLiteralPath(argument: ts.Expression | undefined): string | null {
@@ -159,20 +213,59 @@ function getMiddlewareTexts(sourceFile: ts.SourceFile, args: readonly ts.Express
   return args.slice(1).map((argument) => argument.getText(sourceFile));
 }
 
+function collectInheritedMiddleware(sourceFile: ts.SourceFile): Map<string, string[]> {
+  const middlewareByRouter = new Map<string, string[]>();
+
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === "use" &&
+      ts.isIdentifier(node.expression.expression)
+    ) {
+      const routerName = node.expression.expression.text;
+      const firstArgument = node.arguments[0];
+      const startsWithPath =
+        firstArgument !== undefined &&
+        (ts.isStringLiteral(firstArgument) || ts.isNoSubstitutionTemplateLiteral(firstArgument));
+
+      if (!startsWithPath) {
+        const inheritedTexts = node.arguments.map((argument) => argument.getText(sourceFile));
+        const existing = middlewareByRouter.get(routerName) ?? [];
+        middlewareByRouter.set(routerName, existing.concat(inheritedTexts));
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return middlewareByRouter;
+}
+
 function scanRouteFile(filePath: string): RouteViolation[] {
   const source = readFileSync(filePath, "utf8");
   const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
   const violations: RouteViolation[] = [];
+  const inheritedMiddleware = collectInheritedMiddleware(sourceFile);
 
   const visit = (node: ts.Node) => {
-    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression)
+    ) {
       const method = node.expression.name.text.toLowerCase();
 
       if (["get", "post", "put", "patch", "delete"].includes(method)) {
         const routePath = extractLiteralPath(node.arguments[0]);
 
         if (routePath) {
-          const middlewareTexts = getMiddlewareTexts(sourceFile, node.arguments);
+          const routerName = node.expression.expression.text;
+          const middlewareTexts = [
+            ...(inheritedMiddleware.get(routerName) ?? []),
+            ...getMiddlewareTexts(sourceFile, node.arguments)
+          ];
           const hasSessionGuard = middlewareTexts.some((text) =>
             text.includes("requireAuthenticatedSession")
           );
@@ -180,7 +273,7 @@ function scanRouteFile(filePath: string): RouteViolation[] {
           const mutating = method !== "get";
           const publicRoute = isPublicRoute(routePath);
           const sensitiveRead = method === "get" && isSensitiveRead(routePath);
-          const administrative = isAdministrative(routePath);
+          const administrative = isAdministrative(method, routePath);
 
           if (!publicRoute && (mutating || sensitiveRead) && !hasSessionGuard) {
             violations.push({

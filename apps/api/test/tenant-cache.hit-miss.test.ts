@@ -44,6 +44,14 @@ function createInMemoryCacheStore() {
 void test("tenant cache hit evita nova consulta ao Prisma no segundo request", async () => {
   const app = express();
   app.use(requestContextMiddleware);
+  app.use((req, _res, next) => {
+    req.context.authType = "session";
+    req.context.organizationId = "org_a";
+    req.context.sessionId = "session_a";
+    req.context.tenantId = "tenant-a";
+    req.context.userId = "user_a";
+    next();
+  });
   app.use(tenantContextMiddleware);
   app.get("/tenant", (req, res) => {
     res.status(200).json({
@@ -66,8 +74,8 @@ void test("tenant cache hit evita nova consulta ao Prisma no segundo request", a
   setCacheStoreForTests(createInMemoryCacheStore());
 
   try {
-    const firstResponse = await request(app).get("/tenant").set("x-tenant-id", "tenant-a").expect(200);
-    const secondResponse = await request(app).get("/tenant").set("x-tenant-id", "tenant-a").expect(200);
+    const firstResponse = await request(app).get("/tenant").expect(200);
+    const secondResponse = await request(app).get("/tenant").expect(200);
 
     assert.equal(firstResponse.body.tenantId, "tenant-a");
     assert.equal(secondResponse.body.tenantId, "tenant-a");

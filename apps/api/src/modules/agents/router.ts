@@ -85,6 +85,10 @@ export function createInstalledAgentsRouter(): Router {
       const tenantReference = resolveTenantReference({
         contextTenantId: request.context.tenantId
       });
+      const userId = requireStringValue(
+        request.context.userId,
+        "Authenticated user context is required to run installed agents."
+      );
       const payload = runPayloadSchema.parse(request.body ?? {});
       const installedAgentId = requireStringValue(
         request.params.installedAgentId,
@@ -94,7 +98,7 @@ export function createInstalledAgentsRouter(): Router {
         installedAgentId,
         payload,
         tenantReference,
-        userId: request.context.userId
+        userId
       });
 
       response.status(201).json({

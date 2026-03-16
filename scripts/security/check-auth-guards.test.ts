@@ -30,7 +30,7 @@ void test("scanner flags mutating routes without session auth and admin routes w
 
     const result = scanAuthGuards(root);
 
-    assert.equal(result.routeViolations.length, 2);
+    assert.equal(result.routeViolations.length, 3);
     assert.equal(
       result.routeViolations.some((violation) => violation.path === "/api/v1/workflows"),
       true
@@ -56,6 +56,33 @@ void test("scanner allows public routes and secure admin routes", () => {
         const router = Router();
         router.post("/api/v1/auth/login", async () => {});
         router.post("/api/v1/workflows", requireAuthenticatedSession, RequireRole(Role.ADMIN), async () => {});
+        export default router;
+      `
+    );
+
+    const result = scanAuthGuards(root);
+
+    assert.deepEqual(result.routeViolations, []);
+    assert.deepEqual(result.textViolations, []);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+void test("scanner honors inherited router.use guards and allows workflow reads with session-only auth", () => {
+  const root = mkdtempSync(join(tmpdir(), "auth-guards-inherited-"));
+
+  try {
+    createFixtureFile(
+      root,
+      "modules/inherited/router.ts",
+      `
+        import { Router } from "express";
+        const router = Router();
+        router.use(requireAuthenticatedSession);
+        router.use(RequireRole(Role.ADMIN));
+        router.get("/api/v1/workflows/:id", async () => {});
+        router.post("/api/v1/apikeys", async () => {});
         export default router;
       `
     );

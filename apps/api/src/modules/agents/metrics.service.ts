@@ -1,34 +1,36 @@
+import { prisma } from "@birthub/database";
+
 export type ExecutionStatus = "FAILED" | "SUCCESS";
 
 export interface AgentRunLog {
   agentId: string;
-  tenantId: string;
-  status: ExecutionStatus;
-  durationMs: number;
-  toolCost: number;
   createdAt: Date;
+  durationMs: number;
+  status: ExecutionStatus;
+  tenantId: string;
+  toolCost: number;
 }
 
 export interface AgentMetricsSnapshot {
   agentId: string;
   execution_count: number;
   fail_rate: number;
+  from: string;
   p50_latency_ms: number;
   p95_latency_ms: number;
   p99_latency_ms: number;
-  tool_cost: number;
-  from: string;
   to: string;
+  tool_cost: number;
 }
 
 export interface TenantDashboardSnapshot {
-  tenantId: string;
+  accumulatedCost: number;
   mostUsedAgents: Array<{
     agentId: string;
     executions: number;
   }>;
   recentFailures: AgentRunLog[];
-  accumulatedCost: number;
+  tenantId: string;
 }
 
 export interface FailRateAlert {
@@ -48,8 +50,80 @@ function percentile(values: number[], percentileValue: number): number {
   return sorted[index] ?? 0;
 }
 
-function withinWindow(item: AgentRunLog, since: Date): boolean {
-  return item.createdAt.getTime() >= since.getTime();
+function extractDurationMs(input: {
+  completedAt: Date | null;
+  startedAt: Date;
+}): number {
+  if (!input.completedAt) {
+    return 0;
+  }
+
+  return Math.max(0, input.completedAt.getTime() - input.startedAt.getTime());
+}
+
+function extractToolCost(metadata: unknown): number {
+  if (!metadata || typeof metadata !== "object") {
+    return 0;
+  }
+
+  const candidate = (metadata as { toolCost?: unknown }).toolCost;
+  return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : 0;
+}
+
+function hasDatabaseUrl(): boolean {
+  return typeof process.env.DATABASE_URL === "string" && process.env.DATABASE_URL.length > 0;
+}
+
+function isDatabaseUnavailableError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.name === "PrismaClientInitializationError" ||
+      error.message.includes("Environment variable not found: DATABASE_URL"))
+  );
+}
+
+async function loadRunLogs(input: {
+  agentId?: string;
+  since?: Date;
+  tenantId: string;
+}): Promise<AgentRunLog[]> {
+  if (!hasDatabaseUrl()) {
+    return [];
+  }
+
+  let rows;
+  try {
+    rows = await prisma.agentExecution.findMany({
+      orderBy: {
+        startedAt: "desc"
+      },
+      where: {
+        ...(input.agentId ? { agentId: input.agentId } : {}),
+        ...(input.since ? { startedAt: { gte: input.since } } : {}),
+        tenantId: input.tenantId
+      }
+    });
+  } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      return [];
+    }
+
+    throw error;
+  }
+
+  return rows
+    .filter((row): row is typeof row & { status: "FAILED" | "SUCCESS" } => row.status !== "RUNNING" && row.status !== "WAITING_APPROVAL")
+    .map((row) => ({
+      agentId: row.agentId,
+      createdAt: row.startedAt,
+      durationMs: extractDurationMs({
+        completedAt: row.completedAt,
+        startedAt: row.startedAt
+      }),
+      status: row.status,
+      tenantId: row.tenantId,
+      toolCost: extractToolCost(row.metadata)
+    }));
 }
 
 export class AgentMetricsService {
@@ -62,18 +136,26 @@ export class AgentMetricsService {
     });
   }
 
-  getMetrics(input: {
-    tenantId: string;
+  async getMetrics(input: {
     agentId: string;
+    tenantId: string;
     windowMinutes?: number;
-  }): AgentMetricsSnapshot {
+  }): Promise<AgentMetricsSnapshot> {
     const to = new Date();
     const from = new Date(to.getTime() - (input.windowMinutes ?? 60) * 60 * 1000);
-
-    const logs = this.runLogs.filter(
-      (log) => log.tenantId === input.tenantId && log.agentId === input.agentId && withinWindow(log, from)
-    );
-
+    const logs = [
+      ...(await loadRunLogs({
+        agentId: input.agentId,
+        since: from,
+        tenantId: input.tenantId
+      })),
+      ...this.runLogs.filter(
+        (log) =>
+          log.agentId === input.agentId &&
+          log.tenantId === input.tenantId &&
+          log.createdAt.getTime() >= from.getTime()
+      )
+    ];
     const failures = logs.filter((log) => log.status === "FAILED").length;
     const latencies = logs.map((log) => log.durationMs);
     const totalCost = logs.reduce((total, log) => total + log.toolCost, 0);
@@ -87,12 +169,15 @@ export class AgentMetricsService {
       p95_latency_ms: percentile(latencies, 0.95),
       p99_latency_ms: percentile(latencies, 0.99),
       to: to.toISOString(),
-      tool_cost: totalCost
+      tool_cost: Math.round(totalCost * 100) / 100
     };
   }
 
-  getTenantDashboard(tenantId: string): TenantDashboardSnapshot {
-    const tenantLogs = this.runLogs.filter((log) => log.tenantId === tenantId);
+  async getTenantDashboard(tenantId: string): Promise<TenantDashboardSnapshot> {
+    const tenantLogs = [
+      ...(await loadRunLogs({ tenantId })),
+      ...this.runLogs.filter((log) => log.tenantId === tenantId)
+    ];
     const grouped = new Map<string, number>();
 
     for (const log of tenantLogs) {
@@ -103,28 +188,36 @@ export class AgentMetricsService {
       .map(([agentId, executions]) => ({ agentId, executions }))
       .sort((left, right) => right.executions - left.executions)
       .slice(0, 5);
-
     const recentFailures = tenantLogs
       .filter((log) => log.status === "FAILED")
-      .slice()
-      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
       .slice(0, 10);
-
     const accumulatedCost = tenantLogs.reduce((total, log) => total + log.toolCost, 0);
 
     return {
-      accumulatedCost,
+      accumulatedCost: Math.round(accumulatedCost * 100) / 100,
       mostUsedAgents,
       recentFailures,
       tenantId
     };
   }
 
-  detectFailRateAlerts(tenantId: string, threshold = 0.2, windowMinutes = 5): FailRateAlert[] {
+  async detectFailRateAlerts(
+    tenantId: string,
+    threshold = 0.2,
+    windowMinutes = 5
+  ): Promise<FailRateAlert[]> {
     const since = new Date(Date.now() - windowMinutes * 60 * 1000);
-    const tenantLogs = this.runLogs.filter((log) => log.tenantId === tenantId && withinWindow(log, since));
-
+    const tenantLogs = [
+      ...(await loadRunLogs({
+        since,
+        tenantId
+      })),
+      ...this.runLogs.filter(
+        (log) => log.tenantId === tenantId && log.createdAt.getTime() >= since.getTime()
+      )
+    ];
     const grouped = new Map<string, AgentRunLog[]>();
+
     for (const log of tenantLogs) {
       const current = grouped.get(log.agentId) ?? [];
       current.push(log);
@@ -135,6 +228,7 @@ export class AgentMetricsService {
     for (const [agentId, logs] of grouped.entries()) {
       const failureCount = logs.filter((item) => item.status === "FAILED").length;
       const failRate = logs.length > 0 ? failureCount / logs.length : 0;
+
       if (failRate > threshold) {
         alerts.push({
           agentId,
@@ -148,12 +242,16 @@ export class AgentMetricsService {
     return alerts;
   }
 
-  exportCsv(tenantId: string, agentId?: string): string {
-    const rows = this.runLogs
-      .filter((log) => log.tenantId === tenantId)
-      .filter((log) => (agentId ? log.agentId === agentId : true));
+  async exportCsv(tenantId: string, agentId?: string): Promise<string> {
+    const rows = [
+      ...(await loadRunLogs({
+        ...(agentId ? { agentId } : {}),
+        tenantId
+      })),
+      ...this.runLogs.filter((log) => log.tenantId === tenantId && (agentId ? log.agentId === agentId : true))
+    ];
     const header = "day,agent_id,success,failed,total_cost";
-    const buckets = new Map<string, { agentId: string; success: number; failed: number; cost: number }>();
+    const buckets = new Map<string, { agentId: string; cost: number; failed: number; success: number }>();
 
     for (const row of rows) {
       const day = row.createdAt.toISOString().slice(0, 10);
@@ -185,3 +283,5 @@ export class AgentMetricsService {
     return [header, ...body].join("\n");
   }
 }
+
+export const agentMetricsService = new AgentMetricsService();

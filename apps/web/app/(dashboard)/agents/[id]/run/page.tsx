@@ -19,7 +19,7 @@ export default async function AgentRunPage({ params }: Readonly<{ params: { id: 
       <header>
         <h2 style={{ margin: 0 }}>Run Agent</h2>
         <p style={{ color: "var(--muted)", marginBottom: 0 }}>
-          Dry-run seguro com logs persistidos, replay SSE curto e publicacao de aprendizado compartilhado.
+          Execucao live governada com logs persistidos, replay SSE, memoria compartilhada e output automatico.
         </p>
       </header>
       <AgentRunPanel agentId={agent.id} apiUrl={config.NEXT_PUBLIC_API_URL} />

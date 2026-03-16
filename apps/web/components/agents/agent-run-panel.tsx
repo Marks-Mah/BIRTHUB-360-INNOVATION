@@ -15,10 +15,18 @@ interface StreamLog {
   message: string;
 }
 
+interface StreamDonePayload {
+  executionId: string;
+  output?: Record<string, unknown> | null;
+  status?: string;
+  timedOut?: boolean;
+  totalLogs: number;
+}
+
 const INITIAL_INPUT = JSON.stringify(
   {
     context: {
-      objective: "Executar dry-run governado com publicacao de aprendizado",
+      objective: "Executar agente live com governanca, memoria e output automatico",
       origin: "Agent Studio"
     }
   },
@@ -33,6 +41,7 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
   const [logs, setLogs] = useState<StreamLog[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<StreamDonePayload | null>(null);
 
   const streamUrl = useMemo(() => {
     if (!executionId) {
@@ -46,6 +55,7 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
     setError(null);
     setLogs([]);
     setIsRunning(true);
+    setResult(null);
 
     try {
       const parsedPayload = JSON.parse(inputPayload) as Record<string, unknown>;
@@ -62,11 +72,12 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
         throw new Error(`Falha ao iniciar execução (${response.status}).`);
       }
 
-      const payload = (await response.json()) as { executionId: string };
+      const payload = (await response.json()) as { executionId: string; mode: "LIVE" };
       setExecutionId(payload.executionId);
       track("Agent Executed", {
         agentId,
         executionId: payload.executionId,
+        mode: payload.mode,
         type: "manual"
       });
 
@@ -83,7 +94,10 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
         setLogs((current) => [...current, parsed]);
       });
 
-      source.addEventListener("done", () => {
+      source.addEventListener("done", (event) => {
+        if (event instanceof MessageEvent && typeof event.data === "string") {
+          setResult(JSON.parse(event.data) as StreamDonePayload);
+        }
         source.close();
         setIsRunning(false);
       });
@@ -149,11 +163,31 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
       >
         <strong>Resultado em tempo real (SSE)</strong>
         {streamUrl ? <p style={{ color: "var(--muted)", marginBottom: "0.5rem" }}>Stream: {streamUrl}</p> : null}
+        {result ? (
+          <p style={{ color: "var(--muted)", marginBottom: "0.5rem" }}>
+            Status final: <strong>{result.status ?? "desconhecido"}</strong>
+            {result.timedOut ? " · stream encerrou por timeout de acompanhamento" : ""}
+          </p>
+        ) : null}
         <ul style={{ margin: 0, paddingLeft: "1rem" }}>
           {logs.map((log) => (
             <li key={`${log.index}-${log.message}`}>{log.message}</li>
           ))}
         </ul>
+        {result?.output ? (
+          <pre
+            style={{
+              background: "#f8f6ef",
+              borderRadius: "0.75rem",
+              marginTop: "0.75rem",
+              overflowX: "auto",
+              padding: "0.75rem",
+              whiteSpace: "pre-wrap"
+            }}
+          >
+            {JSON.stringify(result.output, null, 2)}
+          </pre>
+        ) : null}
         {error ? <p style={{ color: "#a11d2d" }}>{error}</p> : null}
       </div>
 

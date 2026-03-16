@@ -6,6 +6,7 @@ export type ExecutionStatus = "FAILED" | "RUNNING" | "SUCCESS";
 export interface AgentExecutionRow {
   durationMs: number;
   id: string;
+  mode: "DRY_RUN" | "LIVE" | "UNKNOWN";
   startedAt: string;
   status: ExecutionStatus;
 }
@@ -23,6 +24,7 @@ export interface AgentSnapshot {
   manifest: Record<string, unknown>;
   name: string;
   promptVersions: string[];
+  runtimeProvider: "manifest-runtime" | "python-orchestrator";
   sourceStatus: string;
   status: string;
   tags: string[];
@@ -37,6 +39,26 @@ interface InstalledAgentsResponse {
 interface InstalledAgentResponse {
   agent: AgentSnapshot;
   requestId: string;
+}
+
+export interface ManagedPolicySnapshot {
+  actions: string[];
+  effect: "allow" | "deny";
+  enabled?: boolean;
+  id: string;
+  name: string;
+  reason?: string;
+}
+
+export interface AgentPoliciesSnapshot {
+  managedPolicies: ManagedPolicySnapshot[];
+  manifestPolicies: Array<{
+    actions: string[];
+    effect: string;
+    id: string;
+    name: string;
+  }>;
+  runtimeProvider: "manifest-runtime" | "python-orchestrator";
 }
 
 function normalizePromptVersions(manifest: Record<string, unknown>): string[] {
@@ -93,6 +115,18 @@ export async function getInstalledAgentById(id: string): Promise<AgentSnapshot |
   try {
     const payload = await fetchJson<InstalledAgentResponse>(`/api/v1/agents/installed/${encodeURIComponent(id)}`);
     return normalizeAgent(payload.agent);
+  } catch {
+    return null;
+  }
+}
+
+export async function getInstalledAgentPolicies(id: string): Promise<AgentPoliciesSnapshot | null> {
+  try {
+    const payload = await fetchJson<{
+      policies: AgentPoliciesSnapshot;
+      requestId: string;
+    }>(`/api/v1/agents/installed/${encodeURIComponent(id)}/policies`);
+    return payload.policies;
   } catch {
     return null;
   }

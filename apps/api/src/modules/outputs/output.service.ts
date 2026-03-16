@@ -100,6 +100,48 @@ export class OutputService {
     return outputs.map((record) => toOutputRecord(record));
   }
 
+  async listByExecution(tenantId: string, executionId: string): Promise<OutputRecord[]> {
+    const links = await prisma.auditLog.findMany({
+      orderBy: {
+        createdAt: "desc"
+      },
+      where: {
+        action: "AGENT_OUTPUT_CREATED",
+        entityId: executionId,
+        entityType: "agent_execution",
+        tenantId
+      }
+    });
+    const outputIds = links
+      .map((link) => {
+        if (!link.diff || typeof link.diff !== "object") {
+          return null;
+        }
+
+        const outputId = (link.diff as { outputId?: unknown }).outputId;
+        return typeof outputId === "string" ? outputId : null;
+      })
+      .filter((value): value is string => value !== null);
+
+    if (outputIds.length === 0) {
+      return [];
+    }
+
+    const outputs = await prisma.outputArtifact.findMany({
+      orderBy: {
+        createdAt: "desc"
+      },
+      where: {
+        id: {
+          in: outputIds
+        },
+        tenantId
+      }
+    });
+
+    return outputs.map((record) => toOutputRecord(record));
+  }
+
   async getById(outputId: string, tenantId: string): Promise<OutputRecord | null> {
     const record = await prisma.outputArtifact.findFirst({
       where: {

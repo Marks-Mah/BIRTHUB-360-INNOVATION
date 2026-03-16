@@ -27,12 +27,15 @@ export function createOutputRouter(): Router {
         });
       }
       const requestedType = readFirstString(request.query.type);
+      const executionId = readFirstString(request.query.executionId);
       const type =
         requestedType === "executive-report" || requestedType === "technical-log"
           ? requestedType
           : undefined;
 
-      const outputs = await outputService.listByTenant(tenantId, type);
+      const outputs = executionId
+        ? await outputService.listByExecution(tenantId, executionId)
+        : await outputService.listByTenant(tenantId, type);
 
       response.status(200).json({
         outputs,

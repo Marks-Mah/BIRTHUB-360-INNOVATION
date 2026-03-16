@@ -19,7 +19,7 @@ import {
   type WorkflowTriggerJobPayload,
   workflowQueueNames
 } from "./engine/runner.js";
-import { PlanExecutor } from "./executors/planExecutor.js";
+import { executeManifestAgentRuntime } from "./agents/runtime.js";
 import { syncOrganizationToHubspot } from "./integrations/hubspot.js";
 import {
   emailQueueName,
@@ -122,6 +122,7 @@ export interface WorkerRuntime {
 const agentExecutionJobSchema = z
   .object({
     agentId: z.string().min(1),
+    catalogAgentId: z.string().min(1).optional(),
     executionId: z.string().min(1),
     input: z.record(z.string(), z.unknown()),
     organizationId: z.string().min(1).optional(),
@@ -316,7 +317,6 @@ export function createBirthHubWorker(): WorkerRuntime {
     maxRetriesPerRequest: null
   });
   const bullConnection = connection as never;
-  const executor = new PlanExecutor({ redis: connection });
   const workflowExecutionQueue = new Queue<WorkflowExecutionJobPayload>(
     workflowQueueNames.execution,
     {
@@ -373,17 +373,57 @@ export function createBirthHubWorker(): WorkerRuntime {
     httpRequestRateLimiter: dynamicRateLimiter,
     agentExecutor: {
       execute: async ({ agentId, contextSummary, input }) => {
-        const result = await executor.execute({
+        const tenantId = (input.tenantId as string | undefined) ?? "default-tenant";
+        const organization = await resolveOrganizationReference(tenantId);
+        const executionId = `workflow-agent:${Date.now()}:${agentId}`;
+
+        await persistExecutionStarted({
           agentId,
-          executionId: `workflow-agent:${Date.now()}:${agentId}`,
-          input: {
+          executionId,
+          inputPayload: {
             ...input,
             workflowContextSummary: contextSummary
           },
-          tenantId: (input.tenantId as string | undefined) ?? "default-tenant"
+          organizationId: organization?.id ?? null,
+          source: ExecutionSource.WORKFLOW,
+          tenantId,
+          userId: null
         });
 
-        return result;
+        try {
+          const runtimeResult = await executeManifestAgentRuntime({
+            agentId,
+            catalogAgentId: agentId,
+            contextSummary,
+            executionId,
+            input: {
+              ...input,
+              workflowContextSummary: contextSummary
+            },
+            organizationId: organization?.id ?? null,
+            redis: connection,
+            source: "WORKFLOW",
+            tenantId,
+            userId: null
+          });
+
+          await persistExecutionFinished({
+            executionId,
+            metadata: runtimeResult.metadata,
+            output: runtimeResult.output,
+            outputHash: runtimeResult.outputHash,
+            status: "SUCCESS"
+          });
+
+          return runtimeResult.output;
+        } catch (error) {
+          await persistExecutionFinished({
+            errorMessage: error instanceof Error ? error.message : "Workflow agent execution failed",
+            executionId,
+            status: "FAILED"
+          });
+          throw error;
+        }
       }
     },
     notificationDispatcher: {
@@ -465,6 +505,7 @@ export function createBirthHubWorker(): WorkerRuntime {
         return {
           agentId: payload.type,
           approvalRequired: payload.approvalRequired,
+          catalogAgentId: null,
           executionId: `${payload.requestId}:${jobId}`,
           executionMode: payload.executionMode,
           input: payload.payload,
@@ -485,6 +526,7 @@ export function createBirthHubWorker(): WorkerRuntime {
       return {
         ...payload,
         approvalRequired: false,
+        catalogAgentId: payload.catalogAgentId ?? null,
         executionMode: "LIVE" as const,
         organizationId: organization?.id ?? payload.organizationId ?? null,
         requestId: payload.executionId,
@@ -604,23 +646,24 @@ export function createBirthHubWorker(): WorkerRuntime {
             };
           }
 
-          const executionResult = await executor.execute({
+          const runtimeResult = await executeManifestAgentRuntime({
             agentId: executionPayload.agentId,
+            catalogAgentId: executionPayload.catalogAgentId,
             executionId: executionPayload.executionId,
             input: executionPayload.input,
+            organizationId: executionPayload.organizationId,
+            redis: connection,
+            source: "MANUAL",
             tenantId: executionPayload.tenantId,
-            ...(executionPayload.toolCalls ? { toolCalls: executionPayload.toolCalls } : {})
+            userId: executionPayload.userId ?? null
           });
-          const outputHash = hashPayload(JSON.stringify(executionResult));
 
           await persistExecutionFinished({
-            executionId: executionResult.executionId,
-            metadata: {
-              steps: executionResult.steps.length
-            },
-            output: executionResult.output,
-            outputHash,
-            status: "SUCCESS"
+            executionId: executionPayload.executionId,
+            metadata: runtimeResult.metadata,
+            output: runtimeResult.output,
+            outputHash: runtimeResult.outputHash,
+            status: runtimeResult.status
           });
 
           await fanOutExecutionOutcome({
@@ -639,15 +682,15 @@ export function createBirthHubWorker(): WorkerRuntime {
             {
               executionId: executionPayload.executionId,
               jobId: job.id,
-              steps: executionResult.steps.length
+              steps: (runtimeResult.metadata.steps as number | undefined) ?? 0
             },
             "Worker finished job"
           );
 
           return {
             completedAt: new Date().toISOString(),
-            executionId: executionResult.executionId,
-            outputHash,
+            executionId: executionPayload.executionId,
+            outputHash: runtimeResult.outputHash,
             requestId: executionPayload.requestId
           };
         } catch (error) {

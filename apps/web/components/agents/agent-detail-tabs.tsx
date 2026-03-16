@@ -82,6 +82,9 @@ export function AgentDetailTabs({ agent }: Readonly<AgentDetailTabsProps>) {
             <p style={{ margin: 0 }}>
               Catalogo: <strong>{agent.catalogAgentId}</strong> · versao instalada: <strong>{agent.version}</strong>
             </p>
+            <p style={{ margin: 0 }}>
+              Runtime: <strong>{agent.runtimeProvider}</strong>
+            </p>
             <p style={{ margin: 0 }}>Tags: {agent.tags.join(", ")}</p>
             <p style={{ margin: 0 }}>Keywords: {agent.keywords.join(", ")}</p>
           </div>
@@ -157,6 +160,7 @@ export function AgentDetailTabs({ agent }: Readonly<AgentDetailTabsProps>) {
               <tr>
                 <th style={{ textAlign: "left" }}>ID</th>
                 <th style={{ textAlign: "left" }}>Status</th>
+                <th style={{ textAlign: "left" }}>Modo</th>
                 <th style={{ textAlign: "left" }}>Inicio</th>
                 <th style={{ textAlign: "left" }}>Duracao</th>
               </tr>
@@ -166,6 +170,7 @@ export function AgentDetailTabs({ agent }: Readonly<AgentDetailTabsProps>) {
                 <tr key={execution.id}>
                   <td style={{ borderTop: "1px solid var(--border)", padding: "0.45rem 0" }}>{execution.id}</td>
                   <td style={{ borderTop: "1px solid var(--border)", padding: "0.45rem 0" }}>{execution.status}</td>
+                  <td style={{ borderTop: "1px solid var(--border)", padding: "0.45rem 0" }}>{execution.mode}</td>
                   <td style={{ borderTop: "1px solid var(--border)", padding: "0.45rem 0" }}>
                     {new Date(execution.startedAt).toLocaleString("pt-BR")}
                   </td>

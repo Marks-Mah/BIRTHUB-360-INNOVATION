@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { AgentMetricsService } from "../src/modules/agents/metrics.service.js";
 
-void test("AgentMetricsService aggregates latency and fail rate", () => {
+void test("AgentMetricsService aggregates latency and fail rate", async () => {
   const service = new AgentMetricsService();
 
   service.recordRun({
@@ -21,7 +21,7 @@ void test("AgentMetricsService aggregates latency and fail rate", () => {
     toolCost: 0.02
   });
 
-  const snapshot = service.getMetrics({
+  const snapshot = await service.getMetrics({
     agentId: "agent-1",
     tenantId: "tenant-1",
     windowMinutes: 60
@@ -33,7 +33,7 @@ void test("AgentMetricsService aggregates latency and fail rate", () => {
   assert.equal(snapshot.tool_cost, 0.03);
 });
 
-void test("AgentMetricsService exports CSV rows", () => {
+void test("AgentMetricsService exports CSV rows", async () => {
   const service = new AgentMetricsService();
 
   service.recordRun({
@@ -44,7 +44,7 @@ void test("AgentMetricsService exports CSV rows", () => {
     toolCost: 0.05
   });
 
-  const csv = service.exportCsv("tenant-2", "agent-2");
+  const csv = await service.exportCsv("tenant-2", "agent-2");
   assert.match(csv, /day,agent_id,success,failed,total_cost/);
   assert.match(csv, /agent-2/);
 });

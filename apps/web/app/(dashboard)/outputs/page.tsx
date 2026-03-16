@@ -2,6 +2,7 @@ import { getWebConfig } from "@birthub/config";
 import Link from "next/link";
 
 import { FeedbackWidget } from "../../../components/agents/FeedbackWidget";
+import { OutputApprovalButton } from "../../../components/outputs/OutputApprovalButton";
 import { fetchOutputDetail, fetchOutputs } from "../../../lib/marketplace-api";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -25,7 +26,10 @@ export default async function OutputsPage({
   const outputId = readParam(resolvedParams.outputId);
   const config = getWebConfig();
 
-  const data = await fetchOutputs(typeFilter || undefined).catch(() => ({ outputs: [] }));
+  const data = await fetchOutputs({
+    ...(executionId ? { executionId } : {}),
+    ...(typeFilter ? { type: typeFilter } : {})
+  }).catch(() => ({ outputs: [] }));
   const selectedOutput = outputId ? await fetchOutputDetail(outputId).catch(() => null) : null;
 
   return (
@@ -35,6 +39,11 @@ export default async function OutputsPage({
         <p style={{ color: "var(--muted)", margin: 0 }}>
           Lista, filtro, integridade por hash SHA256 e exportacao de saidas criticas.
         </p>
+        {executionId ? (
+          <p style={{ color: "var(--muted)", margin: 0 }}>
+            Filtrando automaticamente pelos outputs ligados a execucao <code>{executionId}</code>.
+          </p>
+        ) : null}
       </header>
 
       {executionId ? <FeedbackWidget executionId={executionId} /> : null}
@@ -72,12 +81,16 @@ export default async function OutputsPage({
                     <code>{output.outputHash.slice(0, 16)}...</code>
                   </td>
                   <td style={{ borderBottom: "1px solid var(--border)", padding: "0.5rem" }}>
-                    <Link href={`/outputs?type=${encodeURIComponent(typeFilter)}&outputId=${encodeURIComponent(output.id)}`}>
+                    <Link
+                      href={`/outputs?type=${encodeURIComponent(typeFilter)}${executionId ? `&executionId=${encodeURIComponent(executionId)}` : ""}&outputId=${encodeURIComponent(output.id)}`}
+                    >
                       Detalhes
                     </Link>{" "}
                     <a href={`${config.NEXT_PUBLIC_API_URL}/api/v1/outputs/${output.id}/export`}>
                       Exportar PDF/MD
                     </a>
+                    {" "}
+                    <OutputApprovalButton outputId={output.id} status={output.status} />
                   </td>
                 </tr>
               ))
@@ -116,11 +129,21 @@ export default async function OutputsPage({
               <pre style={{ whiteSpace: "pre-wrap" }}>{selectedOutput.integrity.recalculatedHash}</pre>
             </div>
           </div>
-          <div>
-            <strong>Conteudo real</strong>
-            <pre
-              style={{
-                background: "#f8f6ef",
+            <div>
+              <strong>Conteudo real</strong>
+              <p style={{ margin: "0.35rem 0" }}>
+                Status: <strong>{selectedOutput.output.status}</strong>
+                {selectedOutput.output.approvedAt ? (
+                  <> · aprovado em {new Date(selectedOutput.output.approvedAt).toLocaleString("pt-BR")}</>
+                ) : null}
+              </p>
+              <OutputApprovalButton
+                outputId={selectedOutput.output.id}
+                status={selectedOutput.output.status}
+              />
+              <pre
+                style={{
+                  background: "#f8f6ef",
                 borderRadius: 12,
                 marginBottom: 0,
                 overflowX: "auto",

@@ -61,6 +61,21 @@ export interface PlanBuilder {
 }
 
 export interface PlanExecutorOptions {
+  hooks?: {
+    onExecutionCompleted?: (result: PlanExecutionResult) => Promise<void> | void;
+    onPlanBuilt?: (
+      toolCalls: PlannedToolCall[],
+      request: AgentExecutionRequest
+    ) => Promise<void> | void;
+    onStepCompleted?: (
+      step: PlanExecutionStep,
+      context: {
+        index: number;
+        request: AgentExecutionRequest;
+        total: number;
+      }
+    ) => Promise<void> | void;
+  };
   redis: Redis;
   tools?: Record<string, BaseTool<unknown, unknown>>;
   planner?: PlanBuilder;
@@ -138,12 +153,14 @@ export class PlanExecutor {
   private readonly redis: Redis;
   private readonly sensitiveFields: string[];
   private readonly tools: Record<string, BaseTool<unknown, unknown>>;
+  private readonly hooks: NonNullable<PlanExecutorOptions["hooks"]>;
 
   constructor(options: PlanExecutorOptions) {
     this.redis = options.redis;
     this.tools = options.tools ?? createDefaultTools();
     this.planner = options.planner ?? new MockPlanBuilder();
     this.sensitiveFields = options.sensitiveFields ?? ["cpf", "email", "credit_card"];
+    this.hooks = options.hooks ?? {};
   }
 
   private resultKey(executionId: string): string {
@@ -186,6 +203,7 @@ export class PlanExecutor {
 
     try {
       const toolCalls = request.toolCalls ?? (await this.planner.build(request));
+      await this.hooks.onPlanBuilt?.(toolCalls, request);
       const steps: PlanExecutionStep[] = [];
       let recursiveContext: Record<string, unknown> = {
         ...request.input
@@ -245,6 +263,11 @@ export class PlanExecutor {
           startedAt
         };
         steps.push(step);
+        await this.hooks.onStepCompleted?.(step, {
+          index: index + 1,
+          request,
+          total: toolCalls.length
+        });
 
         recursiveContext = {
           ...recursiveContext,
@@ -266,6 +289,7 @@ export class PlanExecutor {
       };
 
       await this.redis.set(this.resultKey(request.executionId), JSON.stringify(result), "EX", EXEC_RESULT_TTL_SECONDS);
+      await this.hooks.onExecutionCompleted?.(result);
       return result;
     } finally {
       await this.redis.del(this.lockKey(request.executionId));

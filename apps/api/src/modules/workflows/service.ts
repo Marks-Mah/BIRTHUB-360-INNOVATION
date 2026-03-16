@@ -181,6 +181,16 @@ export async function getWorkflowById(
   return prisma.workflow.findFirst({
     include: {
       executions: {
+        include: {
+          stepResults: {
+            include: {
+              step: true
+            },
+            orderBy: {
+              createdAt: "asc"
+            }
+          }
+        },
         orderBy: {
           startedAt: "desc"
         },

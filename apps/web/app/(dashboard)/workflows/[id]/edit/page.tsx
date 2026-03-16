@@ -2,17 +2,18 @@
 
 import "reactflow/dist/style.css";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState, useTransition } from "react";
 
-import { Play, Shuffle, Zap } from "lucide-react";
+import { getWebConfig } from "@birthub/config";
+import { Play, Save, Shuffle, Zap } from "lucide-react";
 import { useForm } from "react-hook-form";
 import ReactFlow, {
-  addEdge,
   Background,
   Controls,
   Handle,
   MiniMap,
   Position,
+  addEdge,
   useEdgesState,
   useNodesState,
   type Edge,
@@ -20,7 +21,11 @@ import ReactFlow, {
   type NodeProps
 } from "reactflow";
 
-import { stepSchema, validateDag } from "@birthub/workflows-core";
+import {
+  stepSchema,
+  validateDag,
+  type WorkflowCanvas
+} from "@birthub/workflows-core";
 
 type BuilderNodeData = {
   category: "action" | "condition" | "trigger";
@@ -36,9 +41,49 @@ type BuilderNodeData = {
     | "TRANSFORMER"
     | "AI_TEXT_EXTRACT"
     | "AGENT_EXECUTE"
-    | "CODE";
-  status: "idle" | "published";
+    | "CODE"
+    | "TRIGGER_CRON"
+    | "TRIGGER_EVENT";
+  status: "draft" | "published";
 };
+
+type WorkflowResponse = {
+  workflow: {
+    definition: WorkflowCanvas | null;
+    name: string;
+    status: "ARCHIVED" | "DRAFT" | "PUBLISHED";
+  };
+};
+
+type SidebarForm = {
+  configJson: string;
+  label: string;
+};
+
+const FALLBACK_CANVAS: WorkflowCanvas = {
+  steps: [
+    {
+      config: { method: "POST", path: "/webhooks/trigger/default" },
+      isTrigger: true,
+      key: "trigger_1",
+      name: "Webhook Trigger",
+      type: "TRIGGER_WEBHOOK"
+    }
+  ],
+  transitions: []
+};
+
+function stepTypeToCategory(stepType: BuilderNodeData["stepType"]): BuilderNodeData["category"] {
+  if (stepType.startsWith("TRIGGER")) {
+    return "trigger";
+  }
+
+  if (stepType === "CONDITION") {
+    return "condition";
+  }
+
+  return "action";
+}
 
 function handleStyle(color: string) {
   return {
@@ -87,182 +132,7 @@ const nodeTypes = {
   trigger: WorkflowNode
 } as const;
 
-const initialNodes: Node<BuilderNodeData>[] = [
-  {
-    data: {
-      category: "trigger",
-      config: { method: "POST", path: "/webhooks/trigger/onboarding" },
-      label: "Webhook Trigger",
-      status: "published",
-      stepType: "TRIGGER_WEBHOOK"
-    },
-    id: "trigger_1",
-    position: { x: 100, y: 120 },
-    type: "trigger"
-  },
-  {
-    data: {
-      category: "action",
-      config: {
-        map: {
-          leadEmail: "{{ trigger.output.email }}",
-          tenant: "{{ tenantId }}"
-        },
-        sourcePath: "trigger.output.items"
-      },
-      label: "Normalize Payload",
-      status: "published",
-      stepType: "TRANSFORMER"
-    },
-    id: "action_transform",
-    position: { x: 320, y: 120 },
-    type: "action"
-  },
-  {
-    data: {
-      category: "action",
-      config: { method: "POST", url: "https://api.partner.birthhub.test/contacts" },
-      label: "Create Contact",
-      status: "published",
-      stepType: "HTTP_REQUEST"
-    },
-    id: "action_http",
-    position: { x: 560, y: 120 },
-    type: "action"
-  },
-  {
-    data: {
-      category: "condition",
-      config: { operator: ">", path: "steps.action_http.output.score", value: 70 },
-      label: "Lead Score > 70?",
-      status: "published",
-      stepType: "CONDITION"
-    },
-    id: "condition_1",
-    position: { x: 800, y: 120 },
-    type: "condition"
-  },
-  {
-    data: {
-      category: "action",
-      config: { channel: "email", message: "Lead quente detectado!", to: "ops@birthub.local" },
-      label: "Notify Ops",
-      status: "published",
-      stepType: "SEND_NOTIFICATION"
-    },
-    id: "action_notify",
-    position: { x: 1040, y: 30 },
-    type: "action"
-  },
-  {
-    data: {
-      category: "action",
-      config: {
-        fields: ["company", "priority"],
-        text: "company: {{ trigger.output.company }}\npriority: enterprise"
-      },
-      label: "Extract CRM Fields",
-      status: "published",
-      stepType: "AI_TEXT_EXTRACT"
-    },
-    id: "action_extract",
-    position: { x: 1280, y: 30 },
-    type: "action"
-  },
-  {
-    data: {
-      category: "action",
-      config: {
-        agentId: "ceo-pack",
-        input: {
-          brief: "{{ trigger.output.company }}"
-        },
-        onError: "stop"
-      },
-      label: "CEO Review",
-      status: "published",
-      stepType: "AGENT_EXECUTE"
-    },
-    id: "action_agent",
-    position: { x: 1520, y: 30 },
-    type: "action"
-  },
-  {
-    data: {
-      category: "action",
-      config: {
-        source: "return { approved: true, owner: 'growth' };",
-        timeout_ms: 250
-      },
-      label: "Code Gate",
-      status: "published",
-      stepType: "CODE"
-    },
-    id: "action_code",
-    position: { x: 1760, y: 30 },
-    type: "action"
-  },
-  {
-    data: {
-      category: "action",
-      config: { duration_ms: 3600000 },
-      label: "Delay 1h",
-      status: "published",
-      stepType: "DELAY"
-    },
-    id: "action_delay",
-    position: { x: 1040, y: 220 },
-    type: "action"
-  },
-  {
-    data: {
-      category: "action",
-      config: {
-        source: "return { slaBreached: false, retryAt: '2026-03-13T16:00:00Z' };",
-        timeout_ms: 250
-      },
-      label: "Fallback Code",
-      status: "published",
-      stepType: "CODE"
-    },
-    id: "action_retry_plan",
-    position: { x: 1280, y: 220 },
-    type: "action"
-  },
-  {
-    data: {
-      category: "action",
-      config: { channel: "inapp", message: "Fluxo finalizado", to: "owner@birthhub.local" },
-      label: "Close Loop",
-      status: "published",
-      stepType: "SEND_NOTIFICATION"
-    },
-    id: "action_close",
-    position: { x: 2000, y: 120 },
-    type: "action"
-  }
-];
-
-const initialEdges: Edge[] = [
-  { id: "e1", source: "trigger_1", target: "action_transform", type: "smoothstep" },
-  { id: "e2", source: "action_transform", target: "action_http", type: "smoothstep" },
-  { id: "e3", source: "action_http", target: "condition_1", type: "smoothstep" },
-  { id: "e4", label: "IF_TRUE", source: "condition_1", target: "action_notify", type: "smoothstep" },
-  { id: "e5", source: "action_notify", target: "action_extract", type: "smoothstep" },
-  { id: "e6", source: "action_extract", target: "action_agent", type: "smoothstep" },
-  { id: "e7", source: "action_agent", target: "action_code", type: "smoothstep" },
-  { id: "e8", source: "action_code", target: "action_close", type: "smoothstep" },
-  { id: "e9", label: "IF_FALSE", source: "condition_1", target: "action_delay", type: "smoothstep" },
-  { id: "e10", source: "action_delay", target: "action_retry_plan", type: "smoothstep" },
-  { id: "e11", source: "action_retry_plan", target: "action_close", type: "smoothstep" }
-];
-
-type SidebarForm = {
-  configJson: string;
-  label: string;
-};
-
-function autoLayout(nodes: Node<BuilderNodeData>[], _edges: Edge[]): Node<BuilderNodeData>[] {
+function autoLayout(nodes: Node<BuilderNodeData>[]): Node<BuilderNodeData>[] {
   return nodes.map((node, index) => {
     const column = index % 4;
     const row = Math.floor(index / 4);
@@ -276,11 +146,86 @@ function autoLayout(nodes: Node<BuilderNodeData>[], _edges: Edge[]): Node<Builde
   });
 }
 
+function canvasToFlow(
+  canvas: WorkflowCanvas,
+  workflowStatus: "ARCHIVED" | "DRAFT" | "PUBLISHED"
+): {
+  edges: Edge[];
+  nodes: Node<BuilderNodeData>[];
+} {
+  const nodes = canvas.steps.map((step, index) => ({
+    data: {
+      category: stepTypeToCategory(step.type),
+      config: step.config,
+      label: step.name,
+      status: workflowStatus === "PUBLISHED" ? ("published" as const) : ("draft" as const),
+      stepType: step.type
+    },
+    id: step.key,
+    position: {
+      x: (index % 4) * 280,
+      y: Math.floor(index / 4) * 180
+    },
+    type: stepTypeToCategory(step.type)
+  }));
+  const edges = canvas.transitions.map((transition, index) => ({
+    id: `edge_${index + 1}`,
+    label: transition.route === "ALWAYS" ? undefined : transition.route,
+    source: transition.source,
+    target: transition.target,
+    type: "smoothstep"
+  }));
+
+  return {
+    edges,
+    nodes
+  };
+}
+
+type WorkflowRoute = "ALWAYS" | "FALLBACK" | "IF_FALSE" | "IF_TRUE" | "ON_FAILURE" | "ON_SUCCESS";
+
+function normalizeEdgeRoute(label: Edge["label"]): WorkflowRoute {
+  if (typeof label !== "string") {
+    return "ALWAYS";
+  }
+
+  if (label === "IF_TRUE" || label === "IF_FALSE" || label === "ON_FAILURE" || label === "ON_SUCCESS" || label === "FALLBACK") {
+    return label;
+  }
+
+  return "ALWAYS";
+}
+
+function flowToCanvas(nodes: Node<BuilderNodeData>[], edges: Edge[]): WorkflowCanvas {
+  return {
+    steps: nodes.map((node) => ({
+      config: node.data.config,
+      ...(node.data.stepType.startsWith("TRIGGER") ? { isTrigger: true } : {}),
+      key: node.id,
+      name: node.data.label,
+      type: node.data.stepType
+    })),
+    transitions: edges.map((edge) => ({
+      route: normalizeEdgeRoute(edge.label),
+      source: edge.source,
+      target: edge.target
+    }))
+  } as WorkflowCanvas;
+}
+
+const apiBaseUrl = getWebConfig().NEXT_PUBLIC_API_URL;
+
 export default function WorkflowEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialNodes[0]?.id ?? null);
+  const [workflowName, setWorkflowName] = useState(`Workflow ${id}`);
+  const [workflowStatus, setWorkflowStatus] = useState<"ARCHIVED" | "DRAFT" | "PUBLISHED">("DRAFT");
+  const [nodes, setNodes, onNodesChange] = useNodesState<BuilderNodeData>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
   const selectedNode = useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) ?? null,
     [nodes, selectedNodeId]
@@ -292,6 +237,46 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
       label: selectedNode?.data.label ?? ""
     }
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWorkflow(): Promise<void> {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/v1/workflows/${encodeURIComponent(id)}`, {
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          throw new Error(`Falha ao carregar workflow (${response.status}).`);
+        }
+
+        const payload = (await response.json()) as WorkflowResponse;
+        const canvas = payload.workflow.definition ?? FALLBACK_CANVAS;
+        const flow = canvasToFlow(canvas, payload.workflow.status);
+
+        if (cancelled) {
+          return;
+        }
+
+        setWorkflowName(payload.workflow.name);
+        setWorkflowStatus(payload.workflow.status);
+        setNodes(autoLayout(flow.nodes));
+        setEdges(flow.edges);
+        setSelectedNodeId(flow.nodes[0]?.id ?? null);
+      } catch (error) {
+        if (!cancelled) {
+          setLoadingError(error instanceof Error ? error.message : "Falha ao carregar workflow.");
+        }
+      }
+    }
+
+    void loadWorkflow();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, setEdges, setNodes]);
 
   useEffect(() => {
     form.reset({
@@ -314,14 +299,14 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
 
       if (!parsed.success) {
         nodeErrors.add(node.id);
-        messages.push(`${node.data.label}: configuração inválida para ${node.data.stepType}.`);
+        messages.push(`${node.data.label}: configuracao invalida para ${node.data.stepType}.`);
       }
     }
 
     try {
       validateDag({
         edges: edges.map((edge) => ({
-          route: edge.label === "IF_TRUE" ? "IF_TRUE" : edge.label === "IF_FALSE" ? "IF_FALSE" : "ALWAYS",
+          route: normalizeEdgeRoute(edge.label),
           source: edge.source,
           target: edge.target
         })),
@@ -335,22 +320,14 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
       messages.push(error instanceof Error ? error.message : "Erro de DAG.");
     }
 
-    for (const node of nodes) {
-      const attached = edges.some((edge) => edge.source === node.id || edge.target === node.id);
-      if (!attached && nodes.length > 1) {
-        nodeErrors.add(node.id);
-        messages.push(`${node.data.label}: nó sem aresta conectada.`);
-      }
-    }
-
     return {
       errors: messages,
       invalidNodeIds: Array.from(nodeErrors).sort()
     };
   }, [edges, nodes]);
+
   const decoratedNodes = useMemo(() => {
     const invalidNodeIds = new Set(validation.invalidNodeIds);
-
     return nodes.map((node) => ({
       ...node,
       data: {
@@ -359,6 +336,29 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
       }
     }));
   }, [nodes, validation.invalidNodeIds]);
+
+  async function persistWorkflow(status: "DRAFT" | "PUBLISHED"): Promise<void> {
+    const response = await fetch(`${apiBaseUrl}/api/v1/workflows/${encodeURIComponent(id)}`, {
+      body: JSON.stringify({
+        canvas: flowToCanvas(nodes, edges),
+        name: workflowName,
+        status
+      }),
+      credentials: "include",
+      headers: {
+        "content-type": "application/json"
+      },
+      method: "PUT"
+    });
+
+    if (!response.ok) {
+      throw new Error(`Falha ao salvar workflow (${response.status}).`);
+    }
+
+    const payload = (await response.json()) as WorkflowResponse;
+    setWorkflowStatus(payload.workflow.status);
+    setSaveMessage(status === "PUBLISHED" ? "Workflow publicado." : "Workflow salvo em draft.");
+  }
 
   return (
     <section
@@ -388,26 +388,69 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
             padding: "0.7rem 0.9rem"
           }}
         >
-          <div>
-            <div style={{ fontWeight: 700 }}>Workflow Canvas - {id}</div>
+          <div style={{ display: "grid", gap: 4 }}>
+            <input
+              onChange={(event) => setWorkflowName(event.target.value)}
+              style={{
+                background: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 8,
+                color: "#fff",
+                fontSize: 16,
+                fontWeight: 700,
+                padding: "0.4rem 0.55rem"
+              }}
+              value={workflowName}
+            />
             <div style={{ fontSize: 12, opacity: 0.85 }}>
-              Builder visual com validação em tempo real de DAG e schema.
+              Status atual: {workflowStatus} · editor persistido no backend real.
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button
-              onClick={() => setNodes((currentNodes) => autoLayout(currentNodes, edges))}
+              onClick={() => setNodes((currentNodes) => autoLayout(currentNodes))}
               style={{ alignItems: "center", display: "inline-flex", gap: 6 }}
               type="button"
             >
               <Shuffle size={14} /> Organizar Canvas
             </button>
             <button
-              disabled={validation.errors.length > 0}
+              disabled={isPending || validation.errors.length > 0}
+              onClick={() => {
+                setSaveMessage(null);
+                startTransition(() => {
+                  void (async () => {
+                    try {
+                      await persistWorkflow("DRAFT");
+                    } catch (error) {
+                      setLoadingError(error instanceof Error ? error.message : "Falha ao salvar.");
+                    }
+                  })();
+                });
+              }}
               style={{ alignItems: "center", display: "inline-flex", gap: 6 }}
               type="button"
             >
-              <Play size={14} /> Publish
+              <Save size={14} /> Salvar
+            </button>
+            <button
+              disabled={isPending || validation.errors.length > 0}
+              onClick={() => {
+                setSaveMessage(null);
+                startTransition(() => {
+                  void (async () => {
+                    try {
+                      await persistWorkflow("PUBLISHED");
+                    } catch (error) {
+                      setLoadingError(error instanceof Error ? error.message : "Falha ao publicar.");
+                    }
+                  })();
+                });
+              }}
+              style={{ alignItems: "center", display: "inline-flex", gap: 6 }}
+              type="button"
+            >
+              <Play size={14} /> Publicar
             </button>
           </div>
         </header>
@@ -442,7 +485,7 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
       >
         <h3 style={{ margin: 0 }}>Node Sidebar</h3>
         <div style={{ color: "#455a64", fontSize: 13 }}>
-          Selecione um node para editar o JSON schema. Erros são destacados em vermelho no canvas.
+          Esta tela agora carrega e salva o canvas real do workflow. Edite um node e publique sem depender de `initialNodes`.
         </div>
 
         <form
@@ -469,7 +512,7 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
               );
             } catch {
               form.setError("configJson", {
-                message: "JSON inválido."
+                message: "JSON invalido."
               });
             }
           })}
@@ -488,9 +531,7 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
               style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
             />
             {form.formState.errors.configJson ? (
-              <small style={{ color: "#c1121f" }}>
-                {form.formState.errors.configJson.message}
-              </small>
+              <small style={{ color: "#c1121f" }}>{form.formState.errors.configJson.message}</small>
             ) : null}
           </label>
 
@@ -498,6 +539,36 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
             <Zap size={14} /> Aplicar no Node
           </button>
         </form>
+
+        {loadingError ? (
+          <div
+            style={{
+              background: "#fff5f5",
+              border: "1px solid #ffb3c1",
+              borderRadius: 10,
+              color: "#9d0208",
+              fontSize: 12,
+              padding: "0.65rem"
+            }}
+          >
+            {loadingError}
+          </div>
+        ) : null}
+
+        {saveMessage ? (
+          <div
+            style={{
+              background: "#edfdf4",
+              border: "1px solid #95d5b2",
+              borderRadius: 10,
+              color: "#1b4332",
+              fontSize: 12,
+              padding: "0.65rem"
+            }}
+          >
+            {saveMessage}
+          </div>
+        ) : null}
 
         {validation.errors.length > 0 ? (
           <div
@@ -527,7 +598,7 @@ export default function WorkflowEditPage({ params }: { params: Promise<{ id: str
               padding: "0.65rem"
             }}
           >
-            Canvas válido. Pronto para salvar/publicar.
+            Canvas valido. Pronto para salvar/publicar.
           </div>
         )}
       </aside>

@@ -10,9 +10,36 @@ import {
 import { Role } from "@birthub/database";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
 import { requireStringValue } from "../../lib/request-values.js";
+import { agentMetricsService } from "./metrics.service.js";
 import { installedAgentsService } from "./service.js";
 
 const runPayloadSchema = z.record(z.string(), z.unknown()).catch({});
+const policyUpsertSchema = z
+  .object({
+    actions: z.array(z.string().min(1)).min(1),
+    effect: z.enum(["allow", "deny"]),
+    enabled: z.boolean().optional(),
+    name: z.string().min(1),
+    policyId: z.string().min(1).optional(),
+    reason: z.string().min(1).optional()
+  })
+  .strict();
+const policyPatchSchema = policyUpsertSchema
+  .partial()
+  .extend({
+    actions: z.array(z.string().min(1)).min(1).optional()
+  })
+  .strict();
+const policyTemplateSchema = z
+  .object({
+    replaceExisting: z.boolean().optional(),
+    template: z.enum(["admin", "readonly", "standard"])
+  })
+  .strict();
+
+async function wait(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function resolveTenantReference(input: {
   contextTenantId?: string | null;
@@ -101,10 +128,174 @@ export function createInstalledAgentsRouter(): Router {
         userId
       });
 
-      response.status(201).json({
+      response.status(202).json({
         catalogAgentId: result.catalogAgentId,
         executionId: result.executionId,
-        learningRecordId: result.learningRecordId,
+        mode: result.mode,
+        requestId: request.context.requestId
+      });
+    })
+  );
+
+  router.get(
+    "/installed/:installedAgentId/policies",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
+    asyncHandler(async (request, response) => {
+      const tenantReference = resolveTenantReference({
+        contextTenantId: request.context.tenantId
+      });
+      const installedAgentId = requireStringValue(
+        request.params.installedAgentId,
+        "installedAgentId is required."
+      );
+      const policies = await installedAgentsService.listInstalledAgentPolicies({
+        installedAgentId,
+        tenantReference
+      });
+
+      response.status(200).json({
+        policies,
+        requestId: request.context.requestId
+      });
+    })
+  );
+
+  router.post(
+    "/installed/:installedAgentId/policies",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
+    asyncHandler(async (request, response) => {
+      const tenantReference = resolveTenantReference({
+        contextTenantId: request.context.tenantId
+      });
+      const userId = requireStringValue(
+        request.context.userId,
+        "Authenticated user context is required to manage policies."
+      );
+      const installedAgentId = requireStringValue(
+        request.params.installedAgentId,
+        "installedAgentId is required."
+      );
+      const payload = policyUpsertSchema.parse(request.body ?? {});
+      const policy = await installedAgentsService.upsertInstalledAgentPolicy({
+        actions: payload.actions,
+        effect: payload.effect,
+        ...(payload.enabled !== undefined ? { enabled: payload.enabled } : {}),
+        installedAgentId,
+        name: payload.name,
+        ...(payload.policyId ? { policyId: payload.policyId } : {}),
+        ...(payload.reason ? { reason: payload.reason } : {}),
+        tenantReference,
+        userId
+      });
+
+      response.status(201).json({
+        policy,
+        requestId: request.context.requestId
+      });
+    })
+  );
+
+  router.patch(
+    "/installed/:installedAgentId/policies/:policyId",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
+    asyncHandler(async (request, response) => {
+      const tenantReference = resolveTenantReference({
+        contextTenantId: request.context.tenantId
+      });
+      const userId = requireStringValue(
+        request.context.userId,
+        "Authenticated user context is required to manage policies."
+      );
+      const installedAgentId = requireStringValue(
+        request.params.installedAgentId,
+        "installedAgentId is required."
+      );
+      const policyId = requireStringValue(request.params.policyId, "policyId is required.");
+      const payload = policyPatchSchema.parse(request.body ?? {});
+      const policy = await installedAgentsService.patchInstalledAgentPolicy({
+        installedAgentId,
+        policyId,
+        ...(payload.actions !== undefined ? { actions: payload.actions } : {}),
+        ...(payload.effect !== undefined ? { effect: payload.effect } : {}),
+        ...(payload.enabled !== undefined ? { enabled: payload.enabled } : {}),
+        ...(payload.name !== undefined ? { name: payload.name } : {}),
+        ...(payload.reason !== undefined ? { reason: payload.reason } : {}),
+        tenantReference,
+        userId
+      });
+
+      response.status(200).json({
+        policy,
+        requestId: request.context.requestId
+      });
+    })
+  );
+
+  router.post(
+    "/installed/:installedAgentId/policies/templates",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
+    asyncHandler(async (request, response) => {
+      const tenantReference = resolveTenantReference({
+        contextTenantId: request.context.tenantId
+      });
+      const userId = requireStringValue(
+        request.context.userId,
+        "Authenticated user context is required to manage policies."
+      );
+      const installedAgentId = requireStringValue(
+        request.params.installedAgentId,
+        "installedAgentId is required."
+      );
+      const payload = policyTemplateSchema.parse(request.body ?? {});
+      const managedPolicies = await installedAgentsService.applyPolicyTemplate({
+        installedAgentId,
+        ...(payload.replaceExisting !== undefined ? { replaceExisting: payload.replaceExisting } : {}),
+        tenantReference,
+        template: payload.template,
+        userId
+      });
+
+      response.status(200).json({
+        managedPolicies,
+        requestId: request.context.requestId
+      });
+    })
+  );
+
+  router.get(
+    "/installed/:installedAgentId/metrics",
+    requireAuthenticatedSession,
+    RequireRole(Role.ADMIN),
+    RequireFeature("agents"),
+    asyncHandler(async (request, response) => {
+      const tenantReference = resolveTenantReference({
+        contextTenantId: request.context.tenantId
+      });
+      const installedAgentId = requireStringValue(
+        request.params.installedAgentId,
+        "installedAgentId is required."
+      );
+      await installedAgentsService.getInstalledAgent({
+        installedAgentId,
+        tenantReference
+      });
+      const windowMinutes = Number(request.query.windowMinutes ?? 60);
+      const metrics = await agentMetricsService.getMetrics({
+        agentId: installedAgentId,
+        tenantId: tenantReference,
+        windowMinutes: Number.isFinite(windowMinutes) ? windowMinutes : 60
+      });
+
+      response.status(200).json({
+        metrics,
         requestId: request.context.requestId
       });
     })
@@ -128,24 +319,59 @@ export function createInstalledAgentsRouter(): Router {
         request.params.installedAgentId,
         "installedAgentId is required."
       );
-      const replay = await installedAgentsService.getExecutionReplay({
-        executionId,
-        installedAgentId,
-        tenantReference
-      });
-
       response.setHeader("Cache-Control", "no-cache, no-transform");
       response.setHeader("Connection", "keep-alive");
       response.setHeader("Content-Type", "text/event-stream");
       response.flushHeaders?.();
 
-      replay.logs.forEach((message, index) => {
-        response.write(`event: log\n`);
-        response.write(`data: ${JSON.stringify({ index, message })}\n\n`);
+      let sentLogs = 0;
+      let replay = await installedAgentsService.getExecutionReplay({
+        executionId,
+        installedAgentId,
+        tenantReference
       });
 
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        replay.logs.slice(sentLogs).forEach((message, index) => {
+          response.write(`event: log\n`);
+          response.write(
+            `data: ${JSON.stringify({ index: sentLogs + index, message })}\n\n`
+          );
+        });
+        sentLogs = replay.logs.length;
+
+        if (replay.status !== "RUNNING") {
+          response.write(`event: done\n`);
+          response.write(
+            `data: ${JSON.stringify({
+              executionId: replay.executionId,
+              output: replay.output,
+              status: replay.status,
+              totalLogs: replay.logs.length
+            })}\n\n`
+          );
+          response.end();
+          return;
+        }
+
+        await wait(1000);
+        replay = await installedAgentsService.getExecutionReplay({
+          executionId,
+          installedAgentId,
+          tenantReference
+        });
+      }
+
       response.write(`event: done\n`);
-      response.write(`data: ${JSON.stringify({ executionId: replay.executionId, totalLogs: replay.logs.length })}\n\n`);
+      response.write(
+        `data: ${JSON.stringify({
+          executionId: replay.executionId,
+          output: replay.output,
+          status: replay.status,
+          timedOut: true,
+          totalLogs: replay.logs.length
+        })}\n\n`
+      );
       response.end();
     })
   );

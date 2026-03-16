@@ -140,20 +140,33 @@ export async function fetchBudgetEstimate(agentId: string) {
   );
 }
 
-export async function fetchOutputs(type?: string) {
+export async function fetchOutputs(input?: {
+  executionId?: string;
+  type?: string;
+}) {
   const config = getWebConfig();
-  const query = type ? `?type=${encodeURIComponent(type)}` : "";
+  const query = new URLSearchParams();
+
+  if (input?.type) {
+    query.set("type", input.type);
+  }
+
+  if (input?.executionId) {
+    query.set("executionId", input.executionId);
+  }
 
   return fetchJson<{
     outputs: Array<{
       agentId: string;
+      approvedAt?: string | null;
       createdAt: string;
       id: string;
       outputHash: string;
+      approvedByUserId?: string | null;
       status: string;
       type: string;
     }>;
-  }>(`${config.NEXT_PUBLIC_API_URL}/api/v1/outputs${query}`);
+  }>(`${config.NEXT_PUBLIC_API_URL}/api/v1/outputs${query.toString() ? `?${query.toString()}` : ""}`);
 }
 
 export async function fetchOutputDetail(outputId: string) {
@@ -166,6 +179,8 @@ export async function fetchOutputDetail(outputId: string) {
     };
     output: {
       agentId: string;
+      approvedAt: string | null;
+      approvedByUserId: string | null;
       content: string;
       createdAt: string;
       id: string;
@@ -174,4 +189,25 @@ export async function fetchOutputDetail(outputId: string) {
       type: string;
     };
   }>(`${config.NEXT_PUBLIC_API_URL}/api/v1/outputs/${encodeURIComponent(outputId)}`);
+}
+
+export async function approveOutput(outputId: string) {
+  const config = getWebConfig();
+  const response = await fetch(`${config.NEXT_PUBLIC_API_URL}/api/v1/outputs/${encodeURIComponent(outputId)}/approve`, {
+    credentials: "include",
+    method: "POST"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to approve ${outputId}: ${response.status}`);
+  }
+
+  return (await response.json()) as {
+    output: {
+      approvedAt: string | null;
+      approvedByUserId: string | null;
+      id: string;
+      status: string;
+    };
+  };
 }

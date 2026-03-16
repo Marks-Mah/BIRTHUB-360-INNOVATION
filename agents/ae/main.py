@@ -1,4 +1,6 @@
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
@@ -7,13 +9,14 @@ from agents.ae.schemas import AEInput, AEOutput
 from agents.shared.security import validate_internal_service_token
 from agents.shared.db_pool import init_pool
 
-app = FastAPI(title="AE Agent API", version="1.0")
-agent = AEAgent()
-
-@app.on_event("startup")
-async def startup_event() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     if os.getenv("DATABASE_URL"):
         await init_pool()
+    yield
+
+app = FastAPI(title="AE Agent API", version="1.0", lifespan=lifespan)
+agent = AEAgent()
 
 @app.get("/health")
 async def health_check():

@@ -1,4 +1,5 @@
 import { getWebConfig } from "@birthub/config";
+import { cookies } from "next/headers";
 
 export interface MarketplaceSearchResponse {
   facets: {
@@ -42,11 +43,11 @@ export interface MarketplaceSearchResponse {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
+  const cookieStore = typeof window === "undefined" ? await cookies() : null;
   const response = await fetch(url, {
     cache: "no-store",
-    headers: {
-      "x-tenant-id": "birthhub-alpha"
-    }
+    credentials: typeof window === "undefined" ? undefined : "include",
+    headers: cookieStore ? { cookie: cookieStore.toString() } : undefined
   });
 
   if (!response.ok) {

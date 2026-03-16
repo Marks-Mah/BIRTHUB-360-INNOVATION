@@ -11,8 +11,7 @@ type PackStatus = {
 
 function buildHeaders() {
   return {
-    "content-type": "application/json",
-    "x-tenant-id": window.localStorage.getItem("tenantId") ?? "birthhub-alpha"
+    "content-type": "application/json"
   };
 }
 
@@ -34,6 +33,7 @@ export default function PacksPage() {
 
   async function refresh(): Promise<void> {
     const response = await fetch("/api/v1/packs/status", {
+      credentials: "include",
       headers: buildHeaders()
     });
 
@@ -57,6 +57,7 @@ export default function PacksPage() {
       body: JSON.stringify({
         latestAvailableVersion: "2.0.0"
       }),
+      credentials: "include",
       headers: buildHeaders(),
       method: "POST"
     });
@@ -72,6 +73,7 @@ export default function PacksPage() {
 
     const response = await fetch("/api/v1/packs/uninstall", {
       body: JSON.stringify({ packId }),
+      credentials: "include",
       headers: buildHeaders(),
       method: "POST"
     });

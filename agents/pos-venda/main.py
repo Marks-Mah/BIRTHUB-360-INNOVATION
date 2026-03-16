@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from typing import Any, Dict
 
 from fastapi import FastAPI, Header
@@ -17,14 +18,15 @@ class AgentRequest(BaseModel):
     context: Dict[str, Any] = Field(default_factory=dict)
 
 
-app = FastAPI(title="birthub-pos-venda-agent")
-agent = PosVendaAgent()
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     if os.getenv("DATABASE_URL"):
         await init_pool()
+    yield
+
+
+app = FastAPI(title="birthub-pos-venda-agent", lifespan=lifespan)
+agent = PosVendaAgent()
 
 
 @app.get("/health")

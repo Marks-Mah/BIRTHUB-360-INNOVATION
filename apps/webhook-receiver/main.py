@@ -1,12 +1,11 @@
 import json
 import os
+from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request
 from redis.asyncio import Redis
 from svix.webhooks import Webhook, WebhookVerificationError
-
-app = FastAPI(title="birthub-webhook-receiver")
 
 API_GATEWAY_URL = os.getenv("API_GATEWAY_URL")
 INTERNAL_SERVICE_TOKEN = os.getenv("INTERNAL_SERVICE_TOKEN")
@@ -42,13 +41,17 @@ def _get_redis_client() -> Redis:
     return _redis_client
 
 
-@app.on_event("startup")
-async def startup() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     if _is_strict_runtime() and not INTERNAL_SERVICE_TOKEN:
         raise RuntimeError("INTERNAL_SERVICE_TOKEN is required in strict runtime")
     if _is_strict_runtime() and not os.getenv("SVIX_WEBHOOK_SECRET"):
         raise RuntimeError("SVIX_WEBHOOK_SECRET is required in strict runtime")
     await _get_redis_client().ping()
+    yield
+
+
+app = FastAPI(title="birthub-webhook-receiver", lifespan=lifespan)
 
 
 def _verify_svix_signature(

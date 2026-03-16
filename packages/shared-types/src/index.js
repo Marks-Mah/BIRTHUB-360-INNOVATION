@@ -1,0 +1,127 @@
+// Enums
+export var Plan;
+(function (Plan) {
+    Plan["STARTER"] = "STARTER";
+    Plan["PRO"] = "PRO";
+    Plan["ENTERPRISE"] = "ENTERPRISE";
+})(Plan || (Plan = {}));
+export var UserRole;
+(function (UserRole) {
+    UserRole["ADMIN"] = "ADMIN";
+    UserRole["CMO"] = "CMO";
+    UserRole["HEAD_MARKETING"] = "HEAD_MARKETING";
+    UserRole["SDR"] = "SDR";
+    UserRole["AE"] = "AE";
+    UserRole["CS_MANAGER"] = "CS_MANAGER";
+    UserRole["FINANCIAL"] = "FINANCIAL";
+    UserRole["LEGAL"] = "LEGAL";
+    UserRole["ANALYST"] = "ANALYST";
+    UserRole["VIEWER"] = "VIEWER";
+})(UserRole || (UserRole = {}));
+export var LeadStatus;
+(function (LeadStatus) {
+    LeadStatus["NEW"] = "NEW";
+    LeadStatus["ENRICHING"] = "ENRICHING";
+    LeadStatus["QUALIFIED"] = "QUALIFIED";
+    LeadStatus["DISQUALIFIED"] = "DISQUALIFIED";
+    LeadStatus["CONTACTED"] = "CONTACTED";
+    LeadStatus["MEETING_SCHEDULED"] = "MEETING_SCHEDULED";
+    LeadStatus["IN_NEGOTIATION"] = "IN_NEGOTIATION";
+    LeadStatus["CLOSED_WON"] = "CLOSED_WON";
+    LeadStatus["CLOSED_LOST"] = "CLOSED_LOST";
+    LeadStatus["NURTURING"] = "NURTURING";
+})(LeadStatus || (LeadStatus = {}));
+export var DealStage;
+(function (DealStage) {
+    DealStage["PROSPECTING"] = "PROSPECTING";
+    DealStage["QUALIFICATION"] = "QUALIFICATION";
+    DealStage["DEMO_SCHEDULED"] = "DEMO_SCHEDULED";
+    DealStage["DEMO_DONE"] = "DEMO_DONE";
+    DealStage["PROPOSAL_SENT"] = "PROPOSAL_SENT";
+    DealStage["NEGOTIATION"] = "NEGOTIATION";
+    DealStage["CONTRACT_REVIEW"] = "CONTRACT_REVIEW";
+    DealStage["CLOSED_WON"] = "CLOSED_WON";
+    DealStage["CLOSED_LOST"] = "CLOSED_LOST";
+})(DealStage || (DealStage = {}));
+export var ContractStatus;
+(function (ContractStatus) {
+    ContractStatus["DRAFT"] = "DRAFT";
+    ContractStatus["REVIEW"] = "REVIEW";
+    ContractStatus["PENDING_SIGNATURE"] = "PENDING_SIGNATURE";
+    ContractStatus["PARTIALLY_SIGNED"] = "PARTIALLY_SIGNED";
+    ContractStatus["SIGNED"] = "SIGNED";
+    ContractStatus["ACTIVE"] = "ACTIVE";
+    ContractStatus["EXPIRED"] = "EXPIRED";
+    ContractStatus["TERMINATED"] = "TERMINATED";
+})(ContractStatus || (ContractStatus = {}));
+export var InvoiceStatus;
+(function (InvoiceStatus) {
+    InvoiceStatus["PENDING"] = "PENDING";
+    InvoiceStatus["SENT"] = "SENT";
+    InvoiceStatus["PARTIALLY_PAID"] = "PARTIALLY_PAID";
+    InvoiceStatus["PAID"] = "PAID";
+    InvoiceStatus["OVERDUE"] = "OVERDUE";
+    InvoiceStatus["IN_DUNNING"] = "IN_DUNNING";
+    InvoiceStatus["CANCELLED"] = "CANCELLED";
+    InvoiceStatus["WRITTEN_OFF"] = "WRITTEN_OFF";
+})(InvoiceStatus || (InvoiceStatus = {}));
+export var ActivityType;
+(function (ActivityType) {
+    ActivityType["EMAIL_SENT"] = "EMAIL_SENT";
+    ActivityType["EMAIL_OPENED"] = "EMAIL_OPENED";
+    ActivityType["EMAIL_REPLIED"] = "EMAIL_REPLIED";
+    ActivityType["CALL_MADE"] = "CALL_MADE";
+    ActivityType["CALL_ANSWERED"] = "CALL_ANSWERED";
+    ActivityType["WHATSAPP_SENT"] = "WHATSAPP_SENT";
+    ActivityType["WHATSAPP_REPLIED"] = "WHATSAPP_REPLIED";
+    ActivityType["LINKEDIN_INMAIL"] = "LINKEDIN_INMAIL";
+    ActivityType["MEETING_SCHEDULED"] = "MEETING_SCHEDULED";
+    ActivityType["MEETING_COMPLETED"] = "MEETING_COMPLETED";
+    ActivityType["PROPOSAL_SENT"] = "PROPOSAL_SENT";
+    ActivityType["CONTRACT_SENT"] = "CONTRACT_SENT";
+    ActivityType["CONTRACT_SIGNED"] = "CONTRACT_SIGNED";
+    ActivityType["PAYMENT_RECEIVED"] = "PAYMENT_RECEIVED";
+    ActivityType["PAYMENT_FAILED"] = "PAYMENT_FAILED";
+    ActivityType["NPS_COLLECTED"] = "NPS_COLLECTED";
+    ActivityType["HEALTH_ALERT"] = "HEALTH_ALERT";
+    ActivityType["UPSELL_TRIGGERED"] = "UPSELL_TRIGGERED";
+    ActivityType["AGENT_ACTION"] = "AGENT_ACTION";
+})(ActivityType || (ActivityType = {}));
+export var QueueName;
+(function (QueueName) {
+    // Agent Queues
+    QueueName["SDR_QUEUE"] = "SDR_QUEUE";
+    QueueName["LDR_QUEUE"] = "LDR_QUEUE";
+    QueueName["AE_QUEUE"] = "AE_QUEUE";
+    QueueName["ANALISTA_QUEUE"] = "ANALISTA_QUEUE";
+    QueueName["FINANCEIRO_QUEUE"] = "FINANCEIRO_QUEUE";
+    QueueName["JURIDICO_QUEUE"] = "JURIDICO_QUEUE";
+    QueueName["MARKETING_QUEUE"] = "MARKETING_QUEUE";
+    QueueName["POS_VENDA_QUEUE"] = "POS_VENDA_QUEUE";
+    QueueName["BDR_QUEUE"] = "BDR_QUEUE";
+    QueueName["CLOSER_QUEUE"] = "CLOSER_QUEUE";
+    QueueName["SALES_OPS_QUEUE"] = "SALES_OPS_QUEUE";
+    QueueName["ENABLEMENT_QUEUE"] = "ENABLEMENT_QUEUE";
+    QueueName["KAM_QUEUE"] = "KAM_QUEUE";
+    QueueName["PARTNERS_QUEUE"] = "PARTNERS_QUEUE";
+    QueueName["FIELD_QUEUE"] = "FIELD_QUEUE";
+    QueueName["PRE_SALES_QUEUE"] = "PRE_SALES_QUEUE";
+    QueueName["COPYWRITER_QUEUE"] = "COPYWRITER_QUEUE";
+    QueueName["SOCIAL_QUEUE"] = "SOCIAL_QUEUE";
+    // Task Queues
+    QueueName["LEAD_ENRICHMENT"] = "LEAD_ENRICHMENT";
+    QueueName["DEAL_CLOSED_WON"] = "DEAL_CLOSED_WON";
+    QueueName["HEALTH_ALERT"] = "HEALTH_ALERT";
+    QueueName["CHURN_RISK_HIGH"] = "CHURN_RISK_HIGH";
+    QueueName["HEALTH_SCORE_UPDATE"] = "HEALTH_SCORE_UPDATE";
+    QueueName["EMAIL_CADENCE_SEND"] = "EMAIL_CADENCE_SEND";
+    QueueName["INVOICE_GENERATE"] = "INVOICE_GENERATE";
+    QueueName["NPS_ANALYSIS"] = "NPS_ANALYSIS";
+    QueueName["CONTRACT_ANALYSIS"] = "CONTRACT_ANALYSIS";
+    QueueName["BANK_RECONCILIATION"] = "BANK_RECONCILIATION";
+    QueueName["COMMISSION_CALC"] = "COMMISSION_CALC";
+    QueueName["BOARD_REPORT"] = "BOARD_REPORT";
+    QueueName["CONTRACT_DEADLINES"] = "CONTRACT_DEADLINES";
+    QueueName["DOMAIN_WARMUP"] = "DOMAIN_WARMUP";
+})(QueueName || (QueueName = {}));
+export * from './schemas/leads';

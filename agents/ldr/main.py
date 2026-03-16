@@ -1,4 +1,6 @@
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Header
 from agents.ldr.agent import LDRAgent
 from agents.ldr.schemas import LeadEnrichRequest, LeadEnrichResponse, ICPScoreRequest, ICPScoreResponse, RunRequest
@@ -6,14 +8,15 @@ from agents.shared.security import validate_internal_service_token
 from agents.shared.db_pool import init_pool
 from cuid2 import cuid_wrapper as cuid
 
-app = FastAPI(title="LDR Agent API", version="0.1.0")
-
-ldr_agent = LDRAgent()
-
-@app.on_event("startup")
-async def startup_event() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     if os.getenv("DATABASE_URL"):
         await init_pool()
+    yield
+
+app = FastAPI(title="LDR Agent API", version="0.1.0", lifespan=lifespan)
+
+ldr_agent = LDRAgent()
 
 
 def _validate_service_token(x_service_token: str | None) -> None:

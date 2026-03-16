@@ -1,8 +1,8 @@
-$ErrorActionPreference = "Stop"
-
 param(
     [string]$NodeVersion = "22.22.1"
 )
+
+$ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $toolsRoot = Join-Path $repoRoot ".tools"

@@ -89,8 +89,7 @@ export async function GET(
   if (action === "session") {
     return proxyApi(request, "/api/v1/sessions", {
       headers: {
-        authorization: request.headers.get("authorization") ?? "",
-        "x-tenant-id": request.headers.get("x-tenant-id") ?? ""
+        authorization: request.headers.get("authorization") ?? ""
       },
       method: "GET"
     });

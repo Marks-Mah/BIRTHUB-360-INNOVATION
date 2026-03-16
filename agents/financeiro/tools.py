@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 import logging
 import os
 from typing import Any
@@ -40,7 +40,7 @@ async def trigger_invoice(deal_id: str, payment_config: dict) -> dict:
     if not customer_id or amount is None:
         raise AgentToolError(code="INVALID_PAYMENT_CONFIG", message="payment_config.customer_id e payment_config.amount são obrigatórios")
 
-    due_date = datetime.utcnow().date() + timedelta(days=7)
+    due_date = datetime.now(UTC).date() + timedelta(days=7)
 
     @retry(
         stop=stop_after_attempt(3),
@@ -116,7 +116,7 @@ async def run_dunning_step(invoice_id: str, step: int) -> dict:
     return {
         "message_sent": bool(payload.get("message_sent", False)),
         "channel": payload.get("channel", config.get("channel", "email")),
-        "next_step_at": payload.get("next_step_at", datetime.utcnow().isoformat()),
+        "next_step_at": payload.get("next_step_at", datetime.now(UTC).isoformat()),
     }
 
 
@@ -212,7 +212,7 @@ async def manage_subscription_lifecycle(customer_id: str) -> dict:
     return {
         "status": subscription.get("status", "unknown"),
         "actions_taken": ["subscription_checked"],
-        "next_billing": subscription.get("nextDueDate", datetime.utcnow().isoformat()),
+        "next_billing": subscription.get("nextDueDate", datetime.now(UTC).isoformat()),
     }
 
 

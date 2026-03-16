@@ -1,4 +1,5 @@
 import { getWebConfig } from "@birthub/config";
+import { cookies } from "next/headers";
 
 export type ExecutionStatus = "FAILED" | "RUNNING" | "SUCCESS";
 
@@ -38,8 +39,6 @@ interface InstalledAgentResponse {
   requestId: string;
 }
 
-const DEFAULT_TENANT_ID = "birthhub-alpha";
-
 function normalizePromptVersions(manifest: Record<string, unknown>): string[] {
   const manifestAgent =
     "agent" in manifest && typeof manifest.agent === "object" && manifest.agent !== null
@@ -66,11 +65,11 @@ function normalizeAgent(agent: AgentSnapshot): AgentSnapshot {
 
 async function fetchJson<T>(path: string): Promise<T> {
   const config = getWebConfig();
+  const cookieStore = typeof window === "undefined" ? await cookies() : null;
   const response = await fetch(`${config.NEXT_PUBLIC_API_URL}${path}`, {
     cache: "no-store",
-    headers: {
-      "x-tenant-id": DEFAULT_TENANT_ID
-    }
+    credentials: typeof window === "undefined" ? undefined : "include",
+    headers: cookieStore ? { cookie: cookieStore.toString() } : undefined
   });
 
   if (!response.ok) {

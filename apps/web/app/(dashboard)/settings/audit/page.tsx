@@ -4,21 +4,21 @@ const auditRows = [
     actor: "Marina Costa",
     entity: "invite",
     period: "2026-03-13 09:42",
-    tenant: "birthhub-alpha"
+    tenant: "tenant-redacted"
   },
   {
     action: "member.role_updated",
     actor: "Lucas Dias",
     entity: "member",
     period: "2026-03-13 08:30",
-    tenant: "birthhub-alpha"
+    tenant: "tenant-redacted"
   },
   {
     action: "workflow.seeded",
     actor: "seed-script",
     entity: "workflow",
     period: "2026-03-13 07:15",
-    tenant: "birthhub-alpha"
+    tenant: "tenant-redacted"
   }
 ];
 

@@ -39,9 +39,9 @@ export function PackInstaller({ apiUrl, availablePacks }: Readonly<PackInstaller
         connectors,
         packId: selectedPackId
       }),
+      credentials: "include",
       headers: {
-        "content-type": "application/json",
-        "x-tenant-id": "birthhub-alpha"
+        "content-type": "application/json"
       },
       method: "POST"
     });

@@ -26,18 +26,6 @@ const INITIAL_INPUT = JSON.stringify(
   2
 );
 
-function readTenantId(): string {
-  if (typeof window === "undefined") {
-    return "birthhub-alpha";
-  }
-
-  return (
-    window.localStorage.getItem("bh_tenant_id") ??
-    window.localStorage.getItem("tenantId") ??
-    "birthhub-alpha"
-  );
-}
-
 export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>) {
   const { track } = useAnalytics();
   const [executionId, setExecutionId] = useState<string | null>(null);
@@ -51,7 +39,7 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
       return null;
     }
 
-    return `${apiUrl}/api/v1/agents/installed/${agentId}/run/stream?executionId=${encodeURIComponent(executionId)}&tenantId=${encodeURIComponent(readTenantId())}`;
+    return `${apiUrl}/api/v1/agents/installed/${agentId}/run/stream?executionId=${encodeURIComponent(executionId)}`;
   }, [agentId, apiUrl, executionId]);
 
   async function handleRun(): Promise<void> {
@@ -61,13 +49,11 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
 
     try {
       const parsedPayload = JSON.parse(inputPayload) as Record<string, unknown>;
-      const tenantId = readTenantId();
       const response = await fetch(`${apiUrl}/api/v1/agents/installed/${agentId}/run`, {
         body: JSON.stringify(parsedPayload),
         credentials: "include",
         headers: {
-          "content-type": "application/json",
-          "x-tenant-id": tenantId
+          "content-type": "application/json"
         },
         method: "POST"
       });
@@ -85,7 +71,7 @@ export function AgentRunPanel({ agentId, apiUrl }: Readonly<AgentRunPanelProps>)
       });
 
       const source = new EventSource(
-        `${apiUrl}/api/v1/agents/installed/${agentId}/run/stream?executionId=${encodeURIComponent(payload.executionId)}&tenantId=${encodeURIComponent(tenantId)}`
+        `${apiUrl}/api/v1/agents/installed/${agentId}/run/stream?executionId=${encodeURIComponent(payload.executionId)}`
       );
 
       source.addEventListener("log", (event) => {

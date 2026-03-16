@@ -23,7 +23,7 @@ function LoginFormContent({ apiUrl, initialRequestId, navigate }: LoginFormConte
   const [formValues, setFormValues] = useState({
     email: "owner.alpha@birthub.local",
     password: "password123",
-    tenantId: "birthhub-alpha"
+    tenantId: ""
   });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -37,8 +37,7 @@ function LoginFormContent({ apiUrl, initialRequestId, navigate }: LoginFormConte
           credentials: "include",
           headers: {
             "content-type": "application/json",
-            "x-request-id": requestId,
-            "x-tenant-id": formValues.tenantId
+            "x-request-id": requestId
           },
           method: "POST"
         });

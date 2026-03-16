@@ -1,17 +1,20 @@
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Header
 from .agent import JuridicoAgent
 from .schemas import AgentRequest
 from agents.shared.security import validate_internal_service_token
 from agents.shared.db_pool import init_pool
 
-app = FastAPI(title="birthub-juridico-agent")
-agent = JuridicoAgent()
-
-@app.on_event("startup")
-async def startup_event() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     if os.getenv("DATABASE_URL"):
         await init_pool()
+    yield
+
+app = FastAPI(title="birthub-juridico-agent", lifespan=lifespan)
+agent = JuridicoAgent()
 
 @app.get('/health')
 async def health():

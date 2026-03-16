@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, Literal
 
@@ -20,8 +21,6 @@ from orchestrator.flows import (
 )
 
 logger = logging.getLogger("agent_orchestrator")
-
-app = FastAPI(title="birthub-agent-orchestrator")
 
 EventType = Literal["DEAL_CLOSED_WON", "HEALTH_ALERT", "CHURN_RISK_HIGH", "BOARD_REPORT"]
 
@@ -177,9 +176,13 @@ def _list_events(status: str | None = None, limit: int = 20) -> Dict[str, Any]:
     return {"size": len(limited), "items": limited}
 
 
-@app.on_event("startup")
-async def startup() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     await _safe_init_db()
+    yield
+
+
+app = FastAPI(title="birthub-agent-orchestrator", lifespan=lifespan)
 
 
 @app.get("/health")

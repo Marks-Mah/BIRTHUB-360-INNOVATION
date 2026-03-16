@@ -13,6 +13,7 @@
     "ci:dirty-tree": "node scripts/ci/check-dirty-tree.mjs",
     "ci:full": "node scripts/ci/full.mjs full",
     "ci:legacy-agents": "node scripts/ci/full.mjs task legacy-agents",
+    "ci:security-guardrails": "pnpm security:guards && pnpm --filter @birthub/api typecheck && pnpm --filter @birthub/api test && pnpm --filter @birthub/database test && pnpm --filter @birthub/database db:migrate:deploy",
     "ci:satellites": "node scripts/ci/full.mjs task satellites",
     "dev": "turbo run dev --filter=@birthub/web --filter=@birthub/api --filter=@birthub/worker --parallel",
     "dev:legacy": "turbo run dev",

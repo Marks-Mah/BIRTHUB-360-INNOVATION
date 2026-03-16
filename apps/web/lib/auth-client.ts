@@ -75,14 +75,6 @@ export async function fetchWithSession(
     headers.set("x-csrf-token", csrfToken);
   }
 
-  if (session?.tenantId) {
-    headers.set("x-tenant-id", session.tenantId);
-  }
-
-  if (session?.userId) {
-    headers.set("x-user-id", session.userId);
-  }
-
   const nextInit: RequestInit = {
     ...init,
     credentials: "include",

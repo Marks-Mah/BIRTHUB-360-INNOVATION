@@ -17,6 +17,8 @@
     "ci:satellites": "node scripts/ci/full.mjs task satellites",
     "dev": "turbo run dev --filter=@birthub/web --filter=@birthub/api --filter=@birthub/worker --parallel",
     "dev:legacy": "turbo run dev",
+    "stack:canonical": "pnpm preflight:core && pnpm dev",
+    "stack:hybrid": "pnpm preflight:full && pnpm dev:legacy",
     "lint": "pnpm lint:core",
     "lint:core": "turbo run lint --filter=@birthub/web... --filter=@birthub/api... --filter=@birthub/worker... --filter=@birthub/testing",
     "lint:satellites": "node scripts/ci/run-satellites.mjs lint",

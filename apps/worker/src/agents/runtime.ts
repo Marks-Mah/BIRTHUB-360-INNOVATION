@@ -8,6 +8,7 @@ import {
   buildAgentRuntimePlan,
   buildRuntimePolicyRules,
   computeOutputHash,
+  findManifestCatalogEntryByAgentId,
   loadManifestCatalog,
   type AgentLearningRecord,
   type AgentManifest,
@@ -692,8 +693,7 @@ async function resolveRuntimeAgent(input: {
     input.catalogAgentId ??
     installedConfig?.sourceAgentId ??
     input.agentId;
-  const catalogEntry =
-    catalog.find((entry) => entry.manifest.agent.id === resolvedCatalogAgentId) ?? null;
+  const catalogEntry = findManifestCatalogEntryByAgentId(catalog, resolvedCatalogAgentId);
 
   if (!catalogEntry) {
     throw new Error(`Catalog manifest '${resolvedCatalogAgentId}' was not found.`);

@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 import {
+  findManifestCatalogEntryByAgentId,
   isInstallableManifest,
   loadManifestCatalog,
   recommendAgentsForTenant,
@@ -209,7 +210,7 @@ export class MarketplaceService {
 
   async getAgentById(agentId: string): Promise<ManifestCatalogEntry | null> {
     const catalog = await this.getCatalog();
-    return catalog.find((entry) => entry.manifest.agent.id === agentId) ?? null;
+    return findManifestCatalogEntryByAgentId(catalog, agentId);
   }
 
   async getAgentDocs(agentId: string): Promise<string | null> {

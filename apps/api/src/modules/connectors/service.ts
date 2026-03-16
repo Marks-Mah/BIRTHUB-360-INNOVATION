@@ -13,6 +13,25 @@ export type ConnectorProvider =
   | "salesforce"
   | "twilio-whatsapp";
 
+export interface ConnectorOauthState {
+  accountKey: string;
+  organizationId: string;
+  provider: ConnectorProvider;
+  requestId: string;
+  tenantId: string;
+  userId: string;
+  version: 1;
+}
+
+const connectorProviders = new Set<ConnectorProvider>([
+  "google-workspace",
+  "hubspot",
+  "microsoft-graph",
+  "pipedrive",
+  "salesforce",
+  "twilio-whatsapp"
+]);
+
 type ConnectorCredentialInput = {
   expiresAt?: string;
   value: string;
@@ -38,20 +57,69 @@ function normalizeCredentials(input?: Record<string, ConnectorCredentialInput>):
 }
 
 function buildOauthState(input: {
+  accountKey: string;
   organizationId: string;
   provider: ConnectorProvider;
   requestId: string;
+  tenantId: string;
   userId: string;
 }): string {
   return Buffer.from(
     JSON.stringify({
+      accountKey: input.accountKey,
       organizationId: input.organizationId,
       provider: input.provider,
       requestId: input.requestId,
+      tenantId: input.tenantId,
       userId: input.userId,
       version: 1
     })
   ).toString("base64url");
+}
+
+export function parseConnectorOauthState(state: string): ConnectorOauthState {
+  try {
+    const parsed = JSON.parse(Buffer.from(state, "base64url").toString("utf8")) as unknown;
+
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error("State payload is not an object.");
+    }
+
+    const candidate = parsed as Record<string, unknown>;
+    if (
+      typeof candidate.accountKey !== "string" ||
+      typeof candidate.organizationId !== "string" ||
+      typeof candidate.provider !== "string" ||
+      typeof candidate.requestId !== "string" ||
+      typeof candidate.tenantId !== "string" ||
+      typeof candidate.userId !== "string" ||
+      candidate.version !== 1
+    ) {
+      throw new Error("State payload is missing required fields.");
+    }
+
+    if (!connectorProviders.has(candidate.provider as ConnectorProvider)) {
+      throw new Error(`Unsupported provider '${String(candidate.provider)}' in OAuth state.`);
+    }
+
+    const provider = candidate.provider as ConnectorProvider;
+
+    return {
+      accountKey: candidate.accountKey,
+      organizationId: candidate.organizationId,
+      provider,
+      requestId: candidate.requestId,
+      tenantId: candidate.tenantId,
+      userId: candidate.userId,
+      version: 1
+    };
+  } catch (error) {
+    throw new ProblemDetailsError({
+      detail: error instanceof Error ? error.message : "Connector OAuth state could not be parsed.",
+      status: 409,
+      title: "Connector OAuth State Invalid"
+    });
+  }
 }
 
 function getProviderOauthConfig(config: ApiConfig, provider: ConnectorProvider): {
@@ -381,9 +449,11 @@ export const connectorsService = {
     }
 
     const state = buildOauthState({
+      accountKey: input.accountKey ?? "primary",
       organizationId: input.organizationId,
       provider: input.provider,
       requestId: input.requestId,
+      tenantId: input.tenantId,
       userId: input.userId
     });
     const scopes = input.scopes?.length ? input.scopes : oauth.defaultScopes;

@@ -61,6 +61,25 @@ function normalize(value: string): string {
   return value.trim().toLowerCase();
 }
 
+export function canonicalizeAgentId(value: string): string {
+  return normalize(value).replace(/[_\s]+/g, "-").replace(/-+/g, "-");
+}
+
+export function agentIdsMatch(left: string, right: string): boolean {
+  return canonicalizeAgentId(left) === canonicalizeAgentId(right);
+}
+
+export function findManifestCatalogEntryByAgentId(
+  catalog: ManifestCatalogEntry[],
+  agentId: string
+): ManifestCatalogEntry | null {
+  const canonicalAgentId = canonicalizeAgentId(agentId);
+  return (
+    catalog.find((entry) => canonicalizeAgentId(entry.manifest.agent.id) === canonicalAgentId) ??
+    null
+  );
+}
+
 function hasAny(candidateValues: string[], targetValues?: string[]): boolean {
   if (!targetValues || targetValues.length === 0) {
     return true;
@@ -78,11 +97,13 @@ function collectFlatTags(tags: AgentManifestTags): string[] {
 
 function calculateSearchScore(manifest: AgentManifest, query?: string): number {
   const normalizedQuery = query ? normalize(query) : "";
+  const canonicalQuery = query ? canonicalizeAgentId(query) : "";
 
   if (!normalizedQuery) {
     return 1;
   }
 
+  const agentId = canonicalizeAgentId(manifest.agent.id);
   const name = normalize(manifest.agent.name);
   const description = normalize(manifest.agent.description);
   const tags = collectFlatTags(manifest.tags);
@@ -96,8 +117,16 @@ function calculateSearchScore(manifest: AgentManifest, query?: string): number {
     score += 32;
   }
 
+  if (agentId === canonicalQuery) {
+    score += 28;
+  }
+
   if (name.includes(normalizedQuery)) {
     score += 20;
+  }
+
+  if (agentId.includes(canonicalQuery)) {
+    score += 14;
   }
 
   if (description.includes(normalizedQuery)) {

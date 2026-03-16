@@ -8,7 +8,11 @@ import {
   requireAuthenticatedSession
 } from "../../common/guards/index.js";
 import { asyncHandler, ProblemDetailsError } from "../../lib/problem-details.js";
-import { connectorsService, type ConnectorProvider } from "./service.js";
+import {
+  connectorsService,
+  parseConnectorOauthState,
+  type ConnectorProvider
+} from "./service.js";
 
 const providerSchema = z.enum([
   "hubspot",
@@ -91,6 +95,76 @@ function requireOrganizationContext(input: {
 
 function readProvider(value: unknown): ConnectorProvider {
   return providerSchema.parse(value);
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function readOptionalScopes(value: unknown): string[] | undefined {
+  if (Array.isArray(value)) {
+    const scopes = value
+      .flatMap((item) => (typeof item === "string" ? item.split(/[,\s]+/) : []))
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    return scopes.length > 0 ? scopes : undefined;
+  }
+
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return undefined;
+  }
+
+  const scopes = value
+    .split(/[,\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return scopes.length > 0 ? scopes : undefined;
+}
+
+function buildCallbackPayload(input: Record<string, unknown>) {
+  return callbackSchema.parse({
+    accessToken: readOptionalString(input.accessToken ?? input.access_token),
+    accountKey: readOptionalString(input.accountKey ?? input.account_key),
+    code: readOptionalString(input.code),
+    displayName: readOptionalString(input.displayName ?? input.display_name),
+    expiresAt: readOptionalString(input.expiresAt ?? input.expires_at),
+    externalAccountId: readOptionalString(input.externalAccountId ?? input.external_account_id),
+    refreshToken: readOptionalString(input.refreshToken ?? input.refresh_token),
+    scopes: readOptionalScopes(input.scopes ?? input.scope),
+    state: readOptionalString(input.state)
+  });
+}
+
+function resolveCallbackContext(input: {
+  organizationId?: string | null;
+  provider: ConnectorProvider;
+  state: string;
+  tenantId?: string | null;
+}) {
+  if (input.organizationId && input.tenantId) {
+    return {
+      accountKey: undefined,
+      organizationId: input.organizationId,
+      tenantId: input.tenantId
+    };
+  }
+
+  const parsedState = parseConnectorOauthState(input.state);
+  if (parsedState.provider !== input.provider) {
+    throw new ProblemDetailsError({
+      detail: `Connector OAuth state was issued for provider '${parsedState.provider}', not '${input.provider}'.`,
+      status: 409,
+      title: "Connector State Mismatch"
+    });
+  }
+
+  return {
+    accountKey: parsedState.accountKey,
+    organizationId: parsedState.organizationId,
+    tenantId: parsedState.tenantId
+  };
 }
 
 export function createConnectorsRouter(config: ApiConfig): Router {
@@ -183,19 +257,55 @@ export function createConnectorsRouter(config: ApiConfig): Router {
 
   router.post(
     "/:provider/callback",
-    requireAuthenticatedSession,
-    RequireRole(Role.ADMIN),
     asyncHandler(async (request, response) => {
       const payload = callbackSchema.parse(request.body ?? {});
       const provider = readProvider(request.params.provider);
-      const context = requireOrganizationContext({
+      const context = resolveCallbackContext({
         organizationId: request.context.organizationId,
-        tenantId: request.context.tenantId,
-        userId: request.context.userId
+        provider,
+        state: payload.state,
+        tenantId: request.context.tenantId
       });
       const connector = await connectorsService.finalizeConnectSession({
         ...(payload.accessToken ? { accessToken: payload.accessToken } : {}),
-        ...(payload.accountKey ? { accountKey: payload.accountKey } : {}),
+        ...(payload.accountKey || context.accountKey
+          ? { accountKey: payload.accountKey ?? context.accountKey }
+          : {}),
+        ...(payload.code ? { code: payload.code } : {}),
+        ...(payload.displayName ? { displayName: payload.displayName } : {}),
+        ...(payload.expiresAt ? { expiresAt: payload.expiresAt } : {}),
+        ...(payload.externalAccountId ? { externalAccountId: payload.externalAccountId } : {}),
+        organizationId: context.organizationId,
+        provider,
+        ...(payload.refreshToken ? { refreshToken: payload.refreshToken } : {}),
+        ...(payload.scopes ? { scopes: payload.scopes } : {}),
+        state: payload.state,
+        tenantId: context.tenantId
+      });
+
+      response.status(200).json({
+        connector,
+        requestId: request.context.requestId
+      });
+    })
+  );
+
+  router.get(
+    "/:provider/callback",
+    asyncHandler(async (request, response) => {
+      const payload = buildCallbackPayload(request.query as Record<string, unknown>);
+      const provider = readProvider(request.params.provider);
+      const context = resolveCallbackContext({
+        organizationId: request.context.organizationId,
+        provider,
+        state: payload.state,
+        tenantId: request.context.tenantId
+      });
+      const connector = await connectorsService.finalizeConnectSession({
+        ...(payload.accessToken ? { accessToken: payload.accessToken } : {}),
+        ...(payload.accountKey || context.accountKey
+          ? { accountKey: payload.accountKey ?? context.accountKey }
+          : {}),
         ...(payload.code ? { code: payload.code } : {}),
         ...(payload.displayName ? { displayName: payload.displayName } : {}),
         ...(payload.expiresAt ? { expiresAt: payload.expiresAt } : {}),

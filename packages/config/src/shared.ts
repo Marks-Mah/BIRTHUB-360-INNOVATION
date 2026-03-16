@@ -8,6 +8,20 @@ export const optionalNonEmptyString = z
   .trim()
   .min(1)
   .optional();
+export const envBoolean = z.preprocess((value) => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["1", "true", "yes", "on"].includes(normalized)) {
+      return true;
+    }
+
+    if (["0", "false", "no", "off"].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return value;
+}, z.boolean());
 
 export const commaSeparatedList = z
   .string()
@@ -42,6 +56,17 @@ export function isLocalUrl(value: string): boolean {
 export function isSecureHttpUrl(value: string): boolean {
   const parsed = safeParseUrl(value);
   return parsed?.protocol === "https:";
+}
+
+export function hasPlaceholderMarker(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return ["replace", "placeholder", "changeme", "todo"].some((token) =>
+    normalized.includes(token)
+  );
+}
+
+export function isStripeTestSecretKey(value: string): boolean {
+  return value.trim().startsWith("sk_test_");
 }
 
 export function hasRequiredPostgresSsl(value: string): boolean {

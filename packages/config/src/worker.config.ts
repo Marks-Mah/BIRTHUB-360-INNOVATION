@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   EnvValidationError,
+  hasPlaceholderMarker,
   hasRequiredPostgresSsl,
   hasRequiredRedisTls,
   nodeEnvSchema,
@@ -61,8 +62,15 @@ export function getWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerCon
       issues.push("REDIS_URL must use TLS in production (rediss:// or tls=true).");
     }
 
-    if (parsed.JOB_HMAC_GLOBAL_SECRET === "dev-job-hmac-secret") {
+    if (
+      parsed.JOB_HMAC_GLOBAL_SECRET === "dev-job-hmac-secret" ||
+      hasPlaceholderMarker(parsed.JOB_HMAC_GLOBAL_SECRET)
+    ) {
       issues.push("JOB_HMAC_GLOBAL_SECRET cannot use the development default in production.");
+    }
+
+    if (!parsed.SENTRY_DSN) {
+      issues.push("SENTRY_DSN must be configured in production.");
     }
 
     if (parsed.BILLING_EXPORT_STORAGE_MODE === "s3" && !parsed.BILLING_EXPORT_S3_BUCKET) {

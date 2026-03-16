@@ -80,6 +80,7 @@ export function validateLegacyTaskJob(input: {
   const context = input.payload.context ?? {
     actorId: input.payload.userId ?? "system",
     jobId: input.jobId,
+    organizationId: input.payload.tenantId ?? "default-tenant",
     scopedAt: new Date().toISOString(),
     tenantId: input.payload.tenantId ?? "default-tenant"
   };

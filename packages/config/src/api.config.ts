@@ -2,10 +2,13 @@ import { z } from "zod";
 
 import {
   commaSeparatedList,
+  envBoolean,
   EnvValidationError,
+  hasPlaceholderMarker,
   hasRequiredPostgresSsl,
   hasRequiredRedisTls,
   isLocalUrl,
+  isStripeTestSecretKey,
   isSecureHttpUrl,
   nodeEnvSchema,
   nonEmptyString,
@@ -47,7 +50,7 @@ export const apiEnvSchema = z.object({
   JOB_HMAC_GLOBAL_SECRET: nonEmptyString.default("dev-job-hmac-secret"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   NODE_ENV: nodeEnvSchema,
-  REQUIRE_SECURE_COOKIES: z.coerce.boolean().default(false),
+  REQUIRE_SECURE_COOKIES: envBoolean.default(false),
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrlString,
   OTEL_SERVICE_NAME: nonEmptyString.default("birthub-api"),
   QUEUE_BACKPRESSURE_THRESHOLD: z.coerce.number().int().positive().default(10_000),
@@ -101,9 +104,24 @@ export function getApiConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     if (
       parsed.SESSION_SECRET === "dev-session-secret" ||
       parsed.JOB_HMAC_GLOBAL_SECRET === "dev-job-hmac-secret" ||
-      parsed.AUTH_MFA_ENCRYPTION_KEY === "dev-mfa-encryption-key"
+      parsed.AUTH_MFA_ENCRYPTION_KEY === "dev-mfa-encryption-key" ||
+      hasPlaceholderMarker(parsed.SESSION_SECRET) ||
+      hasPlaceholderMarker(parsed.JOB_HMAC_GLOBAL_SECRET) ||
+      hasPlaceholderMarker(parsed.AUTH_MFA_ENCRYPTION_KEY)
     ) {
       issues.push("Production secrets cannot use development defaults.");
+    }
+
+    if (isStripeTestSecretKey(parsed.STRIPE_SECRET_KEY)) {
+      issues.push("STRIPE_SECRET_KEY must be a live production key in production.");
+    }
+
+    if (hasPlaceholderMarker(parsed.STRIPE_WEBHOOK_SECRET)) {
+      issues.push("STRIPE_WEBHOOK_SECRET cannot use placeholder values in production.");
+    }
+
+    if (!parsed.SENTRY_DSN) {
+      issues.push("SENTRY_DSN must be configured in production.");
     }
 
     if (!isSecureHttpUrl(parsed.WEB_BASE_URL) || isLocalUrl(parsed.WEB_BASE_URL)) {

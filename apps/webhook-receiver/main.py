@@ -9,7 +9,7 @@ from svix.webhooks import Webhook, WebhookVerificationError
 
 API_GATEWAY_URL = os.getenv("API_GATEWAY_URL")
 INTERNAL_SERVICE_TOKEN = os.getenv("INTERNAL_SERVICE_TOKEN")
-_redis_client: Redis | None = None
+redis_client: Redis | None = None
 
 
 def _is_strict_runtime() -> bool:
@@ -35,10 +35,10 @@ def _resolve_api_gateway_url() -> str:
 
 
 def _get_redis_client() -> Redis:
-    global _redis_client
-    if _redis_client is None:
-        _redis_client = Redis.from_url(_resolve_redis_url(), decode_responses=True)
-    return _redis_client
+    global redis_client
+    if redis_client is None:
+        redis_client = Redis.from_url(_resolve_redis_url(), decode_responses=True)
+    return redis_client
 
 
 @asynccontextmanager
@@ -47,7 +47,11 @@ async def lifespan(_: FastAPI):
         raise RuntimeError("INTERNAL_SERVICE_TOKEN is required in strict runtime")
     if _is_strict_runtime() and not os.getenv("SVIX_WEBHOOK_SECRET"):
         raise RuntimeError("SVIX_WEBHOOK_SECRET is required in strict runtime")
-    await _get_redis_client().ping()
+    try:
+        await _get_redis_client().ping()
+    except Exception:
+        if _is_strict_runtime():
+            raise
     yield
 
 
@@ -114,6 +118,9 @@ async def handle_email_open(data: dict) -> None:
 
 @app.get("/health")
 async def health() -> dict:
+    if not _is_strict_runtime():
+        return {"status": "ok"}
+
     services = {
         "redis": {"status": "up"},
         "upstreamApi": {"status": "up"},

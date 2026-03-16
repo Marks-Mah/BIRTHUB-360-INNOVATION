@@ -44,11 +44,12 @@ export interface MarketplaceSearchResponse {
 
 async function fetchJson<T>(url: string): Promise<T> {
   const cookieStore = typeof window === "undefined" ? await cookies() : null;
-  const response = await fetch(url, {
+  const requestInit: RequestInit = {
     cache: "no-store",
-    credentials: typeof window === "undefined" ? undefined : "include",
-    headers: cookieStore ? { cookie: cookieStore.toString() } : undefined
-  });
+    ...(typeof window === "undefined" ? {} : { credentials: "include" }),
+    ...(cookieStore ? { headers: { cookie: cookieStore.toString() } } : {})
+  };
+  const response = await fetch(url, requestInit);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status}`);

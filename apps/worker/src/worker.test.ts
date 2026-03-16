@@ -10,6 +10,7 @@ void test("worker contract keeps request correlation fields", () => {
     context: {
       actorId: "user_123",
       jobId: "42",
+      organizationId: "org_123",
       scopedAt: new Date("2026-03-13T00:00:00.000Z").toISOString(),
       tenantId: "tenant_123"
     },
@@ -29,6 +30,7 @@ void test("worker contract keeps request correlation fields", () => {
   assert.equal(parsed.requestId, "req_123");
   assert.equal(parsed.tenantId, "tenant_123");
   assert.equal(parsed.userId, "user_123");
+  assert.equal(parsed.context?.organizationId, "org_123");
   assert.equal(parsed.context?.tenantId, "tenant_123");
   assert.equal(parsed.executionMode, "DRY_RUN");
   assert.equal(parsed.approvalRequired, true);

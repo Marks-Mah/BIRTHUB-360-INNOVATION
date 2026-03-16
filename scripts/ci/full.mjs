@@ -48,12 +48,14 @@ const stepDefinitions = {
   "test:workflows": { kind: "pnpm", args: ["test:workflows"] },
   typecheck: { kind: "pnpm", args: ["typecheck"] },
   "typecheck:core": { kind: "pnpm", args: ["typecheck:core"] },
-  "typecheck:satellites": { kind: "pnpm", args: ["typecheck:satellites"] }
+  "typecheck:satellites": { kind: "pnpm", args: ["typecheck:satellites"] },
+  "workspace:audit": { kind: "pnpm", args: ["workspace:audit"] }
 };
 
 const taskGroups = {
   full: [
     "preflight:full",
+    "workspace:audit",
     "install",
     "db:generate",
     "core",
@@ -70,6 +72,7 @@ const taskGroups = {
   ],
   core: [
     "preflight:core",
+    "workspace:audit",
     "lint:core",
     "typecheck:core",
     "test:core",

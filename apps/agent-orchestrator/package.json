@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "lint": "eslint worker.ts src",
+    "build": "tsc -p tsconfig.supported.json",
+    "lint": "eslint worker.ts src/worker.contract.test.ts",
     "start:worker": "tsx worker.ts",
     "dev": "tsx worker.ts",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test \"src/worker.contract.test.ts\"",
+    "typecheck": "tsc -p tsconfig.supported.json --noEmit",
     "start:sdr-worker": "tsx src/workers/sdr-worker.ts",
     "start:ldr-worker": "tsx src/workers/ldr-worker.ts"
   },

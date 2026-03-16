@@ -27,6 +27,7 @@ void test("worker config fails fast in production when transport or secrets are 
       assert.match(error.message, /REDIS_URL must use TLS/i);
       assert.match(error.message, /JOB_HMAC_GLOBAL_SECRET cannot use the development default/i);
       assert.match(error.message, /BILLING_EXPORT_S3_BUCKET must be set/i);
+      assert.match(error.message, /SENTRY_DSN must be configured in production/i);
       return true;
     }
   );
@@ -41,7 +42,8 @@ void test("worker config accepts hardened production settings", () => {
       "postgresql://postgres:postgrespassword@localhost:5432/birthub_cycle1?sslmode=require",
     JOB_HMAC_GLOBAL_SECRET: "prod-hmac-secret-123",
     NODE_ENV: "production",
-    REDIS_URL: "rediss://localhost:6379"
+    REDIS_URL: "rediss://localhost:6379",
+    SENTRY_DSN: "https://public@example.ingest.sentry.io/123456"
   });
 
   assert.equal(config.NODE_ENV, "production");

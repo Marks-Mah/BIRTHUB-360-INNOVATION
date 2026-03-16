@@ -35,10 +35,13 @@ const target = process.argv[2] ?? "test";
 
 const lanes = {
   build: [
+    () => runPnpm(["--filter", "@birthub/api-gateway", "build"]),
+    () => runPnpm(["--filter", "orchestrator-worker", "build"]),
     () => runPnpm(["--filter", "@birthub/voice-engine", "build"])
   ],
   lint: [
     () => runPnpm(["--filter", "@birthub/api-gateway", "lint"]),
+    () => runPnpm(["--filter", "orchestrator-worker", "lint"]),
     () => runPnpm(["--filter", "@birthub/voice-engine", "lint"])
   ],
   smoke: [
@@ -51,6 +54,8 @@ const lanes = {
     () => runPnpm(["--filter", "orchestrator-worker", "test"])
   ],
   typecheck: [
+    () => runPnpm(["--filter", "@birthub/api-gateway", "typecheck"]),
+    () => runPnpm(["--filter", "orchestrator-worker", "typecheck"]),
     () => runPnpm(["--filter", "@birthub/voice-engine", "typecheck"])
   ]
 };

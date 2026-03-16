@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { QueueName } from "@birthub/shared-types";
-
 void test("orchestrator worker builds the API payload expected by /events/run", async () => {
   process.env.BIRTHUB_DISABLE_ORCHESTRATOR_AUTOSTART = "1";
-  const { buildOrchestratorEventPayload } = await import("../worker.js");
+  const { QueueName, buildOrchestratorEventPayload } = await import("../worker.js");
 
   const payload = buildOrchestratorEventPayload(QueueName.DEAL_CLOSED_WON, {
     data: {

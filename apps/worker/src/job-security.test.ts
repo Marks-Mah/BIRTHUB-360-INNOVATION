@@ -20,6 +20,7 @@ void test("worker rejects manipulated jobs with tenant mismatch", () => {
           context: {
             actorId: "user_1",
             jobId: "job_1",
+            organizationId: "org_1",
             scopedAt: new Date("2026-03-13T00:00:00.000Z").toISOString(),
             tenantId: "tenant_a"
           },
@@ -46,6 +47,7 @@ void test("worker validates HMAC signature for legacy jobs", () => {
     context: {
       actorId: "user_1",
       jobId: "job_1",
+      organizationId: "org_1",
       scopedAt: new Date("2026-03-13T00:00:00.000Z").toISOString(),
       tenantId: "tenant_a"
     },

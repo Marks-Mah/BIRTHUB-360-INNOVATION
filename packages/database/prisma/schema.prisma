@@ -55,6 +55,8 @@ model Organization {
   datasetExports   DatasetExport[]
   crmSyncEvents    CrmSyncEvent[]
   connectorAccounts ConnectorAccount[]
+  connectorCredentials ConnectorCredential[]
+  connectorSyncCursors ConnectorSyncCursor[]
   conversationThreads ConversationThread[]
   conversationMessages ConversationMessage[]
   agentHandoffs    AgentHandoff[]

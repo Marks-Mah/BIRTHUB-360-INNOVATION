@@ -3,16 +3,11 @@ import { resolve } from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-async function bootstrapSession(page: Parameters<typeof test>[0]["page"]) {
-  await page.addInitScript(() => {
-    localStorage.setItem("bh_csrf_token", "csrf-e2e");
-    localStorage.setItem("bh_tenant_id", "birthhub-alpha");
-    localStorage.setItem("bh_user_id", "owner.alpha@birthub.local");
-  });
-}
+import { bootstrapSession, mockEvidenceWorkflowEditor } from "./support";
 
 test("workflow editor evidence captures the React Flow canvas artifact", async ({ page }) => {
   await bootstrapSession(page);
+  await mockEvidenceWorkflowEditor(page);
   await page.route("**/api/v1/me", async (route) => {
     await route.fulfill({
       body: JSON.stringify({
@@ -32,9 +27,10 @@ test("workflow editor evidence captures the React Flow canvas artifact", async (
   });
 
   await page.goto("/workflows/evidence/edit");
-  await expect(page.getByText("Workflow Canvas - evidence")).toBeVisible();
+  await expect(page).toHaveURL(/\/workflows\/evidence\/edit$/);
   await expect(page.getByRole("button", { name: "Organizar Canvas" })).toBeVisible();
   await expect(page.getByText("Node Sidebar")).toBeVisible();
+  await expect(page.locator(".react-flow__node")).toHaveCount(10);
 
   const outputPath = resolve(process.cwd(), "artifacts/workflows/workflow-editor-10-nodes.png");
   mkdirSync(resolve(process.cwd(), "artifacts/workflows"), { recursive: true });

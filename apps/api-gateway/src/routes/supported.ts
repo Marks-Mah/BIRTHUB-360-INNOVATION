@@ -2,15 +2,14 @@ import { Router } from "express";
 import { z } from "zod";
 
 import type { AuthenticatedRequest } from "../auth.js";
-import { requireJwt } from "../auth.js";
+import { requireInternalServiceToken, requireJwt } from "../auth.js";
 import { createLogger } from "../lib/logger.js";
+import { internalStateStore, type SupportedPlan } from "./internal-state-store.js";
 
 export const apiV1Router = Router();
 export const router = Router();
 
 const logger = createLogger({ service: "api-gateway", surface: "supported" });
-const organizationPlans = new Map<string, "STARTER" | "PRO" | "ENTERPRISE">();
-const activityStatus = new Map<string, string>();
 const createLeadSchema = z.object({
   assignee: z.string().trim().min(2).max(80),
   email: z.string().trim().email(),
@@ -26,11 +25,20 @@ function validationErrors(error: z.ZodError): string[] {
   });
 }
 
-function resolveTenantId(req: AuthenticatedRequest): string {
+function requireTenantId(req: AuthenticatedRequest): string {
   if (typeof req.auth?.tenantId === "string" && req.auth.tenantId.trim()) {
     return req.auth.tenantId;
   }
-  return "tenant_unknown";
+
+  throw new Error("missing_tenant_claim");
+}
+
+function requireRouteId(value: string | string[] | undefined): string {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+
+  throw new Error("missing_route_id");
 }
 
 apiV1Router.post("/leads", requireJwt, (req, res) => {
@@ -44,7 +52,17 @@ apiV1Router.post("/leads", requireJwt, (req, res) => {
     });
   }
 
-  const tenantId = resolveTenantId(req as AuthenticatedRequest);
+  let tenantId: string;
+
+  try {
+    tenantId = requireTenantId(req as AuthenticatedRequest);
+  } catch {
+    return res.status(403).json({
+      code: "MISSING_TENANT_CLAIM",
+      message: "tenantId is required in the verified JWT payload"
+    });
+  }
+
   const lead = {
     id: `lead_${Math.random().toString(36).slice(2, 11)}`,
     tenantId,
@@ -60,7 +78,8 @@ apiV1Router.post("/leads", requireJwt, (req, res) => {
   return res.status(201).json(lead);
 });
 
-apiV1Router.patch("/internal/organizations/:id/plan", (req, res) => {
+apiV1Router.patch("/internal/organizations/:id/plan", requireInternalServiceToken, async (req, res) => {
+  const organizationId = requireRouteId(req.params.id);
   const candidate = typeof req.body?.plan === "string" ? req.body.plan.toUpperCase() : "";
   if (candidate !== "STARTER" && candidate !== "PRO" && candidate !== "ENTERPRISE") {
     return res.status(400).json({
@@ -69,20 +88,25 @@ apiV1Router.patch("/internal/organizations/:id/plan", (req, res) => {
     });
   }
 
-  organizationPlans.set(req.params.id, candidate);
-  return res.json({ id: req.params.id, plan: candidate, updated: true });
+  const plan = await internalStateStore.setOrganizationPlan(organizationId, candidate as SupportedPlan);
+  return res.json({ id: organizationId, plan, updated: true });
 });
 
-apiV1Router.get("/internal/organizations/:id/plan", (req, res) => {
-  res.json({ id: req.params.id, plan: organizationPlans.get(req.params.id) ?? "STARTER" });
+apiV1Router.get("/internal/organizations/:id/plan", requireInternalServiceToken, async (req, res) => {
+  const organizationId = requireRouteId(req.params.id);
+  const plan = await internalStateStore.getOrganizationPlan(organizationId);
+  res.json({ id: organizationId, plan: plan ?? "STARTER" });
 });
 
-apiV1Router.patch("/internal/activities/:id", (req, res) => {
+apiV1Router.patch("/internal/activities/:id", requireInternalServiceToken, async (req, res) => {
+  const activityId = requireRouteId(req.params.id);
   const status = typeof req.body?.status === "string" ? req.body.status : "UNKNOWN";
-  activityStatus.set(req.params.id, status);
-  return res.json({ id: req.params.id, status, updated: true });
+  const nextStatus = await internalStateStore.setActivityStatus(activityId, status);
+  return res.json({ id: activityId, status: nextStatus, updated: true });
 });
 
-apiV1Router.get("/internal/activities/:id", (req, res) => {
-  res.json({ id: req.params.id, status: activityStatus.get(req.params.id) ?? "UNKNOWN" });
+apiV1Router.get("/internal/activities/:id", requireInternalServiceToken, async (req, res) => {
+  const activityId = requireRouteId(req.params.id);
+  const status = await internalStateStore.getActivityStatus(activityId);
+  res.json({ id: activityId, status: status ?? "UNKNOWN" });
 });

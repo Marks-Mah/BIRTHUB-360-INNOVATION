@@ -53,3 +53,16 @@ void test("web config accepts hardened production settings", () => {
   assert.equal(config.NEXT_PUBLIC_ENVIRONMENT, "production");
   assert.equal(config.NEXTAUTH_SECRET, "prod-nextauth-secret-123");
 });
+
+void test("web config accepts staging label with production-grade guardrails", () => {
+  const config = getWebConfig({
+    NEXTAUTH_SECRET: "staging-nextauth-secret-123",
+    NEXT_PUBLIC_API_URL: "https://staging-api.birthhub360.com",
+    NEXT_PUBLIC_APP_URL: "https://staging.birthhub360.com",
+    NEXT_PUBLIC_CSP_REPORT_ONLY: "false",
+    NEXT_PUBLIC_ENVIRONMENT: "staging",
+    NEXT_PUBLIC_SENTRY_DSN: "https://public@example.ingest.sentry.io/123456"
+  });
+
+  assert.equal(config.NEXT_PUBLIC_ENVIRONMENT, "staging");
+});

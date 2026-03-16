@@ -1,87 +1,48 @@
-"use client";
+import { cookies } from "next/headers";
 
-import useSWR from "swr";
+import type { DashboardSnapshot } from "./dashboard-types";
 
-export type PipelineItem = { stage: string; value: number; trend: string };
-export type HealthScoreItem = { client: string; score: number; risk: string; nps: number };
-export type FinanceItem = { label: string; value: string; delta: string };
-export type AttributionItem = { source: string; leads: number; conversion: string; cac: string };
-export type ContractItem = { customer: string; status: string; mrr: string; owner: string };
-
-const SWR_OPTIONS = {
-  dedupingInterval: 30_000,
-  keepPreviousData: true,
-  revalidateIfStale: true,
-  revalidateOnFocus: true
-} as const;
-
-function authHeaders() {
-  const token = typeof window !== "undefined" ? localStorage.getItem("birthub_token") : null;
-  return token
-    ? {
-        Authorization: `Bearer ${token}`
-      }
-    : {};
+function resolveApiBaseUrl(): string {
+  return process.env.API_URL?.trim() || "http://localhost:3000";
 }
 
-async function fetcher<T>(url: string): Promise<T> {
-  const response = await fetch(url, { headers: authHeaders() });
-  if (!response.ok) throw new Error(`dashboard_fetch_failed:${response.status}`);
+async function fetchDashboardSection<T>(path: string): Promise<T> {
+  const cookieStore = await cookies();
+  const response = await fetch(`${resolveApiBaseUrl()}${path}`, {
+    cache: "no-store",
+    headers: {
+      cookie: cookieStore.toString()
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`dashboard_fetch_failed:${response.status}`);
+  }
+
   return response.json() as Promise<T>;
 }
 
-export function useMetrics() {
-  const swr = useSWR<{ pipeline: PipelineItem[]; finance: FinanceItem[] }>(
-    "/api/dashboard/metrics",
-    fetcher,
-    SWR_OPTIONS
-  );
-  return {
-    data: swr.data,
-    loading: swr.isLoading,
-    error: swr.error,
-    empty: !swr.isLoading && !swr.error && (!swr.data || swr.data.pipeline.length === 0),
-  };
-}
+export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+  const [metrics, statuses, recentTasks, billingSummary] = await Promise.all([
+    fetchDashboardSection<{ finance: DashboardSnapshot["finance"]; pipeline: DashboardSnapshot["pipeline"] }>(
+      "/api/v1/dashboard/metrics"
+    ),
+    fetchDashboardSection<{ healthScore: DashboardSnapshot["healthScore"] }>(
+      "/api/v1/dashboard/agent-statuses"
+    ),
+    fetchDashboardSection<{ attribution: DashboardSnapshot["attribution"]; contracts: DashboardSnapshot["contracts"] }>(
+      "/api/v1/dashboard/recent-tasks"
+    ),
+    fetchDashboardSection<{ finance: DashboardSnapshot["finance"] }>(
+      "/api/v1/dashboard/billing-summary"
+    )
+  ]);
 
-export function useAgentStatuses() {
-  const swr = useSWR<{ healthScore: HealthScoreItem[] }>(
-    "/api/dashboard/agent-statuses",
-    fetcher,
-    SWR_OPTIONS
-  );
   return {
-    data: swr.data,
-    loading: swr.isLoading,
-    error: swr.error,
-    empty: !swr.isLoading && !swr.error && (!swr.data || swr.data.healthScore.length === 0),
-  };
-}
-
-export function useRecentTasks() {
-  const swr = useSWR<{ contracts: ContractItem[]; attribution: AttributionItem[] }>(
-    "/api/dashboard/recent-tasks",
-    fetcher,
-    SWR_OPTIONS
-  );
-  return {
-    data: swr.data,
-    loading: swr.isLoading,
-    error: swr.error,
-    empty: !swr.isLoading && !swr.error && (!swr.data || swr.data.contracts.length === 0),
-  };
-}
-
-export function useBillingSummary() {
-  const swr = useSWR<{ finance: FinanceItem[] }>(
-    "/api/dashboard/billing-summary",
-    fetcher,
-    SWR_OPTIONS
-  );
-  return {
-    data: swr.data,
-    loading: swr.isLoading,
-    error: swr.error,
-    empty: !swr.isLoading && !swr.error && (!swr.data || swr.data.finance.length === 0),
+    attribution: recentTasks.attribution,
+    contracts: recentTasks.contracts,
+    finance: billingSummary.finance,
+    healthScore: statuses.healthScore,
+    pipeline: metrics.pipeline
   };
 }

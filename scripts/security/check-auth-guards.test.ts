@@ -95,3 +95,53 @@ void test("scanner honors inherited router.use guards and allows workflow reads 
     rmSync(root, { force: true, recursive: true });
   }
 });
+
+void test("scanner treats dashboard endpoints as admin-sensitive", () => {
+  const root = mkdtempSync(join(tmpdir(), "auth-guards-dashboard-"));
+
+  try {
+    createFixtureFile(
+      root,
+      "modules/dashboard/router.ts",
+      `
+        import { Router } from "express";
+        const router = Router();
+        router.get("/api/v1/dashboard/metrics", requireAuthenticatedSession, async () => {});
+        export default router;
+      `
+    );
+
+    const result = scanAuthGuards(root);
+
+    assert.equal(result.routeViolations.length, 1);
+    assert.equal(result.routeViolations[0]?.path, "/api/v1/dashboard/metrics");
+    assert.match(result.routeViolations[0]?.message ?? "", /RequireRole/);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+void test("scanner honors path-scoped router.use guards", () => {
+  const root = mkdtempSync(join(tmpdir(), "auth-guards-scoped-use-"));
+
+  try {
+    createFixtureFile(
+      root,
+      "modules/dashboard/router.ts",
+      `
+        import { Router } from "express";
+        const router = Router();
+        router.use("/api/v1/dashboard", requireAuthenticatedSession, RequireRole(Role.ADMIN));
+        router.get("/api/v1/dashboard/metrics", async () => {});
+        export default router;
+      `
+    );
+
+    const result = scanAuthGuards(root);
+
+    assert.deepEqual(result.routeViolations, []);
+    assert.deepEqual(result.textViolations, []);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});

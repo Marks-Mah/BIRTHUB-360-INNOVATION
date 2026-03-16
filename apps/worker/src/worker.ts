@@ -221,7 +221,7 @@ async function fanOutExecutionOutcome(input: {
   executionId: string;
   organizationId?: string | null;
   outboundWebhookQueue: Queue<OutboundWebhookJobPayload>;
-  status: "FAILED" | "SUCCESS";
+  status: "FAILED" | "SUCCESS" | "WAITING_APPROVAL";
   tenantId: string;
   userId?: string | null;
   webBaseUrl: string;
@@ -275,6 +275,33 @@ async function fanOutExecutionOutcome(input: {
     }
   }
 
+  if (input.status === "WAITING_APPROVAL") {
+    if (input.userId) {
+      await createNotificationForUser({
+        content: `O Agente ${agentLabel} concluiu a execucao e aguarda aprovacao do output.`,
+        link,
+        metadata: {
+          executionId: input.executionId
+        },
+        organizationId: input.organizationId,
+        tenantId: input.tenantId,
+        type: NotificationType.INFO,
+        userId: input.userId
+      });
+    } else {
+      await createNotificationForOrganizationRoles({
+        content: `O Agente ${agentLabel} concluiu a execucao e aguarda aprovacao do output.`,
+        link,
+        metadata: {
+          executionId: input.executionId
+        },
+        organizationId: input.organizationId,
+        tenantId: input.tenantId,
+        type: NotificationType.INFO
+      });
+    }
+  }
+
   if (input.status === "SUCCESS" && input.userId) {
     await enqueueEmailNotification(input.emailQueue, {
       context: {
@@ -299,7 +326,12 @@ async function fanOutExecutionOutcome(input: {
       tenantId: input.tenantId
     },
     tenantId: input.tenantId,
-    topic: input.status === "SUCCESS" ? "agent.finished" : "agent.failed"
+    topic:
+      input.status === "SUCCESS"
+        ? "agent.finished"
+        : input.status === "WAITING_APPROVAL"
+          ? "agent.awaiting_approval"
+          : "agent.failed"
   });
 }
 
@@ -412,7 +444,7 @@ export function createBirthHubWorker(): WorkerRuntime {
             metadata: runtimeResult.metadata,
             output: runtimeResult.output,
             outputHash: runtimeResult.outputHash,
-            status: "SUCCESS"
+            status: runtimeResult.status
           });
 
           return runtimeResult.output;
@@ -672,7 +704,7 @@ export function createBirthHubWorker(): WorkerRuntime {
             executionId: executionPayload.executionId,
             organizationId: executionPayload.organizationId,
             outboundWebhookQueue,
-            status: "SUCCESS",
+            status: runtimeResult.status,
             tenantId: executionPayload.tenantId,
             userId: executionPayload.userId ?? null,
             webBaseUrl: config.WEB_BASE_URL

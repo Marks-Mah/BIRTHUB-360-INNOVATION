@@ -28,6 +28,44 @@ def test_health_reports_service_ok():
     assert response.json() == {"status": "ok"}
 
 
+def test_health_reports_dependency_state_in_strict_runtime(monkeypatch):
+    monkeypatch.setattr(webhook_main, "_is_strict_runtime", lambda: True)
+
+    class DummyRedisHealth:
+        async def ping(self):
+            return True
+
+    class DummyResponse:
+        def raise_for_status(self):
+            return None
+
+    class DummyClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+        async def get(self, _url):
+            return DummyResponse()
+
+    monkeypatch.setattr(webhook_main, "_get_redis_client", lambda: DummyRedisHealth())
+    monkeypatch.setattr(webhook_main.httpx, "AsyncClient", lambda timeout=5: DummyClient())
+    monkeypatch.setattr(webhook_main, "INTERNAL_SERVICE_TOKEN", "svc_test")
+    monkeypatch.setattr(webhook_main, "PRIMARY_API_URL", "http://primary.local")
+    monkeypatch.setattr(webhook_main, "API_GATEWAY_URL", "http://compat.local")
+    monkeypatch.setenv("SVIX_WEBHOOK_SECRET", "svix_test")
+
+    with TestClient(webhook_main.app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["services"]["primaryApi"]["status"] == "up"
+    assert payload["services"]["compatApi"]["status"] == "up"
+
+
 def test_stripe_webhook_dispatches_internal_patch_and_records_event(monkeypatch):
     captured_calls = []
     redis = DummyRedis()

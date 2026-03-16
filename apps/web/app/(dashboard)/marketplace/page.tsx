@@ -7,7 +7,7 @@ import {
   fetchAgentDocs,
   fetchMarketplaceRecommendations,
   fetchMarketplaceSearch
-} from "../../../lib/marketplace-api";
+} from "../../../lib/marketplace-api.server";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 

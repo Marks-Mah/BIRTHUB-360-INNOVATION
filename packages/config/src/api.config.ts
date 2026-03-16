@@ -81,6 +81,12 @@ export function getApiConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
   const parsed = parseEnv("api", apiEnvSchema, env);
   const corsOrigins = commaSeparatedList.parse(parsed.API_CORS_ORIGINS);
   const externalHealthcheckUrls = commaSeparatedList.parse(parsed.EXTERNAL_HEALTHCHECK_URLS);
+  const deploymentEnvironment =
+    env.DEPLOYMENT_ENVIRONMENT === "staging"
+      ? "staging"
+      : env.DEPLOYMENT_ENVIRONMENT === "production" || parsed.NODE_ENV === "production"
+        ? "production"
+        : parsed.NODE_ENV;
 
   if (parsed.NODE_ENV === "production") {
     const issues: string[] = [];
@@ -112,7 +118,11 @@ export function getApiConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
       issues.push("Production secrets cannot use development defaults.");
     }
 
-    if (isStripeTestSecretKey(parsed.STRIPE_SECRET_KEY)) {
+    if (hasPlaceholderMarker(parsed.STRIPE_SECRET_KEY)) {
+      issues.push("STRIPE_SECRET_KEY cannot use placeholder values in production.");
+    }
+
+    if (deploymentEnvironment === "production" && isStripeTestSecretKey(parsed.STRIPE_SECRET_KEY)) {
       issues.push("STRIPE_SECRET_KEY must be a live production key in production.");
     }
 

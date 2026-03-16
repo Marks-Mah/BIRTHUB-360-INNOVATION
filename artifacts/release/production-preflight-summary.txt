@@ -1,0 +1,24 @@
+Target: production
+Checked at: 2026-03-16T15:12:19.188Z
+api: FAIL -> [api] invalid environment variables:
+- DATABASE_URL must include sslmode=require (or stronger) in production.
+- REDIS_URL must use TLS in production (rediss:// or tls=true).
+- REQUIRE_SECURE_COOKIES must be true in production.
+- Production secrets cannot use development defaults.
+- STRIPE_SECRET_KEY cannot use placeholder values in production.
+- STRIPE_SECRET_KEY must be a live production key in production.
+- STRIPE_WEBHOOK_SECRET cannot use placeholder values in production.
+- SENTRY_DSN must be configured in production.
+- WEB_BASE_URL must use the public HTTPS domain in production.
+- Stripe return URLs must use HTTPS in production.
+- API_CORS_ORIGINS must only contain approved production origins.
+web: FAIL -> [web] invalid environment variables:
+- NEXT_PUBLIC_APP_URL must point to the public HTTPS domain in production.
+- NEXT_PUBLIC_API_URL must point to the public HTTPS API domain in production.
+- NEXT_PUBLIC_CSP_REPORT_ONLY must be false in production.
+- NEXT_PUBLIC_SENTRY_DSN must be configured in production.
+worker: FAIL -> [worker] invalid environment variables:
+- DATABASE_URL must include sslmode=require (or stronger) in production.
+- REDIS_URL must use TLS in production (rediss:// or tls=true).
+- JOB_HMAC_GLOBAL_SECRET cannot use the development default in production.
+- SENTRY_DSN must be configured in production.

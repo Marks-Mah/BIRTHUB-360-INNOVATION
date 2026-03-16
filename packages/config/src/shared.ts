@@ -1,13 +1,22 @@
 import { z, type ZodTypeAny } from "zod";
 
 export const nodeEnvSchema = z.enum(["development", "test", "production"]).default("development");
+export const deploymentEnvironmentSchema = z
+  .enum(["development", "test", "staging", "production", "ci", "ci-local"])
+  .default("development");
+function emptyStringToUndefined(value: unknown): unknown {
+  return typeof value === "string" && value.trim() === "" ? undefined : value;
+}
 
 export const nonEmptyString = z.string().trim().min(1);
-export const optionalNonEmptyString = z
-  .string()
-  .trim()
-  .min(1)
-  .optional();
+export const optionalNonEmptyString = z.preprocess(
+  emptyStringToUndefined,
+  z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+);
 export const envBoolean = z.preprocess((value) => {
   if (typeof value === "string") {
     const normalized = value.trim().toLowerCase();
@@ -34,7 +43,10 @@ export const commaSeparatedList = z
   );
 
 export const urlString = z.string().url();
-export const optionalUrlString = z.string().url().optional();
+export const optionalUrlString = z.preprocess(
+  emptyStringToUndefined,
+  z.string().url().optional()
+);
 
 function safeParseUrl(value: string): URL | null {
   try {

@@ -1,15 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-async function bootstrapSession(page: Parameters<typeof test>[0]["page"]) {
-  await page.addInitScript(() => {
-    localStorage.setItem("bh_csrf_token", "csrf-e2e");
-    localStorage.setItem("bh_tenant_id", "birthhub-alpha");
-    localStorage.setItem("bh_user_id", "owner.alpha@birthub.local");
-  });
-}
+import { bootstrapSession, mockDemoWorkflowRuns } from "./support";
 
 test("billing premium flow unlocks paid workflow surfaces", async ({ page }) => {
   await bootstrapSession(page);
+  await mockDemoWorkflowRuns(page);
   await page.route("**/api/v1/billing/checkout", async (route) => {
     await route.fulfill({
       body: JSON.stringify({
@@ -78,7 +73,7 @@ test("billing premium flow unlocks paid workflow surfaces", async ({ page }) => 
   await expect(page.getByText(/42,00/)).toBeVisible();
 
   await page.goto("/workflows/demo/edit");
-  await expect(page.getByText("Workflow Canvas - demo")).toBeVisible();
+  await expect(page).toHaveURL(/\/workflows\/demo\/edit$/);
   await expect(page.getByRole("button", { name: "Organizar Canvas" })).toBeVisible();
 
   await page.goto("/workflows/demo/runs");

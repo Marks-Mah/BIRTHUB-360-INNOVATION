@@ -23,6 +23,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "import": "./dist/tools/index.js"
+    },
+    "./tools/*": {
+      "types": "./dist/tools/*.d.ts",
+      "import": "./dist/tools/*.js"
+    },
+    "./policy/*": {
+      "types": "./dist/policy/*.d.ts",
+      "import": "./dist/policy/*.js"
     }
   }
 }

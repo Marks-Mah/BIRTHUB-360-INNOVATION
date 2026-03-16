@@ -32,6 +32,33 @@ type QualityRow = {
   tenantId: string;
 };
 
+type OperationsDashboardMetrics = {
+  failRateAlerts: Array<{
+    agentId: string;
+    failRate: number;
+    tenantId: string;
+    windowMinutes: number;
+  }>;
+  highCostAgents: Array<{
+    agentId: string;
+    tenantId: string;
+    totalCostBrl: number;
+  }>;
+  pendingApprovals: number;
+  queue: {
+    active: number;
+    pending: number;
+    queueName: string;
+    waiting: number;
+  };
+  recentBudgetAlerts: Array<{
+    agentId: string;
+    createdAt: string;
+    kind: string;
+    tenantId: string;
+  }>;
+};
+
 type ImpersonationResult = {
   organizationId: string;
   tenantId: string;
@@ -61,6 +88,7 @@ export default function MasterAdminDashboardPage() {
     mostExecuted: [],
     mostFailed: []
   });
+  const [operations, setOperations] = useState<OperationsDashboardMetrics | null>(null);
   const [qualityRows, setQualityRows] = useState<QualityRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [tenantToImpersonate, setTenantToImpersonate] = useState("");
@@ -74,10 +102,11 @@ export default function MasterAdminDashboardPage() {
     void Promise.all([
       fetchWithSession("/api/v1/analytics/master-dashboard", { cache: "no-store" }),
       fetchWithSession("/api/v1/analytics/agent-performance", { cache: "no-store" }),
-      fetchWithSession("/api/v1/analytics/quality-report", { cache: "no-store" })
+      fetchWithSession("/api/v1/analytics/quality-report", { cache: "no-store" }),
+      fetchWithSession("/api/v1/analytics/operations", { cache: "no-store" })
     ])
-      .then(async ([metricsResponse, performanceResponse, qualityResponse]) => {
-        if (!metricsResponse.ok || !performanceResponse.ok || !qualityResponse.ok) {
+      .then(async ([metricsResponse, performanceResponse, qualityResponse, operationsResponse]) => {
+        if (!metricsResponse.ok || !performanceResponse.ok || !qualityResponse.ok || !operationsResponse.ok) {
           throw new Error("Nao foi possivel carregar o dashboard master admin.");
         }
 
@@ -93,9 +122,13 @@ export default function MasterAdminDashboardPage() {
         const qualityPayload = (await qualityResponse.json()) as {
           items: QualityRow[];
         };
+        const operationsPayload = (await operationsResponse.json()) as {
+          metrics: OperationsDashboardMetrics;
+        };
 
         setMetrics(metricsPayload.metrics);
         setPerformance(performancePayload.metrics);
+        setOperations(operationsPayload.metrics);
         setQualityRows(qualityPayload.items ?? []);
       })
       .catch((loadError) => {
@@ -199,6 +232,53 @@ export default function MasterAdminDashboardPage() {
                 <div className="meter">
                   <span style={{ width: `${Math.min(100, item.failureRate * 100)}%` }} />
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        style={{
+          display: "grid",
+          gap: "1rem",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))"
+        }}
+      >
+        <div className="panel">
+          <h2 style={{ marginTop: 0 }}>Operacao de agentes</h2>
+          <p style={{ color: "var(--muted)" }}>
+            Fila <strong>{operations?.queue.queueName ?? "agent-normal"}</strong> com{" "}
+            <strong>{operations?.queue.pending ?? 0}</strong> itens pendentes e{" "}
+            <strong>{operations?.queue.active ?? 0}</strong> em execucao.
+          </p>
+          <p style={{ marginBottom: 0 }}>
+            <strong>{operations?.pendingApprovals ?? 0}</strong> outputs aguardando aprovacao.
+          </p>
+        </div>
+
+        <div className="panel">
+          <h2 style={{ marginTop: 0 }}>Alertas quentes</h2>
+          <div style={{ display: "grid", gap: "0.5rem" }}>
+            {(operations?.failRateAlerts ?? []).slice(0, 4).map((alert) => (
+              <div key={`${alert.tenantId}-${alert.agentId}`}>
+                <strong>{alert.agentId}</strong> em <code>{alert.tenantId}</code> com{" "}
+                {(alert.failRate * 100).toFixed(1)}% de falha
+              </div>
+            ))}
+            {operations && operations.failRateAlerts.length === 0 ? (
+              <div>Sem alertas de fail rate nos ultimos 5 minutos.</div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="panel">
+          <h2 style={{ marginTop: 0 }}>Maior custo 24h</h2>
+          <div style={{ display: "grid", gap: "0.5rem" }}>
+            {(operations?.highCostAgents ?? []).slice(0, 4).map((item) => (
+              <div key={`${item.tenantId}-${item.agentId}`}>
+                <strong>{item.agentId}</strong> em <code>{item.tenantId}</code>: R${" "}
+                {item.totalCostBrl.toFixed(2)}
               </div>
             ))}
           </div>

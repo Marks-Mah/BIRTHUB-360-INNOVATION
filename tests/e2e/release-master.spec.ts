@@ -1,12 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-async function bootstrapSession(page: Parameters<typeof test>[0]["page"]) {
-  await page.addInitScript(() => {
-    localStorage.setItem("bh_csrf_token", "csrf-e2e");
-    localStorage.setItem("bh_tenant_id", "birthhub-alpha");
-    localStorage.setItem("bh_user_id", "owner.alpha@birthub.local");
-  });
-}
+import {
+  bootstrapSession,
+  mockDemoWorkflowRuns,
+  mockExecutionFeedback
+} from "./support";
 
 test.describe("Release master smoke flow", () => {
   test("C1 home redirect, session bootstrap and invite acceptance mock", async ({ page }) => {
@@ -50,6 +48,7 @@ test.describe("Release master smoke flow", () => {
 
   test("C2 pricing, checkout mock and billing visibility", async ({ page }) => {
     await bootstrapSession(page);
+    await mockDemoWorkflowRuns(page);
     await page.route("**/api/v1/billing/checkout", async (route) => {
       await route.fulfill({
         body: JSON.stringify({
@@ -116,7 +115,7 @@ test.describe("Release master smoke flow", () => {
     await expect(page.getByText(/42,00/)).toBeVisible();
 
     await page.goto("/workflows/demo/edit");
-    await expect(page.getByText("Workflow Canvas - demo")).toBeVisible();
+    await expect(page).toHaveURL(/\/workflows\/demo\/edit$/);
     await expect(page.getByRole("button", { name: "Organizar Canvas" })).toBeVisible();
     await expect(page.getByText("Node Sidebar")).toBeVisible();
 
@@ -212,37 +211,11 @@ test.describe("Release master smoke flow", () => {
 
   test("C4 outputs feedback flow and local session cleanup", async ({ page }) => {
     await bootstrapSession(page);
-    await page.route("**/api/v1/executions/exec-feedback/feedback", async (route) => {
-      if (route.request().method() === "POST") {
-        await route.fulfill({
-          body: JSON.stringify({
-            feedback: {
-              expectedOutput: "Resposta corrigida",
-              notes: "Corrigir contexto",
-              rating: -1
-            }
-          }),
-          contentType: "application/json",
-          status: 200
-        });
-        return;
-      }
-
-      await route.fulfill({
-        body: JSON.stringify({
-          feedback: {
-            expectedOutput: "",
-            notes: "",
-            rating: 0
-          }
-        }),
-        contentType: "application/json",
-        status: 200
-      });
-    });
+    await mockExecutionFeedback(page);
 
     await page.goto("/outputs?executionId=exec-feedback");
     await expect(page.getByText("Outputs de Agente")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Polegar para baixo" })).toBeEnabled();
     await page.getByRole("button", { name: "Polegar para baixo" }).click();
     await page
       .getByPlaceholder("Descreva a resposta esperada para fortalecer o dataset RLHF.")

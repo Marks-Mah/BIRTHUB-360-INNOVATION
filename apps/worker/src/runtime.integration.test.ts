@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { DbReadTool, DbWriteTool, type BaseTool } from "@birthub/agents-core";
+import { DbReadTool, DbWriteTool, type BaseTool } from "@birthub/agents-core/tools";
 import { provisionTestDatabase } from "@birthub/testing";
 
 import { PlanExecutor } from "./executors/planExecutor.js";

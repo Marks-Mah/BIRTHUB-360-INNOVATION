@@ -15,6 +15,7 @@ import {
   getCohortMetrics,
   getExecutiveMetrics,
   getMasterAdminDashboard,
+  getOperationsDashboard,
   getQualityReport,
   getUsageMetrics
 } from "./service.js";
@@ -140,6 +141,18 @@ export function createAnalyticsRouter(): Router {
     asyncHandler(async (request, response) => {
       response.status(200).json({
         metrics: await getMasterAdminDashboard(),
+        requestId: request.context.requestId
+      });
+    })
+  );
+
+  router.get(
+    "/operations",
+    requireAuthenticatedSession,
+    RequireRole(Role.SUPER_ADMIN),
+    asyncHandler(async (request, response) => {
+      response.status(200).json({
+        metrics: await getOperationsDashboard(),
         requestId: request.context.requestId
       });
     })

@@ -11,6 +11,7 @@ export {
 } from "./parser/manifestParser.js";
 export {
   InMemoryPolicyAdminStore,
+  PolicyEngine,
   PolicyDeniedError,
   createPolicyTemplate
 } from "./policy/engine.js";

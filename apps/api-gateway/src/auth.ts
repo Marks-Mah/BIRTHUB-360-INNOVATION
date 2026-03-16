@@ -20,6 +20,7 @@ function getJwtSecret(): string {
 
 export type AuthenticatedRequest = Request & {
   auth?: {
+    tenantId?: string;
     sub?: string;
     role?: string;
     orgId?: string;
@@ -28,6 +29,16 @@ export type AuthenticatedRequest = Request & {
 };
 
 type AuthPayload = NonNullable<AuthenticatedRequest["auth"]>;
+
+function getInternalServiceToken(): string {
+  const configured = process.env.INTERNAL_SERVICE_TOKEN?.trim();
+
+  if (configured) {
+    return configured;
+  }
+
+  throw new Error("INTERNAL_SERVICE_TOKEN_MISSING");
+}
 
 export function requireJwt(
   req: AuthenticatedRequest,
@@ -51,5 +62,27 @@ export function requireJwt(
     return next();
   } catch {
     return res.status(401).json({ error: "invalid_token" });
+  }
+}
+
+export function requireInternalServiceToken(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const received = req.header("x-service-token")?.trim();
+
+  if (!received) {
+    return res.status(401).json({ error: "missing_service_token" });
+  }
+
+  try {
+    if (received !== getInternalServiceToken()) {
+      return res.status(403).json({ error: "invalid_service_token" });
+    }
+
+    return next();
+  } catch {
+    return res.status(503).json({ error: "internal_service_token_not_configured" });
   }
 }

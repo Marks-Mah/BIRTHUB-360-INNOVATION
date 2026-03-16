@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRecentTasks } from "../lib/dashboard-data";
+import { useRecentTasks } from "../lib/dashboard-hooks";
+import type { ContractItem } from "../lib/dashboard-types";
 
 type Props = { contracts: ContractItem[] };
 

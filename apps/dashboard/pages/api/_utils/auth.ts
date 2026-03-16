@@ -1,40 +1,77 @@
 import type { NextApiRequest } from "next";
-import { jwtVerify } from "jose";
 
-export async function requireApiAuth(req: NextApiRequest): Promise<{ tenantId: string }> {
-  const auth = req.headers.authorization || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (!token) throw new Error("missing_authorization");
-
-  const dashboardJwtSecret = process.env.DASHBOARD_JWT_SECRET?.trim();
-  if (!dashboardJwtSecret) {
-    throw new Error("dashboard_jwt_secret_missing");
-  }
-
-  const secret = new TextEncoder().encode(dashboardJwtSecret);
-  const { payload } = await jwtVerify(token, secret);
-  const tenantId =
-    typeof payload.tenantId === "string" && payload.tenantId.trim().length > 0
-      ? payload.tenantId
-      : null;
-
-  if (!tenantId) {
-    throw new Error("missing_tenant_claim");
-  }
-
-  return { tenantId };
+function resolveApiBaseUrl(): string {
+  return process.env.API_URL?.trim() || "http://localhost:3000";
 }
 
-export async function proxyJson(path: string, reqBody: unknown, authToken: string) {
-  const backend = process.env.API_URL || "http://localhost:3000";
-  const response = await fetch(`${backend}${path}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(reqBody),
+function readFirst(header: string | string[] | undefined): string | null {
+  if (Array.isArray(header)) {
+    return header[0] ?? null;
+  }
+
+  return typeof header === "string" && header.trim().length > 0 ? header : null;
+}
+
+export function buildApiForwardHeaders(req: NextApiRequest): Headers {
+  const headers = new Headers();
+  const authorization = readFirst(req.headers.authorization);
+  const cookieHeader = readFirst(req.headers.cookie);
+
+  if (authorization) {
+    headers.set("authorization", authorization);
+  }
+
+  if (cookieHeader) {
+    headers.set("cookie", cookieHeader);
+  }
+
+  return headers;
+}
+
+export async function requireApiAuth(
+  req: NextApiRequest
+): Promise<{ forwardHeaders: Headers; profile: unknown }> {
+  const forwardHeaders = buildApiForwardHeaders(req);
+
+  if (!forwardHeaders.get("authorization") && !forwardHeaders.get("cookie")) {
+    throw new Error("missing_authorization");
+  }
+
+  const response = await fetch(`${resolveApiBaseUrl()}/api/v1/me`, {
+    cache: "no-store",
+    headers: forwardHeaders
   });
-  if (!response.ok) throw new Error(`backend_error_${response.status}`);
+
+  if (!response.ok) {
+    throw new Error(`backend_error_${response.status}`);
+  }
+
+  return {
+    forwardHeaders,
+    profile: await response.json()
+  };
+}
+
+export async function proxyJson(path: string, req: NextApiRequest, init?: RequestInit) {
+  const { forwardHeaders } = await requireApiAuth(req);
+  const headers = new Headers(forwardHeaders);
+
+  if (init?.headers) {
+    const extraHeaders = new Headers(init.headers);
+    extraHeaders.forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+
+  const response = await fetch(`${resolveApiBaseUrl()}${path}`, {
+    ...init,
+    cache: "no-store",
+    headers
+  });
+
+  if (!response.ok) {
+    throw new Error(`backend_error_${response.status}`);
+  }
+
   return response.json();
 }

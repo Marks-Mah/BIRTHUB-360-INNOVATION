@@ -1,6 +1,6 @@
 import { performance } from "node:perf_hooks";
 
-import { BaseTool } from "@birthub/agents-core";
+import { BaseTool } from "@birthub/agents-core/tools";
 import { z } from "zod";
 
 import { PlanExecutor, type AgentExecutionRequest } from "../executors/planExecutor.js";

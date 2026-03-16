@@ -1,0 +1,4 @@
+project_id = "birthhub-360-prod"
+region     = "us-central1"
+network    = "default"
+env        = "prod"

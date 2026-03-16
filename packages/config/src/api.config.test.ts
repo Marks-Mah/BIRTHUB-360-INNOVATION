@@ -39,6 +39,23 @@ void test("api config blocks placeholder production secrets and missing telemetr
   );
 });
 
+void test("api config accepts hardened staging settings with Stripe test credentials", () => {
+  const config = getApiConfig({
+    ...baseEnv,
+    AUTH_MFA_ENCRYPTION_KEY: "staging-mfa-encryption-key-123",
+    DEPLOYMENT_ENVIRONMENT: "staging",
+    JOB_HMAC_GLOBAL_SECRET: "staging-job-hmac-secret-123",
+    SENTRY_DSN: "https://public@example.ingest.sentry.io/123456",
+    SESSION_SECRET: "staging-session-secret-123",
+    STRIPE_SECRET_KEY: "sk_test_birthhub360_staging",
+    STRIPE_WEBHOOK_SECRET: "whsec_staging_birthhub360",
+    WEB_BASE_URL: "https://staging.birthhub360.com"
+  });
+
+  assert.equal(config.NODE_ENV, "production");
+  assert.equal(config.STRIPE_SECRET_KEY, "sk_test_birthhub360_staging");
+});
+
 void test("api config accepts hardened production settings", () => {
   const config = getApiConfig({
     ...baseEnv,

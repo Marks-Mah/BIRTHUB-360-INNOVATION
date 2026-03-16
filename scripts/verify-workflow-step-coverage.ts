@@ -82,7 +82,7 @@ async function main(): Promise<void> {
       file: "tests/e2e/workflow-editor-evidence.spec.ts",
       id: "6.10.C1",
       label: "Workflow editor evidence test persists the 10-node canvas artifact path",
-      patterns: [/workflow-editor-10-nodes\.png/, /Workflow Canvas - evidence/]
+      patterns: [/workflow-editor-10-nodes\.png/, /Node Sidebar/, /toHaveCount\(10\)/]
     },
     {
       file: "tests/e2e/workflow-agent-output.spec.ts",

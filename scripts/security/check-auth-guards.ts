@@ -47,6 +47,7 @@ const publicRoutes = new Set([
 
 const sensitiveReadMatchers = [
   /^\/api\/v1\/workflows(?:\/.*)?$/,
+  /^\/api\/v1\/dashboard(?:\/.*)?$/,
   /^\/orgs\/[^/]+\/(?:members|audit)(?:\/.*)?$/,
   /^\/api\/v1\/agents\/installed(?:\/.*)?$/,
   /^\/api\/v1\/budgets(?:\/.*)?$/,
@@ -77,6 +78,9 @@ const adminMatchers: AdminMatcher[] = [
   {
     methods: ["post"],
     pattern: /^\/api\/v1\/workflows\/events\/:topic$/
+  },
+  {
+    pattern: /^\/api\/v1\/dashboard(?:\/.*)?$/
   },
   {
     pattern: /^\/orgs\/[^/]+\/(?:members|audit)(?:\/export)?$/
@@ -213,8 +217,13 @@ function getMiddlewareTexts(sourceFile: ts.SourceFile, args: readonly ts.Express
   return args.slice(1).map((argument) => argument.getText(sourceFile));
 }
 
-function collectInheritedMiddleware(sourceFile: ts.SourceFile): Map<string, string[]> {
-  const middlewareByRouter = new Map<string, string[]>();
+type InheritedMiddleware = {
+  middlewareTexts: string[];
+  pathPrefix: string | null;
+};
+
+function collectInheritedMiddleware(sourceFile: ts.SourceFile): Map<string, InheritedMiddleware[]> {
+  const middlewareByRouter = new Map<string, InheritedMiddleware[]>();
 
   const visit = (node: ts.Node) => {
     if (
@@ -225,15 +234,18 @@ function collectInheritedMiddleware(sourceFile: ts.SourceFile): Map<string, stri
     ) {
       const routerName = node.expression.expression.text;
       const firstArgument = node.arguments[0];
-      const startsWithPath =
-        firstArgument !== undefined &&
-        (ts.isStringLiteral(firstArgument) || ts.isNoSubstitutionTemplateLiteral(firstArgument));
-
-      if (!startsWithPath) {
-        const inheritedTexts = node.arguments.map((argument) => argument.getText(sourceFile));
-        const existing = middlewareByRouter.get(routerName) ?? [];
-        middlewareByRouter.set(routerName, existing.concat(inheritedTexts));
-      }
+      const pathPrefix = extractLiteralPath(firstArgument);
+      const middlewareTexts = pathPrefix
+        ? getMiddlewareTexts(sourceFile, node.arguments)
+        : node.arguments.map((argument) => argument.getText(sourceFile));
+      const existing = middlewareByRouter.get(routerName) ?? [];
+      middlewareByRouter.set(
+        routerName,
+        existing.concat({
+          middlewareTexts,
+          pathPrefix
+        })
+      );
     }
 
     ts.forEachChild(node, visit);
@@ -241,6 +253,14 @@ function collectInheritedMiddleware(sourceFile: ts.SourceFile): Map<string, stri
 
   visit(sourceFile);
   return middlewareByRouter;
+}
+
+function routeMatchesPrefix(routePath: string, pathPrefix: string | null): boolean {
+  if (!pathPrefix) {
+    return true;
+  }
+
+  return routePath === pathPrefix || routePath.startsWith(`${pathPrefix}/`);
 }
 
 function scanRouteFile(filePath: string): RouteViolation[] {
@@ -262,8 +282,11 @@ function scanRouteFile(filePath: string): RouteViolation[] {
 
         if (routePath) {
           const routerName = node.expression.expression.text;
+          const inheritedTexts = (inheritedMiddleware.get(routerName) ?? [])
+            .filter((entry) => routeMatchesPrefix(routePath, entry.pathPrefix))
+            .flatMap((entry) => entry.middlewareTexts);
           const middlewareTexts = [
-            ...(inheritedMiddleware.get(routerName) ?? []),
+            ...inheritedTexts,
             ...getMiddlewareTexts(sourceFile, node.arguments)
           ];
           const hasSessionGuard = middlewareTexts.some((text) =>

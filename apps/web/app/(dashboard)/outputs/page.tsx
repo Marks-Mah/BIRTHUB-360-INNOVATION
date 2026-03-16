@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { FeedbackWidget } from "../../../components/agents/FeedbackWidget";
 import { OutputApprovalButton } from "../../../components/outputs/OutputApprovalButton";
-import { fetchOutputDetail, fetchOutputs } from "../../../lib/marketplace-api";
+import { fetchOutputDetail, fetchOutputs } from "../../../lib/marketplace-api.server";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAgentStatuses } from "../lib/dashboard-data";
+import { useAgentStatuses } from "../lib/dashboard-hooks";
+import type { HealthScoreItem } from "../lib/dashboard-types";
 
 type Props = { healthScore: HealthScoreItem[] };
 

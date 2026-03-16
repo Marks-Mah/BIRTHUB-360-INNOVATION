@@ -5,7 +5,7 @@ import { RealtimeBanner } from "../components/realtime-banner";
 import { ExperienceLab } from "../components/experience-lab";
 import { SessionActions } from "../components/session-actions";
 import { PremiumCommandCenter } from "../components/premium-command-center";
-import { useAgentStatuses, useBillingSummary, useMetrics } from "../lib/dashboard-data";
+import { useAgentStatuses, useBillingSummary, useMetrics } from "../lib/dashboard-hooks";
 
 const cards = [
   { href: "/sales", title: "Sales OS", description: "Sistema operacional de vendas com IA (LDR, BDR, SDR, Closer)." },
@@ -32,7 +32,7 @@ export default function DashboardHome() {
       <header className="header">
         <div>
           <h1>✨ BirthHub 360 — Dashboard RevOps Ultra</h1>
-          <p>Dados executivos sincronizados com API Gateway em tempo real.</p>
+          <p>Dados executivos sincronizados com a API principal em tempo real.</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}><RealtimeBanner /><SessionActions /></div>
       </header>

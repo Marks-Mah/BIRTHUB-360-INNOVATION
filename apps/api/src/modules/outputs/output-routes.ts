@@ -125,7 +125,7 @@ export function createOutputRouter(): Router {
   router.post(
     "/:outputId/approve",
     requireAuthenticatedSession,
-    RequireRole(Role.ADMIN),
+    RequireRole(Role.OWNER),
     asyncHandler(async (request, response) => {
       const tenantId = request.context.tenantId;
       const approvedByUserId = request.context.userId;
@@ -203,7 +203,7 @@ export function createOutputRouter(): Router {
   router.post(
     "/prune",
     requireAuthenticatedSession,
-    RequireRole(Role.ADMIN),
+    RequireRole(Role.OWNER),
     asyncHandler(async (request, response) => {
       const deleted = await outputService.prune();
 

@@ -55,6 +55,8 @@
     "billing:sync": "pnpm --filter @birthub/api billing:sync",
     "privacy:verify": "tsx scripts/privacy/verify-anonymization.ts",
     "release:migrate": "tsx scripts/release/final-data-migration.ts",
+    "release:preflight:production": "node --import tsx scripts/release/preflight-env.ts --target=production",
+    "release:preflight:staging": "node --import tsx scripts/release/preflight-env.ts --target=staging",
     "release:smoke": "tsx scripts/release/global-smoke.ts",
     "setup:local": "bash ./scripts/setup/setup-local.sh",
     "reset:local": "bash ./scripts/reset-local.sh",

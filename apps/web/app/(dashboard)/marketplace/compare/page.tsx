@@ -1,4 +1,4 @@
-import { fetchComparisonMatrix } from "../../../../lib/marketplace-api";
+import { fetchComparisonMatrix } from "../../../../lib/marketplace-api.server";
 
 export default async function MarketplaceComparePage() {
   const data = await fetchComparisonMatrix();

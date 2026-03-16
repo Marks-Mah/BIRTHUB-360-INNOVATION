@@ -13,19 +13,7 @@ const ignoredDirectoryNames = new Set([
   "test-results"
 ]);
 
-const importRules = [
-  {
-    allowedRoots: ["apps/agent-orchestrator", "apps/api-gateway", "apps/dashboard", "packages/db"],
-    description: "@birthub/db is the legacy CRM schema and must stay isolated to legacy workspaces.",
-    packageName: "@birthub/db"
-  },
-  {
-    allowedRoots: ["apps/api", "apps/web", "apps/worker", "packages/database", "packages/testing"],
-    description:
-      "@birthub/database is the multi-tenant SaaS schema and must not leak into legacy CRM workspaces.",
-    packageName: "@birthub/database"
-  }
-];
+const workspaceContractPath = path.join(projectRoot, "scripts", "ci", "workspace-contract.json");
 
 function walkFiles(rootRelativePath) {
   const rootDirectory = path.join(projectRoot, rootRelativePath);
@@ -92,12 +80,13 @@ function collectScriptPathIssues(rootPackage) {
 function collectImportBoundaryIssues() {
   const issues = [];
   const sourceFiles = collectSourceFiles();
+  const workspaceContract = JSON.parse(readFileSync(workspaceContractPath, "utf8"));
 
   for (const absolutePath of sourceFiles) {
     const relativePath = toRepoRelativePath(absolutePath);
     const content = readFileSync(absolutePath, "utf8");
 
-    for (const rule of importRules) {
+    for (const rule of workspaceContract.importRules) {
       if (!content.includes(rule.packageName)) {
         continue;
       }
@@ -114,19 +103,55 @@ function collectImportBoundaryIssues() {
   return issues;
 }
 
-function collectKnownConflictIssues(rootPackage) {
+function collectConflictIssues(rootPackage) {
   const issues = [];
+  const workspaceContract = JSON.parse(readFileSync(workspaceContractPath, "utf8"));
 
-  if (!existsSync(path.join(projectRoot, "agents", "pos-venda", "main.py"))) {
-    issues.push("Expected agents/pos-venda/main.py to exist for the legacy Python runtime.");
+  for (const conflict of workspaceContract.conflicts) {
+    if (!existsSync(path.join(projectRoot, conflict.requiredPath))) {
+      issues.push(`Missing required workspace path ${conflict.requiredPath}. ${conflict.description}`);
+    }
   }
 
-  if (!existsSync(path.join(projectRoot, "agents", "pos_venda", "worker.ts"))) {
-    issues.push("Expected agents/pos_venda/worker.ts to exist for the worker package.");
+  for (const expectedScript of workspaceContract.expectedScriptValues) {
+    if (rootPackage.scripts?.[expectedScript.script] !== expectedScript.value) {
+      issues.push(
+        `package.json script "${expectedScript.script}" must be "${expectedScript.value}".`
+      );
+    }
   }
 
-  if (rootPackage.scripts?.["dev:pos-venda-worker"] !== "tsx agents/pos_venda/worker.ts") {
-    issues.push('package.json script "dev:pos-venda-worker" must target agents/pos_venda/worker.ts.');
+  return issues;
+}
+
+function collectReleaseCoreLaneIssues(rootPackage) {
+  const issues = [];
+  const workspaceContract = JSON.parse(readFileSync(workspaceContractPath, "utf8"));
+  const requiredByScript = workspaceContract.releaseCoreScripts.requiredByScript ?? {};
+  const forbiddenFilters = workspaceContract.releaseCoreScripts.forbiddenFilters ?? [];
+
+  for (const [scriptName, requiredFilters] of Object.entries(requiredByScript)) {
+    const scriptValue = String(rootPackage.scripts?.[scriptName] ?? "");
+    if (!scriptValue) {
+      issues.push(`package.json is missing required script "${scriptName}".`);
+      continue;
+    }
+
+    for (const requiredFilter of requiredFilters) {
+      if (!scriptValue.includes(requiredFilter)) {
+        issues.push(
+          `package.json script "${scriptName}" must include the release-critical filter ${requiredFilter}.`
+        );
+      }
+    }
+
+    for (const forbiddenFilter of forbiddenFilters) {
+      if (scriptValue.includes(forbiddenFilter)) {
+        issues.push(
+          `package.json script "${scriptName}" must not include legacy filter ${forbiddenFilter}.`
+        );
+      }
+    }
   }
 
   return issues;
@@ -138,7 +163,8 @@ function main() {
   const issues = [
     ...collectScriptPathIssues(rootPackage),
     ...collectImportBoundaryIssues(),
-    ...collectKnownConflictIssues(rootPackage)
+    ...collectConflictIssues(rootPackage),
+    ...collectReleaseCoreLaneIssues(rootPackage)
   ];
 
   if (issues.length > 0) {

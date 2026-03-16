@@ -7,6 +7,7 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from redis.asyncio import Redis
 from svix.webhooks import Webhook, WebhookVerificationError
 
+PRIMARY_API_URL = os.getenv("PRIMARY_API_URL") or os.getenv("API_URL")
 API_GATEWAY_URL = os.getenv("API_GATEWAY_URL")
 INTERNAL_SERVICE_TOKEN = os.getenv("INTERNAL_SERVICE_TOKEN")
 redis_client: Redis | None = None
@@ -29,9 +30,21 @@ def _resolve_redis_url() -> str:
 def _resolve_api_gateway_url() -> str:
     if API_GATEWAY_URL:
         return API_GATEWAY_URL
+    if PRIMARY_API_URL:
+        return PRIMARY_API_URL
     if _is_strict_runtime():
-        raise RuntimeError("API_GATEWAY_URL is required in strict runtime")
-    return "http://localhost:3001"
+        raise RuntimeError("API_GATEWAY_URL or PRIMARY_API_URL is required in strict runtime")
+    return "http://localhost:3000"
+
+
+def _resolve_primary_api_url() -> str:
+    if PRIMARY_API_URL:
+        return PRIMARY_API_URL
+    if API_GATEWAY_URL:
+        return API_GATEWAY_URL
+    if _is_strict_runtime():
+        raise RuntimeError("PRIMARY_API_URL or API_URL is required in strict runtime")
+    return "http://localhost:3000"
 
 
 def _get_redis_client() -> Redis:
@@ -123,7 +136,8 @@ async def health() -> dict:
 
     services = {
         "redis": {"status": "up"},
-        "upstreamApi": {"status": "up"},
+        "primaryApi": {"status": "up"},
+        "compatApi": {"status": "up"},
         "internalServiceToken": {"status": "up" if INTERNAL_SERVICE_TOKEN else "down"},
         "svixSecret": {"status": "up" if os.getenv("SVIX_WEBHOOK_SECRET") else "down"},
     }
@@ -137,10 +151,18 @@ async def health() -> dict:
 
     try:
         async with httpx.AsyncClient(timeout=5) as client:
+            response = await client.get(f"{_resolve_primary_api_url()}/health")
+            response.raise_for_status()
+    except Exception as exc:  # noqa: BLE001
+        services["primaryApi"] = {"status": "down", "message": str(exc)}
+        status = "degraded"
+
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
             response = await client.get(f"{_resolve_api_gateway_url()}/health")
             response.raise_for_status()
     except Exception as exc:  # noqa: BLE001
-        services["upstreamApi"] = {"status": "down", "message": str(exc)}
+        services["compatApi"] = {"status": "down", "message": str(exc)}
         status = "degraded"
 
     if _is_strict_runtime() and not INTERNAL_SERVICE_TOKEN:

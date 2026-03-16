@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import {
   createPolicyTemplate,
@@ -10,6 +10,10 @@ import { prisma } from "@birthub/database";
 
 import { toPrismaJsonValue } from "../../lib/prisma-json.js";
 import { decryptConnectorsMap } from "../../lib/encryption.js";
+import {
+  QueueBackpressureError,
+  TenantQueueRateLimitError
+} from "../../lib/queue.js";
 import { ProblemDetailsError } from "../../lib/problem-details.js";
 import { marketplaceService } from "../marketplace/marketplace-service.js";
 import { enqueueInstalledAgentExecution } from "./queue.js";
@@ -54,6 +58,10 @@ export interface InstalledAgentSnapshot {
   status: string;
   tags: string[];
   version: string;
+}
+
+function buildPayloadHash(payload: Record<string, unknown>): string {
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
 function canFallbackDatabase(error: unknown): boolean {
@@ -114,6 +122,15 @@ function extractLogs(metadata: unknown): string[] {
   return Array.isArray(logs)
     ? logs.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
     : [];
+}
+
+function extractPayloadHash(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object") {
+    return null;
+  }
+
+  const candidate = (metadata as { payloadHash?: unknown }).payloadHash;
+  return typeof candidate === "string" ? candidate : null;
 }
 
 function extractExecutionMode(execution: AgentExecutionRecord): "DRY_RUN" | "LIVE" | "UNKNOWN" {
@@ -182,8 +199,8 @@ function parseAgentConfig(config: unknown): AgentConfigSnapshot {
           return {
             actions: policy.actions.filter((value): value is string => typeof value === "string"),
             effect,
-            id: policy.id as string,
-            name: policy.name as string,
+            id: policy.id,
+            name: policy.name,
             ...(typeof policy.enabled === "boolean" ? { enabled: policy.enabled } : {}),
             ...(typeof policy.reason === "string" ? { reason: policy.reason } : {})
           } satisfies ManagedAgentPolicy;
@@ -360,6 +377,32 @@ async function resolveInstalledAgent(input: {
     manifest: catalogEntry.manifest,
     organization
   };
+}
+
+async function findReusableRunningExecution(input: {
+  agentId: string;
+  payloadHash: string;
+  tenantId: string;
+}): Promise<AgentExecutionRecord | null> {
+  const execution = await prisma.agentExecution.findFirst({
+    orderBy: {
+      startedAt: "desc"
+    },
+    where: {
+      agentId: input.agentId,
+      startedAt: {
+        gte: new Date(Date.now() - 10 * 60 * 1000)
+      },
+      status: "RUNNING",
+      tenantId: input.tenantId
+    }
+  });
+
+  if (!execution) {
+    return null;
+  }
+
+  return extractPayloadHash(execution.metadata) === input.payloadHash ? execution : null;
 }
 
 export class InstalledAgentsService {
@@ -697,11 +740,43 @@ export class InstalledAgentsService {
     catalogAgentId: string;
     executionId: string;
     mode: "LIVE";
+    reused: boolean;
   }> {
     const resolved = await resolveInstalledAgent({
       installedAgentId: input.installedAgentId,
       tenantReference: input.tenantReference
     });
+    const payloadHash = buildPayloadHash(input.payload);
+    const reusableExecution = await findReusableRunningExecution({
+      agentId: resolved.agent.id,
+      payloadHash,
+      tenantId: resolved.organization.tenantId
+    });
+
+    if (reusableExecution) {
+      await prisma.auditLog.create({
+        data: {
+          action: "AGENT_LIVE_EXECUTION_REUSED",
+          actorId: input.userId,
+          diff: toPrismaJsonValue({
+            executionId: reusableExecution.id,
+            installedAgentId: resolved.agent.id,
+            payloadHash
+          }),
+          entityId: reusableExecution.id,
+          entityType: "agent_execution",
+          tenantId: resolved.organization.tenantId
+        }
+      });
+
+      return {
+        catalogAgentId: resolved.manifest.agent.id,
+        executionId: reusableExecution.id,
+        mode: "LIVE",
+        reused: true
+      };
+    }
+
     const executionId = randomUUID();
     const startedAt = new Date();
     const initialLogs = [
@@ -718,6 +793,7 @@ export class InstalledAgentsService {
           metadata: toPrismaJsonValue({
             catalogAgentId: resolved.manifest.agent.id,
             logs: initialLogs,
+            payloadHash,
             runtimeProvider: resolved.config.runtimeProvider
           }),
           organizationId: resolved.organization.id,
@@ -733,6 +809,7 @@ export class InstalledAgentsService {
           metadata: toPrismaJsonValue({
             catalogAgentId: resolved.manifest.agent.id,
             logs: initialLogs,
+            payloadHash,
             runtimeProvider: resolved.config.runtimeProvider
           }),
           organizationId: resolved.organization.id,
@@ -756,6 +833,7 @@ export class InstalledAgentsService {
             executionId,
             installedAgentId: resolved.agent.id,
             mode: "LIVE",
+            payloadHash,
             runtimeProvider: resolved.config.runtimeProvider
           }),
           entityId: executionId,
@@ -765,20 +843,102 @@ export class InstalledAgentsService {
       });
     });
 
-    await enqueueInstalledAgentExecution(getApiConfig(), {
-      agentId: resolved.agent.id,
-      catalogAgentId: resolved.manifest.agent.id,
-      executionId,
-      input: input.payload,
-      organizationId: resolved.organization.id,
-      tenantId: resolved.organization.tenantId,
-      userId: input.userId
-    });
+    try {
+      const queued = await enqueueInstalledAgentExecution(getApiConfig(), {
+        agentId: resolved.agent.id,
+        catalogAgentId: resolved.manifest.agent.id,
+        executionId,
+        input: input.payload,
+        organizationId: resolved.organization.id,
+        tenantId: resolved.organization.tenantId,
+        userId: input.userId
+      });
+
+      await prisma.agentExecution.update({
+        data: {
+          metadata: toPrismaJsonValue({
+            catalogAgentId: resolved.manifest.agent.id,
+            logs: [
+              ...initialLogs,
+              `Job ${queued.jobId} aceito pela fila com backlog pendente ${queued.pendingJobs}.`
+            ],
+            payloadHash,
+            queueJobId: queued.jobId,
+            queuePendingJobs: queued.pendingJobs,
+            runtimeProvider: resolved.config.runtimeProvider
+          })
+        },
+        where: {
+          id: executionId
+        }
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to enqueue installed-agent execution.";
+
+      await prisma.$transaction(async (tx) => {
+        await tx.agentExecution.update({
+          data: {
+            completedAt: new Date(),
+            errorMessage,
+            metadata: toPrismaJsonValue({
+              catalogAgentId: resolved.manifest.agent.id,
+              logs: [...initialLogs, `Falha ao enfileirar execucao live: ${errorMessage}`],
+              payloadHash,
+              runtimeProvider: resolved.config.runtimeProvider
+            }),
+            status: "FAILED"
+          },
+          where: {
+            id: executionId
+          }
+        });
+
+        await tx.auditLog.create({
+          data: {
+            action: "AGENT_LIVE_EXECUTION_QUEUE_FAILED",
+            actorId: input.userId,
+            diff: toPrismaJsonValue({
+              errorMessage,
+              executionId,
+              installedAgentId: resolved.agent.id,
+              payloadHash
+            }),
+            entityId: executionId,
+            entityType: "agent_execution",
+            tenantId: resolved.organization.tenantId
+          }
+        });
+      });
+
+      if (error instanceof QueueBackpressureError) {
+        throw new ProblemDetailsError({
+          detail: error.message,
+          status: 503,
+          title: "Queue Backpressure"
+        });
+      }
+
+      if (error instanceof TenantQueueRateLimitError) {
+        throw new ProblemDetailsError({
+          detail: error.message,
+          status: 429,
+          title: "Rate Limit Exceeded"
+        });
+      }
+
+      throw new ProblemDetailsError({
+        detail: errorMessage,
+        status: 503,
+        title: "Queue Unavailable"
+      });
+    }
 
     return {
       catalogAgentId: resolved.manifest.agent.id,
       executionId,
-      mode: "LIVE"
+      mode: "LIVE",
+      reused: false
     };
   }
 }

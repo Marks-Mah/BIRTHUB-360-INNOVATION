@@ -1,6 +1,8 @@
-import { finance } from "../../lib/dashboard-data";
+import { getDashboardSnapshot } from "../../lib/dashboard-data";
 
-export default function FinanceiroPage() {
+export default async function FinanceiroPage() {
+  const { finance } = await getDashboardSnapshot();
+
   return (
     <main className="container">
       <h1>Visão Financeira</h1>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useMetrics } from "../lib/dashboard-data";
+import { useMetrics } from "../lib/dashboard-hooks";
+import type { PipelineItem } from "../lib/dashboard-types";
 
 type Props = { pipeline: PipelineItem[] };
 

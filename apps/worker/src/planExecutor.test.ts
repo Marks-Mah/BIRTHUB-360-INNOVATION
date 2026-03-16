@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BaseTool } from "@birthub/agents-core";
+import { BaseTool } from "@birthub/agents-core/tools";
 import { z } from "zod";
 
 import { PlanExecutor, type AgentExecutionRequest } from "./executors/planExecutor.js";
@@ -57,6 +57,36 @@ class EchoTool extends BaseTool<{ text: string }, { echoed: string }> {
 
   protected async execute(input: { text: string }): Promise<{ echoed: string }> {
     return { echoed: input.text };
+  }
+}
+
+class SlowTool extends BaseTool<{ delayMs: number }, { done: boolean }> {
+  constructor() {
+    super({
+      inputSchema: z.object({ delayMs: z.number().int().positive() }).strict(),
+      name: "slow",
+      outputSchema: z.object({ done: z.boolean() }).strict(),
+      timeoutMs: 5_000
+    });
+  }
+
+  protected async execute(input: { delayMs: number }): Promise<{ done: boolean }> {
+    await new Promise((resolve) => setTimeout(resolve, input.delayMs));
+    return { done: true };
+  }
+}
+
+class FailingTool extends BaseTool<{ reason: string }, { ok: boolean }> {
+  constructor() {
+    super({
+      inputSchema: z.object({ reason: z.string() }).strict(),
+      name: "failing",
+      outputSchema: z.object({ ok: z.boolean() }).strict()
+    });
+  }
+
+  protected async execute(input: { reason: string }): Promise<{ ok: boolean }> {
+    throw new Error(input.reason);
   }
 }
 
@@ -138,5 +168,118 @@ void test("PlanExecutor blocks execution when lock already exists", async () => 
         toolCalls: []
       }),
     /already running/
+  );
+});
+
+void test("PlanExecutor rejects plans above the configured maxPlanSteps", async () => {
+  const redis = new InMemoryRedis();
+  const executor = new PlanExecutor({
+    maxPlanSteps: 1,
+    redis: redis as never,
+    tools: {
+      echo: new EchoTool() as BaseTool<unknown, unknown>
+    }
+  });
+
+  await assert.rejects(
+    () =>
+      executor.execute({
+        agentId: "agent-plan-limit",
+        executionId: "exec-plan-limit",
+        input: {},
+        tenantId: "tenant-plan-limit",
+        toolCalls: [
+          { input: { text: "one" }, tool: "echo" },
+          { input: { text: "two" }, tool: "echo" }
+        ]
+      }),
+    /configured limit/
+  );
+});
+
+void test("PlanExecutor enforces the configured execution timeout", async () => {
+  const redis = new InMemoryRedis();
+  const executor = new PlanExecutor({
+    executionTimeoutMs: 10,
+    redis: redis as never,
+    retryAttempts: 1,
+    tools: {
+      slow: new SlowTool() as BaseTool<unknown, unknown>
+    }
+  });
+
+  await assert.rejects(
+    () =>
+      executor.execute({
+        agentId: "agent-timeout",
+        executionId: "exec-timeout",
+        input: {},
+        tenantId: "tenant-timeout",
+        toolCalls: [{ input: { delayMs: 25 }, tool: "slow" }]
+      }),
+    /timed out|configured timeout/
+  );
+});
+
+void test("PlanExecutor enforces the configured cost ceiling", async () => {
+  const redis = new InMemoryRedis();
+  const executor = new PlanExecutor({
+    maxCostBrl: 0.5,
+    redis: redis as never,
+    toolCostEstimator: () => 0.6,
+    tools: {
+      echo: new EchoTool() as BaseTool<unknown, unknown>
+    }
+  });
+
+  await assert.rejects(
+    () =>
+      executor.execute({
+        agentId: "agent-cost-limit",
+        executionId: "exec-cost-limit",
+        input: {},
+        tenantId: "tenant-cost-limit",
+        toolCalls: [{ input: { text: "cost" }, tool: "echo" }]
+      }),
+    /cost ceiling/
+  );
+});
+
+void test("PlanExecutor opens the circuit breaker after repeated tool failures", async () => {
+  const redis = new InMemoryRedis();
+  const executor = new PlanExecutor({
+    circuitBreaker: {
+      cooldownMs: 60_000,
+      failureThreshold: 1
+    },
+    redis: redis as never,
+    retryAttempts: 1,
+    tools: {
+      failing: new FailingTool() as BaseTool<unknown, unknown>
+    }
+  });
+
+  await assert.rejects(
+    () =>
+      executor.execute({
+        agentId: "agent-circuit",
+        executionId: "exec-circuit-1",
+        input: {},
+        tenantId: "tenant-circuit",
+        toolCalls: [{ input: { reason: "boom" }, tool: "failing" }]
+      }),
+    /boom/
+  );
+
+  await assert.rejects(
+    () =>
+      executor.execute({
+        agentId: "agent-circuit",
+        executionId: "exec-circuit-2",
+        input: {},
+        tenantId: "tenant-circuit",
+        toolCalls: [{ input: { reason: "boom-again" }, tool: "failing" }]
+      }),
+    /circuit breaker/
   );
 });

@@ -109,3 +109,40 @@ void test("POST /api/v1/leads accepts valid payloads and binds the tenant from t
     await runtime.close();
   }
 });
+
+void test("POST /api/v1/leads rejects tokens without tenantId", async () => {
+  process.env.JWT_SECRET = "lead-test-secret";
+  const runtime = await startServer();
+
+  try {
+    const token = jwt.sign(
+      {
+        roles: ["admin"],
+        scopes: ["leads:write"],
+        sub: "user_1"
+      },
+      process.env.JWT_SECRET ?? "lead-test-secret"
+    );
+
+    const response = await fetch(`${runtime.baseUrl}/api/v1/leads`, {
+      body: JSON.stringify({
+        assignee: "sales.owner",
+        email: "grace@birthhub.local",
+        name: "Grace Hopper",
+        score: 88,
+        status: "QUALIFIED"
+      }),
+      headers: {
+        "authorization": `Bearer ${token}`,
+        "content-type": "application/json"
+      },
+      method: "POST"
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 403);
+    assert.equal(payload.code, "MISSING_TENANT_CLAIM");
+  } finally {
+    await runtime.close();
+  }
+});

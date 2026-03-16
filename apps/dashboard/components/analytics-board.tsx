@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRecentTasks } from "../lib/dashboard-data";
+import { useRecentTasks } from "../lib/dashboard-hooks";
+import type { AttributionItem } from "../lib/dashboard-types";
 
 type Props = { attribution: AttributionItem[] };
 

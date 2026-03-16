@@ -45,3 +45,30 @@ groups:
           slo: saturation
         annotations:
           summary: "Spike de rate limiting detectado em endpoints expostos"
+
+      - alert: ApiUnauthorizedSpike
+        expr: rate(http_requests_total{job="api",status=~"401|403"}[10m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+          slo: security
+        annotations:
+          summary: "Spike de 401/403 na API principal após endurecimento de auth/tenant"
+
+      - alert: ApiBudgetExceededSpike
+        expr: rate(http_requests_total{job="api",status="402"}[10m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+          slo: finops
+        annotations:
+          summary: "Spike de 402 indica bloqueios de budget ou regressão em custos"
+
+      - alert: ApiTaskIngestionRejections
+        expr: rate(http_requests_total{job="api",path="/api/v1/tasks",status=~"401|402|429|503"}[10m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+          slo: security
+        annotations:
+          summary: "Rejeições anormais em /api/v1/tasks após fechamento da ingestão autenticada"

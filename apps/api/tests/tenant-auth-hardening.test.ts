@@ -215,3 +215,28 @@ void test("agents and packs management reject anonymous access", async () => {
   await request(app).get("/api/v1/agents/installed").expect(401);
   await request(app).get("/api/v1/packs/status").expect(401);
 });
+
+void test("dashboard endpoints reject anonymous and insufficient-role access", async () => {
+  const app = createSecurityApp();
+
+  await request(app).get("/api/v1/dashboard/metrics").expect(401);
+
+  const restores = [
+    ...createSessionStubs({
+      memberships: {
+        org_1: Role.MEMBER
+      }
+    })
+  ];
+
+  try {
+    await request(app)
+      .get("/api/v1/dashboard/metrics")
+      .set("Authorization", "Bearer atk_valid")
+      .expect(403);
+  } finally {
+    for (const restore of restores.reverse()) {
+      restore();
+    }
+  }
+});

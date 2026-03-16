@@ -132,6 +132,7 @@ export function createInstalledAgentsRouter(): Router {
         catalogAgentId: result.catalogAgentId,
         executionId: result.executionId,
         mode: result.mode,
+        reused: result.reused,
         requestId: request.context.requestId
       });
     })
@@ -165,7 +166,7 @@ export function createInstalledAgentsRouter(): Router {
   router.post(
     "/installed/:installedAgentId/policies",
     requireAuthenticatedSession,
-    RequireRole(Role.ADMIN),
+    RequireRole(Role.OWNER),
     RequireFeature("agents"),
     asyncHandler(async (request, response) => {
       const tenantReference = resolveTenantReference({
@@ -202,7 +203,7 @@ export function createInstalledAgentsRouter(): Router {
   router.patch(
     "/installed/:installedAgentId/policies/:policyId",
     requireAuthenticatedSession,
-    RequireRole(Role.ADMIN),
+    RequireRole(Role.OWNER),
     RequireFeature("agents"),
     asyncHandler(async (request, response) => {
       const tenantReference = resolveTenantReference({
@@ -240,7 +241,7 @@ export function createInstalledAgentsRouter(): Router {
   router.post(
     "/installed/:installedAgentId/policies/templates",
     requireAuthenticatedSession,
-    RequireRole(Role.ADMIN),
+    RequireRole(Role.OWNER),
     RequireFeature("agents"),
     asyncHandler(async (request, response) => {
       const tenantReference = resolveTenantReference({

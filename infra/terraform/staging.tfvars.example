@@ -1,0 +1,4 @@
+project_id = "birthhub-360-staging"
+region     = "us-central1"
+network    = "default"
+env        = "staging"

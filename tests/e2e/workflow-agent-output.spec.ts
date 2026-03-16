@@ -1,15 +1,14 @@
 import { expect, test } from "@playwright/test";
 
-async function bootstrapSession(page: Parameters<typeof test>[0]["page"]) {
-  await page.addInitScript(() => {
-    localStorage.setItem("bh_csrf_token", "csrf-e2e");
-    localStorage.setItem("bh_tenant_id", "birthhub-alpha");
-    localStorage.setItem("bh_user_id", "owner.alpha@birthub.local");
-  });
-}
+import {
+  bootstrapSession,
+  mockDemoWorkflowRuns,
+  mockExecutionFeedback
+} from "./support";
 
 test("workflow debugger and agent output feedback flow stay linked end-to-end", async ({ page }) => {
   await bootstrapSession(page);
+  await mockDemoWorkflowRuns(page);
   await page.route("**/api/v1/me", async (route) => {
     await route.fulfill({
       body: JSON.stringify({
@@ -27,44 +26,18 @@ test("workflow debugger and agent output feedback flow stay linked end-to-end", 
       status: 200
     });
   });
-  await page.route("**/api/v1/executions/exec-feedback/feedback", async (route) => {
-    if (route.request().method() === "POST") {
-      await route.fulfill({
-        body: JSON.stringify({
-          feedback: {
-            expectedOutput: "Resposta corrigida",
-            notes: "Corrigir contexto",
-            rating: -1
-          }
-        }),
-        contentType: "application/json",
-        status: 200
-      });
-      return;
-    }
-
-    await route.fulfill({
-      body: JSON.stringify({
-        feedback: {
-          expectedOutput: "",
-          notes: "",
-          rating: 0
-        }
-      }),
-      contentType: "application/json",
-      status: 200
-    });
-  });
+  await mockExecutionFeedback(page);
 
   await page.goto("/workflows/demo/runs");
   await expect(page.getByText("Workflow Runs - demo")).toBeVisible();
   await page.getByText("Condition").first().click();
   await expect(page.getByText('"result": true')).toBeVisible();
   await page.getByRole("button", { name: "Retry falha" }).click();
-  await expect(page.getByText("Running").first()).toBeVisible();
+  await expect(page.getByText("Retry aceito. Recarregue em alguns segundos para ver a nova run.")).toBeVisible();
 
   await page.goto("/outputs?executionId=exec-feedback");
   await expect(page.getByText("Outputs de Agente")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Polegar para baixo" })).toBeEnabled();
   await page.getByRole("button", { name: "Polegar para baixo" }).click();
   await page
     .getByPlaceholder("Descreva a resposta esperada para fortalecer o dataset RLHF.")

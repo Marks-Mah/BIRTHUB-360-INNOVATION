@@ -13,7 +13,7 @@
     "start:ldr-worker": "tsx src/workers/ldr-worker.ts"
   },
   "dependencies": {
-    "@birthub/db": "workspace:*",
+    "@birthub/database": "workspace:*",
     "@birthub/llm-client": "workspace:*",
     "@birthub/queue": "workspace:*",
     "@birthub/shared-types": "workspace:*",

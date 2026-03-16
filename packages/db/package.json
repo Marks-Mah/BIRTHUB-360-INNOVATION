@@ -1,16 +1,10 @@
 {
   "name": "@birthub/db",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:seed": "prisma db seed",
-    "dev": "tsc --watch",
-    "db:migrate": "prisma migrate dev --name init",
-    "db:reset": "prisma migrate reset --force",
     "test": "node --import tsx --test src/**/*.test.ts"
   },
   "prisma": {
@@ -18,12 +12,11 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "prisma": "^6.19.2",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.2"
+    "@birthub/database": "workspace:*"
   },
   "type": "module",
   "exports": {
@@ -31,5 +24,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
-  }
+  },
+  "description": "Deprecated compatibility layer. Use @birthub/database."
 }

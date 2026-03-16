@@ -1,4 +1,4 @@
-import { prisma } from "@birthub/db";
+import { prisma } from "@birthub/database";
 import { unstable_noStore as noStore } from "next/cache";
 
 export async function getDashboardStats() {

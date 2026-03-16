@@ -1,0 +1,9 @@
+{
+  "name": "@birthub/emails",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "echo 'email templates linted'"
+  }
+}

@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-
-export const prisma = new PrismaClient();
-
-export * from "@prisma/client";
+/**
+ * @deprecated Use @birthub/database directly.
+ * Compatibility layer kept only for archived workloads during cutover.
+ */
+export * from '@birthub/database';

@@ -2,12 +2,12 @@ import { interpolateValue } from "../interpolation/interpolate.js";
 import type { WorkflowRuntimeContext } from "../types.js";
 
 export interface AgentHandoffConfig {
-  context?: Record<string, unknown>;
-  correlationId?: string;
+  context?: Record<string, unknown> | undefined;
+  correlationId?: string | undefined;
   sourceAgentId: string;
   summary: string;
   targetAgentId: string;
-  threadId?: string;
+  threadId?: string | undefined;
 }
 
 export interface HandoffExecutor {

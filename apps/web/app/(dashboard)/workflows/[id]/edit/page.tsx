@@ -41,6 +41,11 @@ type BuilderNodeData = {
     | "TRANSFORMER"
     | "AI_TEXT_EXTRACT"
     | "AGENT_EXECUTE"
+    | "AGENT_HANDOFF"
+    | "CRM_UPSERT"
+    | "WHATSAPP_SEND"
+    | "GOOGLE_EVENT"
+    | "MS_EVENT"
     | "CODE"
     | "TRIGGER_CRON"
     | "TRIGGER_EVENT";

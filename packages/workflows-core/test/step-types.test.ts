@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { executeStep, type WorkflowRuntimeContext } from "../src/index.js";
+import {
+  executeStep,
+  type ConnectorActionRequest,
+  type WorkflowRuntimeContext
+} from "../src/index.js";
 
 function createContext(): WorkflowRuntimeContext {
   return {
@@ -90,7 +94,7 @@ test("core workflow step types execute with deterministic outputs", async () => 
     workflowId: string;
   }> = [];
   const connectorCalls: Array<{
-    action: Record<string, unknown>;
+    action: ConnectorActionRequest;
     contextSummary: string;
     executionId: string;
     tenantId: string;

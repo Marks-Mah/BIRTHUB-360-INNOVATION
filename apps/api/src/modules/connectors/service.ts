@@ -33,7 +33,7 @@ const connectorProviders = new Set<ConnectorProvider>([
 ]);
 
 type ConnectorCredentialInput = {
-  expiresAt?: string;
+  expiresAt?: string | undefined;
   value: string;
 };
 
@@ -220,7 +220,7 @@ function buildAuthorizationUrl(input: {
 }
 
 async function resolveConnectorAccount(input: {
-  accountKey?: string;
+  accountKey?: string | undefined;
   organizationId: string;
   provider: ConnectorProvider;
 }) {
@@ -368,16 +368,16 @@ export const connectorsService = {
   },
 
   async upsertConnector(input: {
-    accountKey?: string;
-    authType?: string;
-    credentials?: ConnectorCredentialsRecord;
-    displayName?: string;
-    externalAccountId?: string;
-    metadata?: Record<string, unknown>;
+    accountKey?: string | undefined;
+    authType?: string | undefined;
+    credentials?: ConnectorCredentialsRecord | undefined;
+    displayName?: string | undefined;
+    externalAccountId?: string | undefined;
+    metadata?: Record<string, unknown> | undefined;
     organizationId: string;
     provider: ConnectorProvider;
-    scopes?: string[];
-    status?: string;
+    scopes?: string[] | undefined;
+    status?: string | undefined;
     tenantId: string;
   }) {
     const account = await prisma.connectorAccount.upsert({
@@ -430,12 +430,12 @@ export const connectorsService = {
   },
 
   async createConnectSession(input: {
-    accountKey?: string;
+    accountKey?: string | undefined;
     config: ApiConfig;
     organizationId: string;
     provider: ConnectorProvider;
     requestId: string;
-    scopes?: string[];
+    scopes?: string[] | undefined;
     tenantId: string;
     userId: string;
   }) {
@@ -507,16 +507,16 @@ export const connectorsService = {
   },
 
   async finalizeConnectSession(input: {
-    accessToken?: string;
-    accountKey?: string;
-    code?: string;
-    displayName?: string;
-    expiresAt?: string;
-    externalAccountId?: string;
+    accessToken?: string | undefined;
+    accountKey?: string | undefined;
+    code?: string | undefined;
+    displayName?: string | undefined;
+    expiresAt?: string | undefined;
+    externalAccountId?: string | undefined;
     organizationId: string;
     provider: ConnectorProvider;
-    refreshToken?: string;
-    scopes?: string[];
+    refreshToken?: string | undefined;
+    scopes?: string[] | undefined;
     state: string;
     tenantId: string;
   }) {
@@ -606,12 +606,12 @@ export const connectorsService = {
   },
 
   async triggerSync(input: {
-    accountKey?: string;
+    accountKey?: string | undefined;
     config: ApiConfig;
-    cursor?: Record<string, unknown>;
+    cursor?: Record<string, unknown> | undefined;
     organizationId: string;
     provider: ConnectorProvider;
-    scope?: string;
+    scope?: string | undefined;
     tenantId: string;
   }) {
     const account = await resolveConnectorAccount({

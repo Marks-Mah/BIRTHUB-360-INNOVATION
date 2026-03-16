@@ -68,7 +68,7 @@ async function touchConnectorState(input: {
   await prisma.connectorAccount.update({
     data: {
       lastSyncAt: new Date(),
-      status: input.status === "failed" ? "attention" : undefined
+      ...(input.status === "failed" ? { status: "attention" } : {})
     },
     where: {
       id: input.connectorAccountId

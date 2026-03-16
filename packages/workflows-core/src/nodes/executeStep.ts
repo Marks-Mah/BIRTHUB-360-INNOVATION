@@ -61,18 +61,87 @@ export async function executeStep(
       if (!dependencies.handoffExecutor) {
         throw new Error("HANDOFF_EXECUTOR_NOT_CONFIGURED");
       }
-      return executeAgentHandoffNode(step.config, context, dependencies.handoffExecutor);
+      return executeAgentHandoffNode(
+        {
+          context: step.config.context,
+          ...(step.config.correlationId ? { correlationId: step.config.correlationId } : {}),
+          sourceAgentId: step.config.sourceAgentId,
+          summary: step.config.summary,
+          targetAgentId: step.config.targetAgentId,
+          ...(step.config.threadId ? { threadId: step.config.threadId } : {})
+        },
+        context,
+        dependencies.handoffExecutor
+      );
     case "CRM_UPSERT":
+      if (!dependencies.connectorExecutor) {
+        throw new Error("CONNECTOR_EXECUTOR_NOT_CONFIGURED");
+      }
+      return executeConnectorActionNode(
+        {
+          kind: "CRM_UPSERT",
+          ...(step.config.connectorAccountId
+            ? { connectorAccountId: step.config.connectorAccountId }
+            : {}),
+          ...step.config
+        },
+        context,
+        dependencies.connectorExecutor
+      );
     case "WHATSAPP_SEND":
+      if (!dependencies.connectorExecutor) {
+        throw new Error("CONNECTOR_EXECUTOR_NOT_CONFIGURED");
+      }
+      return executeConnectorActionNode(
+        {
+          kind: "WHATSAPP_SEND",
+          ...(step.config.connectorAccountId
+            ? { connectorAccountId: step.config.connectorAccountId }
+            : {}),
+          message: step.config.message,
+          ...(step.config.template ? { template: step.config.template } : {}),
+          ...(step.config.threadId ? { threadId: step.config.threadId } : {}),
+          to: step.config.to
+        },
+        context,
+        dependencies.connectorExecutor
+      );
     case "GOOGLE_EVENT":
+      if (!dependencies.connectorExecutor) {
+        throw new Error("CONNECTOR_EXECUTOR_NOT_CONFIGURED");
+      }
+      return executeConnectorActionNode(
+        {
+          kind: "GOOGLE_EVENT",
+          attendees: step.config.attendees,
+          ...(step.config.calendarId ? { calendarId: step.config.calendarId } : {}),
+          ...(step.config.connectorAccountId
+            ? { connectorAccountId: step.config.connectorAccountId }
+            : {}),
+          ...(step.config.description ? { description: step.config.description } : {}),
+          end: step.config.end,
+          start: step.config.start,
+          title: step.config.title
+        },
+        context,
+        dependencies.connectorExecutor
+      );
     case "MS_EVENT":
       if (!dependencies.connectorExecutor) {
         throw new Error("CONNECTOR_EXECUTOR_NOT_CONFIGURED");
       }
       return executeConnectorActionNode(
         {
-          kind: step.type,
-          ...step.config
+          kind: "MS_EVENT",
+          attendees: step.config.attendees,
+          ...(step.config.calendarId ? { calendarId: step.config.calendarId } : {}),
+          ...(step.config.connectorAccountId
+            ? { connectorAccountId: step.config.connectorAccountId }
+            : {}),
+          ...(step.config.description ? { description: step.config.description } : {}),
+          end: step.config.end,
+          start: step.config.start,
+          title: step.config.title
         },
         context,
         dependencies.connectorExecutor

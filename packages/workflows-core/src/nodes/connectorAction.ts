@@ -4,27 +4,27 @@ import type { WorkflowRuntimeContext } from "../types.js";
 export type ConnectorProvider = "google-workspace" | "hubspot" | "microsoft-graph" | "pipedrive" | "salesforce" | "twilio-whatsapp";
 
 export interface CrmUpsertConfig {
-  connectorAccountId?: string;
+  connectorAccountId?: string | undefined;
   objectType: "company" | "contact" | "deal";
-  operation?: "upsert";
+  operation?: "upsert" | undefined;
   payload: Record<string, unknown>;
-  provider?: Extract<ConnectorProvider, "hubspot" | "pipedrive" | "salesforce">;
-  scope?: string;
+  provider?: Extract<ConnectorProvider, "hubspot" | "pipedrive" | "salesforce"> | undefined;
+  scope?: string | undefined;
 }
 
 export interface WhatsappSendConfig {
-  connectorAccountId?: string;
+  connectorAccountId?: string | undefined;
   message: string;
-  template?: string;
-  threadId?: string;
+  template?: string | undefined;
+  threadId?: string | undefined;
   to: string;
 }
 
 export interface CalendarEventConfig {
-  attendees?: string[];
-  calendarId?: string;
-  connectorAccountId?: string;
-  description?: string;
+  attendees?: string[] | undefined;
+  calendarId?: string | undefined;
+  connectorAccountId?: string | undefined;
+  description?: string | undefined;
   end: string;
   start: string;
   title: string;

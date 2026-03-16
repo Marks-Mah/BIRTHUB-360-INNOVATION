@@ -1,7 +1,15 @@
 import { executeAgentNode, type AgentExecutor } from "./agentExecute.js";
+import {
+  executeAgentHandoffNode,
+  type HandoffExecutor
+} from "./agentHandoff.js";
 import { executeAiTextExtractNode } from "./aiTextExtract.js";
 import { executeCodeNode } from "./code.js";
 import { executeConditionNode } from "./condition.js";
+import {
+  executeConnectorActionNode,
+  type ConnectorExecutor
+} from "./connectorAction.js";
 import { executeDelayNode } from "./delay.js";
 import { executeHttpRequestNode } from "./httpRequest.js";
 import {
@@ -14,6 +22,8 @@ import type { WorkflowRuntimeContext } from "../types.js";
 
 export interface StepExecutionDependencies {
   agentExecutor?: AgentExecutor;
+  connectorExecutor?: ConnectorExecutor;
+  handoffExecutor?: HandoffExecutor;
   notificationDispatcher?: NotificationDispatcher;
   httpRequestRateLimiter?: { consume: (key: string, limit: number, windowSeconds: number) => Promise<void> };
 }
@@ -47,6 +57,26 @@ export async function executeStep(
         throw new Error("AGENT_EXECUTOR_NOT_CONFIGURED");
       }
       return executeAgentNode(step.config, context, dependencies.agentExecutor);
+    case "AGENT_HANDOFF":
+      if (!dependencies.handoffExecutor) {
+        throw new Error("HANDOFF_EXECUTOR_NOT_CONFIGURED");
+      }
+      return executeAgentHandoffNode(step.config, context, dependencies.handoffExecutor);
+    case "CRM_UPSERT":
+    case "WHATSAPP_SEND":
+    case "GOOGLE_EVENT":
+    case "MS_EVENT":
+      if (!dependencies.connectorExecutor) {
+        throw new Error("CONNECTOR_EXECUTOR_NOT_CONFIGURED");
+      }
+      return executeConnectorActionNode(
+        {
+          kind: step.type,
+          ...step.config
+        },
+        context,
+        dependencies.connectorExecutor
+      );
     case "AI_TEXT_EXTRACT":
       return executeAiTextExtractNode(step.config, context);
     case "DELAY":

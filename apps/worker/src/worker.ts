@@ -20,7 +20,9 @@ import {
   workflowQueueNames
 } from "./engine/runner.js";
 import { executeManifestAgentRuntime } from "./agents/runtime.js";
+import { persistAgentHandoff } from "./agents/handoffs.js";
 import { syncOrganizationToHubspot } from "./integrations/hubspot.js";
+import { executeConnectorRuntimeAction } from "./integrations/connectors.runtime.js";
 import {
   emailQueueName,
   enqueueEmailNotification,
@@ -457,6 +459,30 @@ export function createBirthHubWorker(): WorkerRuntime {
           throw error;
         }
       }
+    },
+    connectorExecutor: {
+      execute: async ({ action, executionId, tenantId, workflowId }) =>
+        executeConnectorRuntimeAction({
+          action,
+          executionId,
+          tenantId,
+          workflowId
+        })
+    },
+    handoffExecutor: {
+      execute: async (args) =>
+        persistAgentHandoff({
+          context: args.context,
+          contextSummary: args.contextSummary,
+          correlationId: args.correlationId,
+          executionId: args.executionId,
+          sourceAgentId: args.sourceAgentId,
+          summary: args.summary,
+          targetAgentId: args.targetAgentId,
+          tenantId: args.tenantId,
+          ...(args.threadId ? { threadId: args.threadId } : {}),
+          workflowId: args.workflowId
+        })
     },
     notificationDispatcher: {
       send: async (message) => {

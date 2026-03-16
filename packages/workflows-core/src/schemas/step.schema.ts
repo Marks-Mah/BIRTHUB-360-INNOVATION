@@ -169,6 +169,89 @@ const agentExecuteSchema = z
   })
   .strict();
 
+const agentHandoffSchema = z
+  .object({
+    config: z
+      .object({
+        context: z.record(z.string(), z.unknown()).default({}),
+        correlationId: interpolationString.optional(),
+        sourceAgentId: z.string().min(1),
+        summary: interpolationString,
+        targetAgentId: z.string().min(1),
+        threadId: z.string().min(1).optional()
+      })
+      .strict(),
+    key: z.string().min(1),
+    name: z.string().min(1),
+    type: z.literal("AGENT_HANDOFF")
+  })
+  .strict();
+
+const crmUpsertSchema = z
+  .object({
+    config: z
+      .object({
+        connectorAccountId: z.string().min(1).optional(),
+        objectType: z.enum(["company", "contact", "deal"]),
+        operation: z.enum(["upsert"]).default("upsert"),
+        payload: z.record(z.string(), z.unknown()),
+        provider: z.enum(["hubspot", "salesforce", "pipedrive"]).default("hubspot"),
+        scope: z.string().min(1).optional()
+      })
+      .strict(),
+    key: z.string().min(1),
+    name: z.string().min(1),
+    type: z.literal("CRM_UPSERT")
+  })
+  .strict();
+
+const whatsappSendSchema = z
+  .object({
+    config: z
+      .object({
+        connectorAccountId: z.string().min(1).optional(),
+        message: interpolationString,
+        template: interpolationString.optional(),
+        threadId: z.string().min(1).optional(),
+        to: interpolationString
+      })
+      .strict(),
+    key: z.string().min(1),
+    name: z.string().min(1),
+    type: z.literal("WHATSAPP_SEND")
+  })
+  .strict();
+
+const calendarEventConfigSchema = z
+  .object({
+    attendees: z.array(interpolationString).default([]),
+    calendarId: interpolationString.optional(),
+    connectorAccountId: z.string().min(1).optional(),
+    description: interpolationString.optional(),
+    end: interpolationString,
+    start: interpolationString,
+    title: interpolationString
+  })
+  .strict();
+
+const googleEventSchema = z
+  .object({
+    config: calendarEventConfigSchema,
+    key: z.string().min(1),
+    name: z.string().min(1),
+    type: z.literal("GOOGLE_EVENT")
+  })
+  .strict();
+
+const msEventSchema = z
+  .object({
+    config: calendarEventConfigSchema,
+    key: z.string().min(1),
+    name: z.string().min(1),
+    type: z.literal("MS_EVENT")
+  })
+  .strict();
+
 const aiTextExtractSchema = z
   .object({
     config: z
@@ -194,6 +277,11 @@ export const stepSchema = z.discriminatedUnion("type", [
   transformerSchema,
   notificationSchema,
   agentExecuteSchema,
+  agentHandoffSchema,
+  crmUpsertSchema,
+  whatsappSendSchema,
+  googleEventSchema,
+  msEventSchema,
   aiTextExtractSchema
 ]);
 

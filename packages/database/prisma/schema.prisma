@@ -54,6 +54,10 @@ model Organization {
   webhookDeliveries WebhookDelivery[]
   datasetExports   DatasetExport[]
   crmSyncEvents    CrmSyncEvent[]
+  connectorAccounts ConnectorAccount[]
+  conversationThreads ConversationThread[]
+  conversationMessages ConversationMessage[]
+  agentHandoffs    AgentHandoff[]
   plan             Plan?             @relation(fields: [planId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
@@ -899,6 +903,151 @@ model CrmSyncEvent {
   @@map("crm_sync_events")
 }
 
+model ConnectorAccount {
+  id                String                @id @default(cuid())
+  tenantId          String
+  organizationId    String
+  provider          String
+  accountKey        String                @default("primary") @map("account_key")
+  displayName       String?               @map("display_name")
+  externalAccountId String?               @map("external_account_id")
+  authType          String                @default("oauth") @map("auth_type")
+  status            String                @default("pending")
+  scopes            Json?
+  metadata          Json?
+  connectedAt       DateTime?             @map("connected_at")
+  disconnectedAt    DateTime?             @map("disconnected_at")
+  lastSyncAt        DateTime?             @map("last_sync_at")
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  organization      Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  credentials       ConnectorCredential[]
+  syncCursors       ConnectorSyncCursor[]
+  threads           ConversationThread[]
+
+  @@unique([organizationId, provider, accountKey])
+  @@index([tenantId])
+  @@index([tenantId, provider, status])
+  @@index([organizationId, provider])
+  @@map("connector_accounts")
+}
+
+model ConnectorCredential {
+  id                 String           @id @default(cuid())
+  tenantId           String
+  organizationId     String
+  connectorAccountId String           @map("connector_account_id")
+  credentialType     String           @map("credential_type")
+  encryptedValue     String           @map("encrypted_value")
+  expiresAt          DateTime?        @map("expires_at")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connectorAccount   ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([connectorAccountId, credentialType])
+  @@index([tenantId])
+  @@index([organizationId, createdAt])
+  @@map("connector_credentials")
+}
+
+model ConnectorSyncCursor {
+  id                 String           @id @default(cuid())
+  tenantId           String
+  organizationId     String
+  connectorAccountId String           @map("connector_account_id")
+  scope              String
+  cursor             Json?
+  status             String           @default("idle")
+  metadata           Json?
+  errorMessage       String?          @map("error_message")
+  lastSyncAt         DateTime?        @map("last_sync_at")
+  nextSyncAt         DateTime?        @map("next_sync_at")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connectorAccount   ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([connectorAccountId, scope])
+  @@index([tenantId])
+  @@index([organizationId, scope])
+  @@map("connector_sync_cursors")
+}
+
+model ConversationThread {
+  id                 String             @id @default(cuid())
+  tenantId           String
+  organizationId     String
+  connectorAccountId String?            @map("connector_account_id")
+  externalThreadId   String?            @map("external_thread_id")
+  channel            String
+  status             String             @default("open")
+  subject            String?
+  correlationId      String?            @map("correlation_id")
+  leadReference      String?            @map("lead_reference")
+  customerReference  String?            @map("customer_reference")
+  metadata           Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connectorAccount   ConnectorAccount?  @relation(fields: [connectorAccountId], references: [id], onDelete: SetNull)
+  messages           ConversationMessage[]
+  handoffs           AgentHandoff[]
+
+  @@index([tenantId])
+  @@index([tenantId, channel, status])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, correlationId])
+  @@map("conversation_threads")
+}
+
+model ConversationMessage {
+  id                String             @id @default(cuid())
+  tenantId          String
+  organizationId    String
+  threadId          String             @map("thread_id")
+  direction         String
+  role              String?
+  agentId           String?            @map("agent_id")
+  externalMessageId String?            @map("external_message_id")
+  content           Json
+  contentPreview    String?            @map("content_preview")
+  metadata          Json?
+  createdAt         DateTime           @default(now())
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  thread            ConversationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([threadId, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("conversation_messages")
+}
+
+model AgentHandoff {
+  id                String              @id @default(cuid())
+  tenantId          String
+  organizationId    String
+  threadId          String?             @map("thread_id")
+  sourceAgentId     String              @map("source_agent_id")
+  targetAgentId     String              @map("target_agent_id")
+  sourceExecutionId String?             @map("source_execution_id")
+  targetExecutionId String?             @map("target_execution_id")
+  correlationId     String              @map("correlation_id")
+  status            String              @default("queued")
+  summary           String
+  context           Json
+  result            Json?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  thread            ConversationThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, sourceAgentId, targetAgentId])
+  @@index([organizationId, correlationId])
+  @@map("agent_handoffs")
+}
+
 enum Role {
   SUPER_ADMIN
   OWNER
@@ -953,6 +1102,11 @@ enum WorkflowStepType {
   TRANSFORMER
   SEND_NOTIFICATION
   AGENT_EXECUTE
+  AGENT_HANDOFF
+  CRM_UPSERT
+  WHATSAPP_SEND
+  GOOGLE_EVENT
+  MS_EVENT
   AI_TEXT_EXTRACT
   DELAY
 }

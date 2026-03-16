@@ -12,7 +12,9 @@ import {
 } from "@birthub/database";
 import { createLogger } from "@birthub/logger";
 import {
+  type ConnectorExecutor,
   type AgentExecutor,
+  type HandoffExecutor,
   type NotificationDispatcher,
   executeStep,
   stepSchema
@@ -147,6 +149,8 @@ export class WorkflowRunner {
   private readonly executionQueue: Queue<WorkflowExecutionJobPayload>;
   private readonly dependencies: {
     agentExecutor?: AgentExecutor;
+    connectorExecutor?: ConnectorExecutor;
+    handoffExecutor?: HandoffExecutor;
     notificationDispatcher?: NotificationDispatcher;
     httpRequestRateLimiter?: { consume: (key: string, limit: number, windowSeconds: number) => Promise<void> };
   };
@@ -155,6 +159,8 @@ export class WorkflowRunner {
     executionQueueConnection: Queue<WorkflowExecutionJobPayload>,
     dependencies: {
       agentExecutor?: AgentExecutor;
+      connectorExecutor?: ConnectorExecutor;
+      handoffExecutor?: HandoffExecutor;
       notificationDispatcher?: NotificationDispatcher;
       httpRequestRateLimiter?: { consume: (key: string, limit: number, windowSeconds: number) => Promise<void> };
     } = {}

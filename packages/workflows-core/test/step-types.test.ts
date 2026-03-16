@@ -77,6 +77,25 @@ test("core workflow step types execute with deterministic outputs", async () => 
   const context = createContext();
   const notifications: Array<{ channel: string; message: string; to: string }> = [];
   const agentCalls: Array<{ agentId: string; contextSummary: string; input: Record<string, unknown> }> = [];
+  const handoffCalls: Array<{
+    context: Record<string, unknown>;
+    contextSummary: string;
+    correlationId: string;
+    executionId: string;
+    sourceAgentId: string;
+    summary: string;
+    tenantId: string;
+    targetAgentId: string;
+    threadId?: string;
+    workflowId: string;
+  }> = [];
+  const connectorCalls: Array<{
+    action: Record<string, unknown>;
+    contextSummary: string;
+    executionId: string;
+    tenantId: string;
+    workflowId: string;
+  }> = [];
 
   const condition = (await executeStep(
     {
@@ -166,6 +185,139 @@ test("core workflow step types execute with deterministic outputs", async () => 
       }
     }
   );
+  const handoffResult = await executeStep(
+    {
+      config: {
+        context: {
+          leadEmail: "{{ trigger.output.email }}"
+        },
+        sourceAgentId: "ldr",
+        summary: "Lead {{ trigger.output.email }} pronto para SDR",
+        targetAgentId: "sdr",
+        threadId: "thread_lead_1"
+      },
+      key: "handoff_to_sdr",
+      name: "Handoff to SDR",
+      type: "AGENT_HANDOFF"
+    },
+    context,
+    {
+      handoffExecutor: {
+        execute: async (args) => {
+          handoffCalls.push(args);
+          return {
+            correlationId: args.correlationId,
+            status: "queued"
+          };
+        }
+      }
+    }
+  );
+  const crmResult = await executeStep(
+    {
+      config: {
+        objectType: "company",
+        operation: "upsert",
+        payload: {
+          domain: "birthhub.local",
+          owner: "{{ trigger.output.email }}"
+        },
+        provider: "hubspot",
+        scope: "companies"
+      },
+      key: "hubspot_upsert",
+      name: "HubSpot Upsert",
+      type: "CRM_UPSERT"
+    },
+    context,
+    {
+      connectorExecutor: {
+        execute: async (args) => {
+          connectorCalls.push(args);
+          return {
+            queued: true,
+            step: args.action.kind
+          };
+        }
+      }
+    }
+  );
+  const whatsappResult = await executeStep(
+    {
+      config: {
+        message: "Oi {{ trigger.output.email }}, podemos continuar por aqui?",
+        threadId: "thread_lead_1",
+        to: "+5511999999999"
+      },
+      key: "whatsapp_follow_up",
+      name: "WhatsApp Follow Up",
+      type: "WHATSAPP_SEND"
+    },
+    context,
+    {
+      connectorExecutor: {
+        execute: async (args) => {
+          connectorCalls.push(args);
+          return {
+            queued: true,
+            step: args.action.kind
+          };
+        }
+      }
+    }
+  );
+  const googleEventResult = await executeStep(
+    {
+      config: {
+        attendees: ["{{ trigger.output.email }}", "ae@birthhub.local"],
+        description: "Descoberta comercial",
+        end: "2026-03-16T14:30:00Z",
+        start: "2026-03-16T14:00:00Z",
+        title: "Discovery call"
+      },
+      key: "google_meeting",
+      name: "Google Meeting",
+      type: "GOOGLE_EVENT"
+    },
+    context,
+    {
+      connectorExecutor: {
+        execute: async (args) => {
+          connectorCalls.push(args);
+          return {
+            queued: true,
+            step: args.action.kind
+          };
+        }
+      }
+    }
+  );
+  const msEventResult = await executeStep(
+    {
+      config: {
+        attendees: ["{{ trigger.output.email }}", "ae@birthhub.local"],
+        description: "Reuniao Outlook",
+        end: "2026-03-17T14:30:00Z",
+        start: "2026-03-17T14:00:00Z",
+        title: "Outlook discovery"
+      },
+      key: "ms_meeting",
+      name: "MS Meeting",
+      type: "MS_EVENT"
+    },
+    context,
+    {
+      connectorExecutor: {
+        execute: async (args) => {
+          connectorCalls.push(args);
+          return {
+            queued: true,
+            step: args.action.kind
+          };
+        }
+      }
+    }
+  );
   const extracted = await executeStep(
     {
       config: {
@@ -212,6 +364,39 @@ test("core workflow step types execute with deterministic outputs", async () => 
     agentId: "ceo-pack",
     summary: "CEO reviewed expansion plan"
   });
+  assert.equal(handoffCalls[0]?.sourceAgentId, "ldr");
+  assert.equal(handoffCalls[0]?.targetAgentId, "sdr");
+  assert.equal(handoffCalls[0]?.context.leadEmail, "ada@birthhub.local");
+  assert.equal(handoffCalls[0]?.threadId, "thread_lead_1");
+  assert.equal(handoffCalls[0]?.executionId, "exec_step_types");
+  assert.equal(handoffCalls[0]?.tenantId, "tenant_alpha");
+  assert.equal(handoffCalls[0]?.workflowId, "wf_step_types");
+  assert.deepEqual(handoffResult, {
+    correlationId: "exec_step_types",
+    status: "queued"
+  });
+  assert.deepEqual(crmResult, {
+    queued: true,
+    step: "CRM_UPSERT"
+  });
+  assert.deepEqual(whatsappResult, {
+    queued: true,
+    step: "WHATSAPP_SEND"
+  });
+  assert.deepEqual(googleEventResult, {
+    queued: true,
+    step: "GOOGLE_EVENT"
+  });
+  assert.deepEqual(msEventResult, {
+    queued: true,
+    step: "MS_EVENT"
+  });
+  assert.equal(connectorCalls.length, 4);
+  assert.equal(connectorCalls[0]?.workflowId, "wf_step_types");
+  assert.equal(connectorCalls[0]?.tenantId, "tenant_alpha");
+  assert.equal(connectorCalls[1]?.action.kind, "WHATSAPP_SEND");
+  assert.equal(connectorCalls[2]?.action.kind, "GOOGLE_EVENT");
+  assert.equal(connectorCalls[3]?.action.kind, "MS_EVENT");
   assert.deepEqual(extracted, {
     email: "ada@birthhub.local",
     status: "qualified"

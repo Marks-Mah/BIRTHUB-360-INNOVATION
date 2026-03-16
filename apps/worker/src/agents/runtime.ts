@@ -24,6 +24,10 @@ import { z } from "zod";
 import type { Redis } from "ioredis";
 
 import { PlanExecutor } from "../executors/planExecutor.js";
+import {
+  createConversationMessage,
+  ensureConversationThread
+} from "./conversations.js";
 
 const logger = createLogger("agent-runtime");
 const DEFAULT_AGENT_BUDGET_LIMIT_BRL = 100;
@@ -777,6 +781,8 @@ async function querySharedLearning(input: {
 async function appendConversationMessage(input: {
   agentId: string;
   content: string;
+  correlationId?: string | null;
+  organizationId?: string | null;
   role: "assistant" | "user";
   sessionId?: string | null;
   tenantId: string;
@@ -798,6 +804,35 @@ async function appendConversationMessage(input: {
       ttlSeconds: 7 * 24 * 60 * 60
     }
   );
+
+  if (!input.organizationId) {
+    return;
+  }
+
+  const thread = await ensureConversationThread({
+    channel: "agent-runtime",
+    correlationId: input.correlationId ?? sessionId,
+    externalThreadId: sessionId,
+    metadata: {
+      agentId: input.agentId,
+      sessionId
+    },
+    organizationId: input.organizationId,
+    tenantId: input.tenantId
+  });
+
+  await createConversationMessage({
+    agentId: input.agentId,
+    content: input.content,
+    direction: input.role === "user" ? "inbound" : "outbound",
+    metadata: {
+      sessionId
+    },
+    organizationId: input.organizationId,
+    role: input.role,
+    tenantId: input.tenantId,
+    threadId: thread.id
+  });
 }
 
 async function createOutputArtifact(input: {
@@ -906,6 +941,8 @@ export async function executeManifestAgentRuntime(
   await appendConversationMessage({
     agentId: resolved.runtimeAgentId,
     content: JSON.stringify(input.input),
+    correlationId: input.executionId,
+    organizationId,
     role: "user",
     sessionId: readSessionId(input.input),
     tenantId: input.tenantId
@@ -1012,6 +1049,8 @@ export async function executeManifestAgentRuntime(
   await appendConversationMessage({
     agentId: resolved.runtimeAgentId,
     content: output.summary,
+    correlationId: input.executionId,
+    organizationId,
     role: "assistant",
     sessionId: readSessionId(input.input),
     tenantId: input.tenantId

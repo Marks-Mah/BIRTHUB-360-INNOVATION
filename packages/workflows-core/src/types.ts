@@ -8,6 +8,11 @@ export type WorkflowStepType =
   | "TRANSFORMER"
   | "SEND_NOTIFICATION"
   | "AGENT_EXECUTE"
+  | "AGENT_HANDOFF"
+  | "CRM_UPSERT"
+  | "WHATSAPP_SEND"
+  | "GOOGLE_EVENT"
+  | "MS_EVENT"
   | "AI_TEXT_EXTRACT"
   | "DELAY";
 

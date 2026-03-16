@@ -56,6 +56,7 @@ import { createAdminRouter } from "./modules/admin/router.js";
 import { createAnalyticsRouter } from "./modules/analytics/router.js";
 import { createApiKeysRouter } from "./modules/apikeys/router.js";
 import { createDashboardRouter } from "./modules/dashboard/router.js";
+import { createConnectorsRouter } from "./modules/connectors/index.js";
 import {
   listActiveSessions,
   loginWithPassword,
@@ -597,6 +598,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
   app.use("/api/v1/agents", marketplaceRouter);
   app.use("/api/v1/analytics", createAnalyticsRouter());
   app.use(createDashboardRouter());
+  app.use("/api/v1/connectors", createConnectorsRouter(config));
   app.use("/api/v1/marketplace", marketplaceRouter);
   app.use("/api/v1/billing", createBillingRouter(config));
   app.use("/api/v1/budgets", createBudgetRouter());

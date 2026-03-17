@@ -118,6 +118,7 @@ FROM "organizations" o
 WHERE o."id" = s."organizationId";
 
 ALTER TABLE "subscriptions"
+  ALTER COLUMN "status" DROP DEFAULT,
   ALTER COLUMN "status" TYPE TEXT USING "status"::TEXT;
 
 UPDATE "subscriptions"

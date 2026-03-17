@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,22 +24,88 @@ function uniquePathEntries(entries) {
   return [...new Set(entries.filter(Boolean))];
 }
 
+function resolveExistingDirectories(entries) {
+  return entries.filter((entry) => entry && existsSync(entry));
+}
+
+function resolveGitHubDesktopGitEntries() {
+  if (process.platform !== "win32") {
+    return [];
+  }
+
+  const localAppData = process.env.LOCALAPPDATA;
+  if (!localAppData) {
+    return [];
+  }
+
+  const desktopRoot = path.join(localAppData, "GitHubDesktop");
+  if (!existsSync(desktopRoot)) {
+    return [];
+  }
+
+  return readdirSync(desktopRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith("app-"))
+    .flatMap((entry) =>
+      resolveExistingDirectories([
+        path.join(desktopRoot, entry.name, "resources", "app", "git", "cmd"),
+        path.join(desktopRoot, entry.name, "resources", "app", "git", "bin")
+      ])
+    );
+}
+
+function resolveCommonWindowsToolEntries() {
+  if (process.platform !== "win32") {
+    return [];
+  }
+
+  const programFiles = process.env.ProgramFiles ?? "C:\\Program Files";
+  const programFilesX86 = process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
+  const localAppData = process.env.LOCALAPPDATA ?? "";
+  const appData = process.env.APPDATA ?? "";
+  const userProfile = process.env.USERPROFILE ?? "";
+
+  return [
+    ...resolveExistingDirectories([
+      path.join(programFiles, "nodejs"),
+      path.join(programFiles, "Git", "cmd"),
+      path.join(programFiles, "Git", "bin"),
+      path.join(programFilesX86, "Git", "cmd"),
+      path.join(programFilesX86, "Git", "bin"),
+      path.join(programFiles, "Docker", "Docker", "resources", "bin"),
+      path.join(localAppData, "pnpm"),
+      path.join(appData, "npm"),
+      path.join(userProfile, "scoop", "shims")
+    ]),
+    ...resolveGitHubDesktopGitEntries()
+  ];
+}
+
 function resolvePortablePythonEntries() {
   const localAppData = process.env.LOCALAPPDATA;
   if (!localAppData) {
     return [];
   }
 
-  return [
-    path.join(localAppData, "Programs", "Python", "Python312"),
-    path.join(localAppData, "Programs", "Python", "Python312", "Scripts"),
-    path.join(localAppData, "Programs", "Python", "Launcher")
-  ].filter((entry) => existsSync(entry));
+  const programsRoot = path.join(localAppData, "Programs", "Python");
+  if (!existsSync(programsRoot)) {
+    return [];
+  }
+
+  const pythonHomes = readdirSync(programsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^Python3\d{2,}$/.test(entry.name))
+    .map((entry) => path.join(programsRoot, entry.name))
+    .sort((left, right) => right.localeCompare(left));
+
+  return resolveExistingDirectories([
+    ...pythonHomes.flatMap((home) => [home, path.join(home, "Scripts")]),
+    path.join(programsRoot, "Launcher")
+  ]);
 }
 
 export function buildEnv(overrides = {}) {
   const pathEntries = uniquePathEntries([
     portableNodeHome,
+    ...resolveCommonWindowsToolEntries(),
     ...resolvePortablePythonEntries(),
     overrides.PATH,
     process.env.PATH,

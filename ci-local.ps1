@@ -15,6 +15,105 @@ $bootstrapScript = Join-Path $repoRoot "scripts\bootstrap\install-node-portable.
 
 New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
 
+function Get-ExistingDirectories {
+    param(
+        [string[]]$Paths
+    )
+
+    return $Paths |
+        Where-Object { $_ -and (Test-Path $_ -PathType Container) } |
+        Select-Object -Unique
+}
+
+function Get-GitHubDesktopGitEntries {
+    $localAppData = $env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($localAppData)) {
+        return @()
+    }
+
+    $desktopRoot = Join-Path $localAppData "GitHubDesktop"
+    if (!(Test-Path $desktopRoot -PathType Container)) {
+        return @()
+    }
+
+    $entries = @()
+    foreach ($directory in Get-ChildItem $desktopRoot -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "app-*" }) {
+        $entries += Get-ExistingDirectories @(
+            (Join-Path $directory.FullName "resources\app\git\cmd"),
+            (Join-Path $directory.FullName "resources\app\git\bin")
+        )
+    }
+
+    return $entries
+}
+
+function Get-PortablePythonEntries {
+    $localAppData = $env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($localAppData)) {
+        return @()
+    }
+
+    $programsRoot = Join-Path $localAppData "Programs\Python"
+    if (!(Test-Path $programsRoot -PathType Container)) {
+        return @()
+    }
+
+    $entries = @()
+    $pythonHomes = Get-ChildItem $programsRoot -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^Python3\d{2,}$' } |
+        Sort-Object Name -Descending
+
+    foreach ($home in $pythonHomes) {
+        $entries += $home.FullName
+        $entries += Join-Path $home.FullName "Scripts"
+    }
+
+    $entries += Join-Path $programsRoot "Launcher"
+    return Get-ExistingDirectories $entries
+}
+
+function Get-CommonToolPathEntries {
+    param(
+        [string]$PortableNodeHome
+    )
+
+    $programFilesX86 = ${env:ProgramFiles(x86)}
+    $entries = @(
+        $PortableNodeHome,
+        (Join-Path $env:ProgramFiles "nodejs"),
+        (Join-Path $env:ProgramFiles "Git\cmd"),
+        (Join-Path $env:ProgramFiles "Git\bin"),
+        (Join-Path $env:ProgramFiles "Docker\Docker\resources\bin"),
+        (Join-Path $env:APPDATA "npm"),
+        (Join-Path $env:LOCALAPPDATA "pnpm"),
+        (Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps"),
+        (Join-Path $env:USERPROFILE "scoop\shims")
+    )
+
+    if ($programFilesX86) {
+        $entries += Join-Path $programFilesX86 "Git\cmd"
+        $entries += Join-Path $programFilesX86 "Git\bin"
+    }
+
+    $entries += Get-PortablePythonEntries
+    $entries += Get-GitHubDesktopGitEntries
+    return Get-ExistingDirectories $entries
+}
+
+function Add-ToolPathEntries {
+    param(
+        [string]$PortableNodeHome
+    )
+
+    $currentEntries = @([Environment]::GetEnvironmentVariable("PATH", "Process") -split ";")
+    $pathEntries = @()
+    $pathEntries += Get-CommonToolPathEntries -PortableNodeHome $PortableNodeHome
+    $pathEntries += $currentEntries
+    $pathEntries = $pathEntries | Where-Object { $_ } | Select-Object -Unique
+
+    [Environment]::SetEnvironmentVariable("PATH", ($pathEntries -join ";"), "Process")
+}
+
 function Set-DefaultEnv {
     param(
         [string]$Key,
@@ -27,8 +126,11 @@ function Set-DefaultEnv {
     }
 }
 
+Add-ToolPathEntries -PortableNodeHome $portableNodeHome
+
 if (!(Get-Command node -ErrorAction SilentlyContinue) -and !(Test-Path $portableNodeExe)) {
     & $bootstrapScript
+    Add-ToolPathEntries -PortableNodeHome $portableNodeHome
 }
 
 $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) {

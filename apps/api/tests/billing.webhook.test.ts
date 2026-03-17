@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { ApiConfig } from "@birthub/config";
-import { prisma } from "@birthub/database";
+import { BillingEventStatus, prisma } from "@birthub/database";
 import express from "express";
 import request from "supertest";
 import Stripe from "stripe";
 
 import { errorHandler } from "../src/middleware/error-handler.js";
-import { createStripeWebhookRouter } from "../src/modules/webhooks/stripe.router.js";
 import { STRIPE_API_VERSION } from "../src/modules/billing/stripe.client.js";
+import { createStripeWebhookRouter } from "../src/modules/webhooks/stripe.router.js";
 import { createTestApiConfig } from "./test-config.js";
 
 function stubMethod(target: object, key: string, value: unknown): () => void {
@@ -17,6 +17,71 @@ function stubMethod(target: object, key: string, value: unknown): () => void {
   Reflect.set(target, key, value);
   return () => {
     Reflect.set(target, key, original);
+  };
+}
+
+function applyUpdateData<T extends Record<string, unknown>>(current: T, data: Record<string, unknown>): T {
+  const next = { ...current } as Record<string, unknown>;
+
+  for (const [key, value] of Object.entries(data)) {
+    if (
+      value &&
+      typeof value === "object" &&
+      "increment" in value &&
+      typeof (value as { increment?: unknown }).increment === "number"
+    ) {
+      next[key] = (Number(next[key] ?? 0) + Number((value as { increment: number }).increment));
+      continue;
+    }
+
+    next[key] = value;
+  }
+
+  return next as T;
+}
+
+function createBillingEventStubs() {
+  const events = new Map<string, Record<string, unknown>>();
+
+  return {
+    get: (eventId: string) => events.get(eventId) ?? null,
+    restores: [
+      stubMethod(prisma.billingEvent, "findUnique", async (args: { where?: { stripeEventId?: string } }) => {
+        const eventId = args.where?.stripeEventId ?? "";
+        return events.get(eventId) ?? null;
+      }),
+      stubMethod(prisma.billingEvent, "create", async (args: { data?: Record<string, unknown> }) => {
+        const eventId = String(args.data?.stripeEventId ?? "evt_unknown");
+        const record = {
+          attemptCount: 0,
+          id: "billing_event_1",
+          status: BillingEventStatus.received,
+          ...args.data
+        };
+        events.set(eventId, record);
+        return record;
+      }),
+      stubMethod(
+        prisma.billingEvent,
+        "update",
+        async (args: { data?: Record<string, unknown>; where?: { stripeEventId?: string } }) => {
+          const eventId = args.where?.stripeEventId ?? "";
+          const current = (events.get(eventId) ?? {
+            attemptCount: 0,
+            id: "billing_event_1",
+            stripeEventId: eventId
+          }) as Record<string, unknown>;
+          const next = applyUpdateData(current, args.data ?? {});
+          events.set(eventId, next);
+          return next;
+        }
+      ),
+      stubMethod(
+        prisma,
+        "$transaction",
+        async <T>(callback: (tx: typeof prisma) => Promise<T>): Promise<T> => callback(prisma)
+      )
+    ]
   };
 }
 
@@ -49,7 +114,7 @@ void test("stripe webhook rejects invalid signature with 400", async () => {
     .expect(400);
 });
 
-void test("stripe webhook accepts valid signature and records billing event", async () => {
+void test("stripe webhook accepts valid signature and records billing event state", async () => {
   const config = createTestApiConfig();
   const stripe = new Stripe(config.STRIPE_SECRET_KEY, {
     apiVersion: STRIPE_API_VERSION
@@ -68,12 +133,7 @@ void test("stripe webhook accepts valid signature and records billing event", as
     payload,
     secret: config.STRIPE_WEBHOOK_SECRET
   });
-  const restores = [
-    stubMethod(prisma.billingEvent, "findUnique", async () => null),
-    stubMethod(prisma.billingEvent, "create", async () => ({
-      id: "billing_event_1"
-    }))
-  ];
+  const billingEvents = createBillingEventStubs();
 
   try {
     const app = createWebhookApp(config);
@@ -85,8 +145,16 @@ void test("stripe webhook accepts valid signature and records billing event", as
       .expect(200);
 
     assert.equal(response.body.received, true);
+    assert.equal(
+      billingEvents.get("evt_valid_signature")?.status,
+      BillingEventStatus.processed
+    );
+    assert.equal(
+      billingEvents.get("evt_valid_signature")?.attemptCount,
+      1
+    );
   } finally {
-    for (const restore of restores.reverse()) {
+    for (const restore of billingEvents.restores.reverse()) {
       restore();
     }
   }

@@ -669,18 +669,26 @@ model UsageRecord {
 }
 
 model BillingEvent {
-  id            String        @id @default(cuid())
-  tenantId      String?
-  organizationId String?
-  stripeEventId String        @unique @map("stripe_event_id")
-  type          String
-  payload       Json
-  processedAt   DateTime      @default(now()) @map("processed_at")
-  createdAt     DateTime      @default(now())
-  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  id                 String             @id @default(cuid())
+  tenantId           String?
+  organizationId     String?
+  stripeEventId      String             @unique @map("stripe_event_id")
+  type               String
+  payload            Json
+  status             BillingEventStatus @default(received)
+  attemptCount       Int                @default(0) @map("attempt_count")
+  signatureTimestamp DateTime?          @map("signature_timestamp")
+  eventCreatedAt     DateTime?          @map("event_created_at")
+  processedAt        DateTime?          @map("processed_at")
+  failedAt           DateTime?          @map("failed_at")
+  lastError          String?            @map("last_error")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  organization       Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([organizationId, processedAt])
+  @@index([status, createdAt])
   @@map("billing_events")
 }
 
@@ -1164,6 +1172,13 @@ enum InvoiceStatus {
   uncollectible
   void
   past_due
+}
+
+enum BillingEventStatus {
+  received
+  processing
+  processed
+  failed
 }
 
 enum BillingCreditReason {

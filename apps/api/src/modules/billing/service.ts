@@ -919,8 +919,11 @@ function mapStripeSubscriptionStatus(status: Stripe.Subscription.Status): Subscr
   }
 }
 
-async function resolveOrganizationByStripeCustomer(customerId: string) {
-  return prisma.organization.findFirst({
+async function resolveOrganizationByStripeCustomer(
+  customerId: string,
+  db: DatabaseClient = prisma
+) {
+  return db.organization.findFirst({
     where: {
       stripeCustomerId: customerId
     }
@@ -1051,7 +1054,7 @@ async function createDowngradeProrationCredit(input: {
   stripeInvoiceId?: string | null;
   subscriptionId?: string | null;
   tenantId: string;
-}): Promise<void> {
+}, db: DatabaseClient = prisma): Promise<void> {
   if (input.amountCents <= 0) {
     return;
   }
@@ -1071,7 +1074,7 @@ async function createDowngradeProrationCredit(input: {
       ...(input.subscriptionId ? { subscriptionId: input.subscriptionId } : {})
     };
 
-    await prisma.billingCredit.create({
+    await db.billingCredit.create({
       data
     });
 
@@ -1152,12 +1155,12 @@ async function ensureSubscriptionForOrganization(input: {
   planId: string;
   stripeCustomerId: string;
   stripeSubscriptionId?: string | null;
-}): Promise<{
+}, db: DatabaseClient = prisma): Promise<{
   id: string;
   status: SubscriptionStatus;
   tenantId: string;
 }> {
-  const organization = await prisma.organization.findUnique({
+  const organization = await db.organization.findUnique({
     where: {
       id: input.organizationId
     }
@@ -1190,7 +1193,7 @@ async function ensureSubscriptionForOrganization(input: {
       : {})
   };
 
-  return prisma.subscription.upsert({
+  return db.subscription.upsert({
     create: createData,
     update: updateData,
     where: {
@@ -1200,12 +1203,13 @@ async function ensureSubscriptionForOrganization(input: {
 }
 
 async function handleCheckoutSessionCompleted(
-  session: Stripe.Checkout.Session
+  session: Stripe.Checkout.Session,
+  db: DatabaseClient
 ): Promise<Required<StripeBillingEventContext>> {
   const customerId = typeof session.customer === "string" ? session.customer : null;
   const metadataOrganizationId = session.metadata?.organizationId;
   let organization = metadataOrganizationId
-    ? await prisma.organization.findUnique({
+    ? await db.organization.findUnique({
         where: {
           id: metadataOrganizationId
         }
@@ -1213,7 +1217,7 @@ async function handleCheckoutSessionCompleted(
     : null;
 
   if (!organization && customerId) {
-    organization = await resolveOrganizationByStripeCustomer(customerId);
+    organization = await resolveOrganizationByStripeCustomer(customerId, db);
   }
 
   if (!organization) {
@@ -1225,9 +1229,9 @@ async function handleCheckoutSessionCompleted(
   }
 
   const requestedPlanId = session.metadata?.planId;
-  const fallbackPlan = await ensurePlanByCode("starter");
+  const fallbackPlan = await ensurePlanByCode("starter", db);
   const plan = requestedPlanId
-    ? await prisma.plan.findUnique({
+    ? await db.plan.findUnique({
         where: {
           id: requestedPlanId
         }
@@ -1237,7 +1241,7 @@ async function handleCheckoutSessionCompleted(
   const stripeSubscriptionId =
     typeof session.subscription === "string" ? session.subscription : null;
 
-  await prisma.organization.update({
+  await db.organization.update({
     data: {
       planId,
       stripeCustomerId: customerId ?? organization.stripeCustomerId
@@ -1253,7 +1257,7 @@ async function handleCheckoutSessionCompleted(
     planId,
     stripeCustomerId: customerId ?? organization.stripeCustomerId ?? "",
     stripeSubscriptionId
-  });
+  }, db);
 
   logger.info(
     {
@@ -1276,7 +1280,8 @@ async function handleCheckoutSessionCompleted(
 }
 
 async function handleInvoicePaymentSucceeded(
-  invoice: Stripe.Invoice
+  invoice: Stripe.Invoice,
+  db: DatabaseClient
 ): Promise<Required<StripeBillingEventContext>> {
   const customerId = typeof invoice.customer === "string" ? invoice.customer : null;
 
@@ -1288,7 +1293,7 @@ async function handleInvoicePaymentSucceeded(
     });
   }
 
-  const organization = await resolveOrganizationByStripeCustomer(customerId);
+  const organization = await resolveOrganizationByStripeCustomer(customerId, db);
 
   if (!organization) {
     throw new ProblemDetailsError({
@@ -1298,7 +1303,7 @@ async function handleInvoicePaymentSucceeded(
     });
   }
 
-  const planId = organization.planId ?? (await ensurePlanByCode("starter")).id;
+  const planId = organization.planId ?? (await ensurePlanByCode("starter", db)).id;
   const stripeSubscriptionId = resolveInvoiceSubscriptionId(invoice);
   const periods = resolveInvoicePeriods(invoice);
   const existingSubscription = await ensureSubscriptionForOrganization({
@@ -1307,9 +1312,9 @@ async function handleInvoicePaymentSucceeded(
     planId,
     stripeCustomerId: customerId,
     stripeSubscriptionId
-  });
+  }, db);
 
-  await prisma.subscription.update({
+  await db.subscription.update({
     data: {
       currentPeriodEnd: periods.periodEnd,
       gracePeriodEndsAt: null,
@@ -1320,7 +1325,7 @@ async function handleInvoicePaymentSucceeded(
     }
   });
 
-  await prisma.invoice.upsert({
+  await db.invoice.upsert({
     create: buildInvoiceCreateData({
       fallbackStatus: "paid",
       invoice,
@@ -1365,7 +1370,8 @@ async function handleInvoicePaymentSucceeded(
 
 async function handleInvoicePaymentFailed(
   invoice: Stripe.Invoice,
-  config: ApiConfig
+  config: ApiConfig,
+  db: DatabaseClient
 ): Promise<Required<StripeBillingEventContext>> {
   const customerId = typeof invoice.customer === "string" ? invoice.customer : null;
 
@@ -1377,7 +1383,7 @@ async function handleInvoicePaymentFailed(
     });
   }
 
-  const organization = await resolveOrganizationByStripeCustomer(customerId);
+  const organization = await resolveOrganizationByStripeCustomer(customerId, db);
 
   if (!organization) {
     throw new ProblemDetailsError({
@@ -1387,7 +1393,7 @@ async function handleInvoicePaymentFailed(
     });
   }
 
-  const planId = organization.planId ?? (await ensurePlanByCode("starter")).id;
+  const planId = organization.planId ?? (await ensurePlanByCode("starter", db)).id;
   const stripeSubscriptionId = resolveInvoiceSubscriptionId(invoice);
   const periods = resolveInvoicePeriods(invoice);
   const gracePeriodEndsAt = new Date(
@@ -1399,9 +1405,9 @@ async function handleInvoicePaymentFailed(
     planId,
     stripeCustomerId: customerId,
     stripeSubscriptionId
-  });
+  }, db);
 
-  await prisma.subscription.update({
+  await db.subscription.update({
     data: {
       gracePeriodEndsAt,
       status: SubscriptionStatus.past_due
@@ -1411,7 +1417,7 @@ async function handleInvoicePaymentFailed(
     }
   });
 
-  await prisma.invoice.upsert({
+  await db.invoice.upsert({
     create: buildInvoiceCreateData({
       fallbackStatus: "past_due",
       invoice,
@@ -1456,7 +1462,8 @@ async function handleInvoicePaymentFailed(
 }
 
 async function handleCustomerSubscriptionDeleted(
-  subscription: Stripe.Subscription
+  subscription: Stripe.Subscription,
+  db: DatabaseClient
 ): Promise<Required<StripeBillingEventContext>> {
   const customerId = typeof subscription.customer === "string" ? subscription.customer : null;
 
@@ -1468,7 +1475,7 @@ async function handleCustomerSubscriptionDeleted(
     });
   }
 
-  const organization = await resolveOrganizationByStripeCustomer(customerId);
+  const organization = await resolveOrganizationByStripeCustomer(customerId, db);
 
   if (!organization) {
     throw new ProblemDetailsError({
@@ -1478,9 +1485,9 @@ async function handleCustomerSubscriptionDeleted(
     });
   }
 
-  const starter = await ensurePlanByCode("starter");
+  const starter = await ensurePlanByCode("starter", db);
 
-  await prisma.organization.update({
+  await db.organization.update({
     data: {
       planId: starter.id
     },
@@ -1489,7 +1496,7 @@ async function handleCustomerSubscriptionDeleted(
     }
   });
 
-  await prisma.subscription.updateMany({
+  await db.subscription.updateMany({
     data: {
       canceledAt: new Date(),
       planId: starter.id,
@@ -1519,7 +1526,8 @@ async function handleCustomerSubscriptionDeleted(
 }
 
 async function handleCustomerSubscriptionUpdated(
-  event: Stripe.Event
+  event: Stripe.Event,
+  db: DatabaseClient
 ): Promise<Required<StripeBillingEventContext>> {
   const subscription = event.data.object as Stripe.Subscription;
   const customerId = typeof subscription.customer === "string" ? subscription.customer : null;
@@ -1532,7 +1540,7 @@ async function handleCustomerSubscriptionUpdated(
     });
   }
 
-  const organization = await resolveOrganizationByStripeCustomer(customerId);
+  const organization = await resolveOrganizationByStripeCustomer(customerId, db);
 
   if (!organization) {
     throw new ProblemDetailsError({
@@ -1544,15 +1552,16 @@ async function handleCustomerSubscriptionUpdated(
 
   const stripePriceId = subscription.items.data[0]?.price?.id;
   const mappedPlan = stripePriceId
-    ? await prisma.plan.findFirst({
+    ? await db.plan.findFirst({
         where: {
           stripePriceId
         }
       })
     : null;
-  const planId = mappedPlan?.id ?? organization.planId ?? (await ensurePlanByCode("starter")).id;
+  const planId =
+    mappedPlan?.id ?? organization.planId ?? (await ensurePlanByCode("starter", db)).id;
 
-  await prisma.organization.update({
+  await db.organization.update({
     data: {
       planId
     },
@@ -1567,9 +1576,9 @@ async function handleCustomerSubscriptionUpdated(
     planId,
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscription.id
-  });
+  }, db);
 
-  await prisma.subscription.updateMany({
+  await db.subscription.updateMany({
     data: {
       canceledAt: unixToDate(subscription.canceled_at),
       currentPeriodEnd: resolveSubscriptionPeriodEnd(subscription),
@@ -1594,7 +1603,7 @@ async function handleCustomerSubscriptionUpdated(
         : subscription.latest_invoice?.id ?? null,
     subscriptionId: localSubscription.id,
     tenantId: organization.tenantId
-  });
+  }, db);
 
   logger.info(
     {
@@ -1619,20 +1628,33 @@ async function handleCustomerSubscriptionUpdated(
 
 export async function processStripeBillingEvent(input: {
   config: ApiConfig;
+  db?: DatabaseClient;
   event: Stripe.Event;
 }): Promise<StripeBillingEventContext> {
+  const db = input.db ?? prisma;
+
   try {
     switch (input.event.type) {
       case "checkout.session.completed":
-        return handleCheckoutSessionCompleted(input.event.data.object as Stripe.Checkout.Session);
+        return handleCheckoutSessionCompleted(
+          input.event.data.object as Stripe.Checkout.Session,
+          db
+        );
       case "invoice.payment_succeeded":
-        return handleInvoicePaymentSucceeded(input.event.data.object as Stripe.Invoice);
+        return handleInvoicePaymentSucceeded(input.event.data.object as Stripe.Invoice, db);
       case "invoice.payment_failed":
-        return handleInvoicePaymentFailed(input.event.data.object as Stripe.Invoice, input.config);
+        return handleInvoicePaymentFailed(
+          input.event.data.object as Stripe.Invoice,
+          input.config,
+          db
+        );
       case "customer.subscription.deleted":
-        return handleCustomerSubscriptionDeleted(input.event.data.object as Stripe.Subscription);
+        return handleCustomerSubscriptionDeleted(
+          input.event.data.object as Stripe.Subscription,
+          db
+        );
       case "customer.subscription.updated":
-        return handleCustomerSubscriptionUpdated(input.event);
+        return handleCustomerSubscriptionUpdated(input.event, db);
       default:
         logger.info(
           {

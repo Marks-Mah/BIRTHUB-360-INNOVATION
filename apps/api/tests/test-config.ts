@@ -50,6 +50,7 @@ export function createTestApiConfig(): ApiConfig {
     STRIPE_SECRET_KEY: "sk_test_birthub360",
     STRIPE_SUCCESS_URL: "http://localhost:3001/billing/success",
     STRIPE_TEMP_BAN_SECONDS: 900,
+    STRIPE_WEBHOOK_TOLERANCE_SECONDS: 300,
     STRIPE_WEBHOOK_SECRET: "whsec_birthub360",
     UPTIMEROBOT_API_TOKEN: undefined,
     WEB_BASE_URL: "http://localhost:3001",

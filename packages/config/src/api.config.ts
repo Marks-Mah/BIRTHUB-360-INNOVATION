@@ -76,6 +76,7 @@ export const apiEnvSchema = z.object({
   STRIPE_SECRET_KEY: nonEmptyString.default("sk_test_birthub360"),
   STRIPE_SUCCESS_URL: urlString.default("http://localhost:3001/billing/success"),
   STRIPE_TEMP_BAN_SECONDS: z.coerce.number().int().positive().default(15 * 60),
+  STRIPE_WEBHOOK_TOLERANCE_SECONDS: z.coerce.number().int().positive().default(300),
   STRIPE_WEBHOOK_SECRET: nonEmptyString.default("whsec_birthub360"),
   UPTIMEROBOT_API_TOKEN: optionalNonEmptyString,
   WEB_BASE_URL: urlString.default("http://localhost:3001")

@@ -38,13 +38,54 @@ export function captureApiException(error: unknown, request: Request): void {
   }
 
   Sentry.withScope((scope) => {
-    scope.setTag("requestId", request.context.requestId);
-    scope.setTag("tenantId", request.context.tenantId ?? "unknown");
-    scope.setTag("userId", request.context.userId ?? "anonymous");
+    scope.setTag("requestId", request.context?.requestId ?? "unknown");
+    scope.setTag("tenantId", request.context?.tenantId ?? "unknown");
+    scope.setTag("userId", request.context?.userId ?? "anonymous");
     scope.setContext("request", {
       method: request.method,
       path: request.originalUrl,
-      traceId: request.context.traceId
+      traceId: request.context?.traceId ?? null
+    });
+
+    Sentry.captureException(error);
+  });
+}
+
+export function captureWebhookException(
+  error: unknown,
+  context: {
+    organizationId?: string | undefined;
+    requestId?: string | undefined;
+    stripeEventId: string;
+    stripeEventType: string;
+    tenantId?: string | undefined;
+    traceId?: string | undefined;
+  }
+): void {
+  if (!sentryInitialized) {
+    return;
+  }
+
+  Sentry.withScope((scope) => {
+    scope.setTag("requestId", context.requestId ?? "unknown");
+    scope.setTag("tenantId", context.tenantId ?? "unknown");
+    scope.setTag("stripeEventId", context.stripeEventId);
+    scope.setTag("stripeEventType", context.stripeEventType);
+
+    if (context.organizationId) {
+      scope.setTag("organizationId", context.organizationId);
+    }
+
+    if (context.traceId) {
+      scope.setTag("traceId", context.traceId);
+    }
+
+    scope.setContext("webhook", {
+      organizationId: context.organizationId ?? null,
+      stripeEventId: context.stripeEventId,
+      stripeEventType: context.stripeEventType,
+      tenantId: context.tenantId ?? null,
+      traceId: context.traceId ?? null
     });
 
     Sentry.captureException(error);

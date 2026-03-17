@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { ApiConfig } from "@birthub/config";
-import { prisma } from "@birthub/database";
+import { BillingEventStatus, prisma } from "@birthub/database";
 import express from "express";
 import request from "supertest";
 import Stripe from "stripe";
@@ -21,6 +21,26 @@ function stubMethod(target: object, key: string, value: unknown): () => void {
   return () => {
     Reflect.set(target, key, original);
   };
+}
+
+function applyUpdateData<T extends Record<string, unknown>>(current: T, data: Record<string, unknown>): T {
+  const next = { ...current } as Record<string, unknown>;
+
+  for (const [key, value] of Object.entries(data)) {
+    if (
+      value &&
+      typeof value === "object" &&
+      "increment" in value &&
+      typeof (value as { increment?: unknown }).increment === "number"
+    ) {
+      next[key] = Number(next[key] ?? 0) + Number((value as { increment: number }).increment);
+      continue;
+    }
+
+    next[key] = value;
+  }
+
+  return next as T;
 }
 
 function createWebhookApp(
@@ -53,11 +73,43 @@ void test("stripe webhook delegates domain processing to the canonical billing s
     secret: config.STRIPE_WEBHOOK_SECRET
   });
   const delegatedEvents: string[] = [];
+  const billingEvents = new Map<string, Record<string, unknown>>();
   const restores = [
-    stubMethod(prisma.billingEvent, "findUnique", async () => null),
-    stubMethod(prisma.billingEvent, "create", async () => ({
-      id: "billing_event_1"
-    }))
+    stubMethod(prisma.billingEvent, "findUnique", async (args: { where?: { stripeEventId?: string } }) => {
+      const eventId = args.where?.stripeEventId ?? "";
+      return billingEvents.get(eventId) ?? null;
+    }),
+    stubMethod(prisma.billingEvent, "create", async (args: { data?: Record<string, unknown> }) => {
+      const eventId = String(args.data?.stripeEventId ?? "evt_unknown");
+      const record = {
+        attemptCount: 0,
+        id: "billing_event_1",
+        status: BillingEventStatus.received,
+        ...args.data
+      };
+      billingEvents.set(eventId, record);
+      return record;
+    }),
+    stubMethod(
+      prisma.billingEvent,
+      "update",
+      async (args: { data?: Record<string, unknown>; where?: { stripeEventId?: string } }) => {
+        const eventId = args.where?.stripeEventId ?? "";
+        const current = (billingEvents.get(eventId) ?? {
+          attemptCount: 0,
+          id: "billing_event_1",
+          stripeEventId: eventId
+        }) as Record<string, unknown>;
+        const next = applyUpdateData(current, args.data ?? {});
+        billingEvents.set(eventId, next);
+        return next;
+      }
+    ),
+    stubMethod(
+      prisma,
+      "$transaction",
+      async <T>(callback: (tx: typeof prisma) => Promise<T>): Promise<T> => callback(prisma)
+    )
   ];
 
   try {
@@ -76,6 +128,10 @@ void test("stripe webhook delegates domain processing to the canonical billing s
 
     assert.equal(response.body.received, true);
     assert.deepEqual(delegatedEvents, ["evt_delegate_signature"]);
+    assert.equal(
+      billingEvents.get("evt_delegate_signature")?.status,
+      BillingEventStatus.processed
+    );
   } finally {
     for (const restore of restores.reverse()) {
       restore();

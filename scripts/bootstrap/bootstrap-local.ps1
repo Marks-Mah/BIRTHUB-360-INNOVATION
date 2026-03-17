@@ -71,9 +71,9 @@ function Get-PortablePythonEntries {
         Where-Object { $_.Name -match '^Python3\d{2,}$' } |
         Sort-Object Name -Descending
 
-    foreach ($home in $pythonHomes) {
-        $entries += $home.FullName
-        $entries += Join-Path $home.FullName "Scripts"
+    foreach ($pythonHome in $pythonHomes) {
+        $entries += $pythonHome.FullName
+        $entries += Join-Path $pythonHome.FullName "Scripts"
     }
 
     $entries += Join-Path $programsRoot "Launcher"

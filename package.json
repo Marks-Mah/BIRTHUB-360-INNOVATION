@@ -86,7 +86,9 @@
     "dev:ae-worker": "tsx agents/ae/worker.ts",
     "dev:marketing-worker": "tsx agents/marketing/worker.ts",
     "ci:local": "bash ./scripts/ci/local-ci.sh",
-    "workspace:audit": "node scripts/ci/workspace-audit.mjs"
+    "workspace:audit": "node scripts/ci/workspace-audit.mjs",
+    "monorepo:doctor": "node scripts/ci/monorepo-doctor.mjs",
+    "release:scorecard": "node scripts/ci/release-scorecard.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

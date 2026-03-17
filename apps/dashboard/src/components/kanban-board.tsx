@@ -1,6 +1,6 @@
 "use client";
 
-import { DealStage } from "@birthub/db";
+import { DealStage } from "@birthub/database";
 import { useMemo } from "react";
 import clsx from "clsx";
 

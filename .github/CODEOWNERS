@@ -1,0 +1,9 @@
+# Core platform ownership
+/apps/api/ @platform-api
+/apps/worker/ @platform-worker
+/apps/web/ @platform-web
+/packages/database/ @platform-data
+/packages/security/ @platform-security
+/packages/workflows-core/ @platform-workflows
+/scripts/ci/ @platform-devex
+/docs/ @platform-architecture

@@ -1,4 +1,4 @@
-import { prisma } from "@birthub/db";
+import { prisma } from "@birthub/database";
 
 export interface AgentLog {
   id: string;

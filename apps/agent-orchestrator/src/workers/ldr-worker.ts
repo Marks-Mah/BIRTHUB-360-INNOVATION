@@ -1,4 +1,4 @@
-import { prisma } from '@birthub/db';
+import { prisma } from '@birthub/database';
 import { LLMClient } from '@birthub/llm-client';
 import { createWorker } from '@birthub/queue';
 import { QueueName } from '@birthub/shared-types';

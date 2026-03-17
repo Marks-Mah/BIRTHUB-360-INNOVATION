@@ -17,8 +17,8 @@ const contentSecurityPolicy = [
   `connect-src 'self' ${nextPublicApiUrl} https://*.ingest.sentry.io ${posthogHost ?? ""}`,
   "font-src 'self' data:",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self'",
+  "style-src 'self'",
   cspReportUri ? `report-uri ${cspReportUri}` : ""
 ]
   .filter(Boolean)

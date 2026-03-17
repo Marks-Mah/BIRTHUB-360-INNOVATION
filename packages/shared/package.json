@@ -1,0 +1,12 @@
+{
+  "name": "@birthub/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./errors": {
+      "types": "./errors/index.ts",
+      "import": "./errors/index.ts"
+    }
+  }
+}

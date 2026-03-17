@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from abc import ABC, abstractmethod
@@ -16,6 +17,7 @@ from agents.shared.db_pool import get_pool
 from agents.shared.rate_limiter import RateLimiter
 
 load_dotenv()
+logger = logging.getLogger("BaseAgent")
 
 
 class BaseAgentState(TypedDict):
@@ -168,17 +170,28 @@ class BaseAgent(ABC):
     async def _log_to_db(self, state: Dict[str, Any], job_id: Optional[str], tenant_id: Optional[str]) -> None:
         if not os.getenv("DATABASE_URL"):
             return
-        pool = await get_pool()
-        async with pool.acquire() as conn:
-            await conn.execute(
-                """
-                INSERT INTO \"AgentLog\" (id, \"agentName\", \"jobId\", action, input, output, error, \"createdAt\")
-                VALUES (gen_random_uuid()::text, $1, $2, $3, $4::jsonb, $5::jsonb, $6, NOW())
-                """,
-                self.name,
-                job_id,
-                "run",
-                json.dumps(state.get("context", {})),
-                json.dumps(state.get("data") or state.get("output") or {}),
-                state.get("error"),
+        try:
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    """
+                    INSERT INTO \"AgentLog\" (id, \"agentName\", \"jobId\", action, input, output, error, \"createdAt\")
+                    VALUES (gen_random_uuid()::text, $1, $2, $3, $4::jsonb, $5::jsonb, $6, NOW())
+                    """,
+                    self.name,
+                    job_id,
+                    "run",
+                    json.dumps(state.get("context", {})),
+                    json.dumps(state.get("data") or state.get("output") or {}),
+                    state.get("error"),
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Agent log persistence skipped",
+                extra={
+                    "agent": self.name,
+                    "error": str(exc),
+                    "job_id": job_id,
+                    "tenant_id": tenant_id,
+                },
             )

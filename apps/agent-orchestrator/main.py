@@ -43,7 +43,7 @@ class EventRunRequest(BaseModel):
     event_type: EventType
     entity_id: str
     context: Dict[str, Any]
-    tenant_id: str = Field(min_length=1)
+    tenant_id: str = Field(default="unknown", min_length=1)
 
 
 RunRequest.model_rebuild()

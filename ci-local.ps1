@@ -142,6 +142,31 @@ function Set-DefaultEnv {
     }
 }
 
+function Test-TcpEndpoint {
+    param(
+        [string]$HostName = "127.0.0.1",
+        [int]$Port,
+        [int]$TimeoutMs = 500
+    )
+
+    $client = [System.Net.Sockets.TcpClient]::new()
+
+    try {
+        $asyncResult = $client.BeginConnect($HostName, $Port, $null, $null)
+
+        if (-not $asyncResult.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+            return $false
+        }
+
+        $client.EndConnect($asyncResult)
+        return $true
+    } catch {
+        return $false
+    } finally {
+        $client.Dispose()
+    }
+}
+
 Add-ToolPathEntries -PortableNodeHome $portableNodeHome
 
 if (!(Get-Command node -ErrorAction SilentlyContinue) -and !(Test-Path $portableNodeExe)) {
@@ -157,17 +182,28 @@ $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) {
     throw "Node runtime could not be resolved. Run ./scripts/bootstrap/install-node-portable.ps1 first."
 }
 
+$hasDatabaseUrl = -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("DATABASE_URL"))
+$hasRedisUrl = -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("REDIS_URL"))
+$localPostgresAvailable = Test-TcpEndpoint -Port 5432
+$localRedisAvailable = Test-TcpEndpoint -Port 6379
+
 Set-DefaultEnv "API_CORS_ORIGINS" "http://localhost:3001"
 Set-DefaultEnv "API_PORT" "3000"
-Set-DefaultEnv "DATABASE_URL" "postgresql://postgres:postgrespassword@localhost:5432/birthub_cycle1"
 Set-DefaultEnv "NEXT_PUBLIC_API_URL" "http://localhost:3000"
 Set-DefaultEnv "NEXT_PUBLIC_APP_URL" "http://localhost:3001"
 Set-DefaultEnv "NEXT_PUBLIC_ENVIRONMENT" "ci-local"
 Set-DefaultEnv "NODE_ENV" "test"
 Set-DefaultEnv "QUEUE_NAME" "birthub-cycle1"
-Set-DefaultEnv "REDIS_URL" "redis://localhost:6379"
 Set-DefaultEnv "SESSION_SECRET" "ci-local-secret"
 Set-DefaultEnv "WEB_BASE_URL" "http://localhost:3001"
+
+if ($hasDatabaseUrl -or $localPostgresAvailable) {
+    Set-DefaultEnv "DATABASE_URL" "postgresql://postgres:postgrespassword@localhost:5432/birthub_cycle1"
+}
+
+if ($hasRedisUrl -or $localRedisAvailable) {
+    Set-DefaultEnv "REDIS_URL" "redis://localhost:6379"
+}
 
 Start-Transcript -Path $logPath | Out-Null
 
@@ -182,6 +218,14 @@ try {
     Write-Host "Node:   $nodeExe"
     Write-Host "Log:    $logPath"
     Write-Host ""
+
+    if (-not $hasDatabaseUrl -and -not $localPostgresAvailable) {
+        Write-Warning "PostgreSQL local nao foi detectado em 127.0.0.1:5432; testes de integracao com banco podem ser pulados."
+    }
+
+    if (-not $hasRedisUrl -and -not $localRedisAvailable) {
+        Write-Warning "Redis local nao foi detectado em 127.0.0.1:6379; fluxos que exigem Redis podem usar fallback ou ser pulados."
+    }
 
     if ($Target -eq "full") {
         & $nodeExe $runnerScript full

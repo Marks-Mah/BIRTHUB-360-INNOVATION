@@ -1,20 +1,75 @@
+import net from "node:net";
 import path from "node:path";
 
 import { projectRoot, run, runPnpm } from "./shared.mjs";
 
-const ciEnvironmentDefaults = {
-  API_CORS_ORIGINS: "http://localhost:3001",
-  API_PORT: "3000",
-  DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/birthub_cycle1",
-  NEXT_PUBLIC_API_URL: "http://localhost:3000",
-  NEXT_PUBLIC_APP_URL: "http://localhost:3001",
-  NEXT_PUBLIC_ENVIRONMENT: "ci-local",
-  NODE_ENV: "test",
-  QUEUE_NAME: "birthub-cycle1",
-  REDIS_URL: "redis://localhost:6379",
-  SESSION_SECRET: "ci-local-secret",
-  WEB_BASE_URL: "http://localhost:3001"
-};
+function envOrDefault(key, fallback) {
+  const value = process.env[key];
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function hasEnvValue(key) {
+  const value = process.env[key];
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+async function isTcpEndpointAvailable(port, host = "127.0.0.1", timeoutMs = 500) {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host, port });
+
+    const finish = (result) => {
+      socket.removeAllListeners();
+      socket.destroy();
+      resolve(result);
+    };
+
+    socket.setTimeout(timeoutMs);
+    socket.once("connect", () => finish(true));
+    socket.once("error", () => finish(false));
+    socket.once("timeout", () => finish(false));
+  });
+}
+
+async function buildCiEnvironmentDefaults() {
+  const defaults = {
+    API_CORS_ORIGINS: envOrDefault("API_CORS_ORIGINS", "http://localhost:3001"),
+    API_PORT: envOrDefault("API_PORT", "3000"),
+    NEXT_PUBLIC_API_URL: envOrDefault("NEXT_PUBLIC_API_URL", "http://localhost:3000"),
+    NEXT_PUBLIC_APP_URL: envOrDefault("NEXT_PUBLIC_APP_URL", "http://localhost:3001"),
+    NEXT_PUBLIC_ENVIRONMENT: envOrDefault("NEXT_PUBLIC_ENVIRONMENT", "ci-local"),
+    NODE_ENV: envOrDefault("NODE_ENV", "test"),
+    QUEUE_NAME: envOrDefault("QUEUE_NAME", "birthub-cycle1"),
+    SESSION_SECRET: envOrDefault("SESSION_SECRET", "ci-local-secret"),
+    WEB_BASE_URL: envOrDefault("WEB_BASE_URL", "http://localhost:3001")
+  };
+
+  if (hasEnvValue("DATABASE_URL") || await isTcpEndpointAvailable(5432)) {
+    defaults.DATABASE_URL = envOrDefault(
+      "DATABASE_URL",
+      "postgresql://postgres:postgrespassword@localhost:5432/birthub_cycle1"
+    );
+  }
+
+  if (hasEnvValue("REDIS_URL") || await isTcpEndpointAvailable(6379)) {
+    defaults.REDIS_URL = envOrDefault("REDIS_URL", "redis://localhost:6379");
+  }
+
+  return defaults;
+}
+
+function logInfrastructureWarnings(ciEnvironmentDefaults) {
+  if (!("DATABASE_URL" in ciEnvironmentDefaults)) {
+    console.warn(
+      "[agent-ci] NOTE: PostgreSQL local nao foi detectado em 127.0.0.1:5432; suites com banco podem ser puladas."
+    );
+  }
+
+  if (!("REDIS_URL" in ciEnvironmentDefaults)) {
+    console.warn(
+      "[agent-ci] NOTE: Redis local nao foi detectado em 127.0.0.1:6379; alguns fluxos podem usar fallback ou ser pulados."
+    );
+  }
+}
 
 const stepDefinitions = {
   build: { kind: "pnpm", args: ["build"] },
@@ -104,7 +159,7 @@ function runDirtyTreeCheck() {
   run(process.execPath, [path.join(projectRoot, "scripts", "ci", "check-dirty-tree.mjs")]);
 }
 
-function runNamedStep(name) {
+function runNamedStep(name, ciEnvironmentDefaults) {
   const definition = stepDefinitions[name];
 
   if (!definition) {
@@ -119,18 +174,18 @@ function runNamedStep(name) {
   throw new Error(`Unsupported task kind for '${name}'.`);
 }
 
-function runTask(target) {
+function runTask(target, ciEnvironmentDefaults) {
   if (taskGroups[target]) {
     for (const step of taskGroups[target]) {
       if (taskGroups[step]) {
-        runTask(step);
+        runTask(step, ciEnvironmentDefaults);
       } else {
-        runNamedStep(step);
+        runNamedStep(step, ciEnvironmentDefaults);
         runDirtyTreeCheck();
       }
     }
   } else {
-    runNamedStep(target);
+    runNamedStep(target, ciEnvironmentDefaults);
     runDirtyTreeCheck();
   }
 }
@@ -151,9 +206,12 @@ function parseTarget(mode, rest) {
 
 const [mode = "full", ...rest] = process.argv.slice(2);
 const target = parseTarget(mode, rest);
+const ciEnvironmentDefaults = await buildCiEnvironmentDefaults();
+
+logInfrastructureWarnings(ciEnvironmentDefaults);
 
 try {
-  runTask(target);
+  runTask(target, ciEnvironmentDefaults);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`\n[agent-ci] FAILED: ${message}`);

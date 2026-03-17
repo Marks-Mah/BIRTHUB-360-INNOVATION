@@ -255,8 +255,11 @@ export function createConnectorsRouter(config: ApiConfig): Router {
     })
   );
 
+  router.use("/:provider/callback", requireAuthenticatedSession);
+
   router.post(
     "/:provider/callback",
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const payload = callbackSchema.parse(request.body ?? {});
       const provider = readProvider(request.params.provider);
@@ -292,6 +295,7 @@ export function createConnectorsRouter(config: ApiConfig): Router {
 
   router.get(
     "/:provider/callback",
+    requireAuthenticatedSession,
     asyncHandler(async (request, response) => {
       const payload = buildCallbackPayload(request.query as Record<string, unknown>);
       const provider = readProvider(request.params.provider);

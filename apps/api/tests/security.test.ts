@@ -111,3 +111,44 @@ void test("security rejects malicious Origin headers on mutation endpoints", asy
     })
     .expect(403);
 });
+
+void test("security requires an authenticated session for connector OAuth callbacks", async () => {
+  const app = createApp({
+    config: createTestApiConfig(),
+    shouldExposeDocs: false
+  });
+
+  await request(app)
+    .post("/api/v1/connectors/hubspot/callback")
+    .send({
+      state: Buffer.from(
+        JSON.stringify({
+          accountKey: "primary",
+          organizationId: "org_1",
+          provider: "hubspot",
+          requestId: "req_1",
+          tenantId: "tenant_1",
+          userId: "user_1",
+          version: 1
+        })
+      ).toString("base64url")
+    })
+    .expect(401);
+
+  await request(app)
+    .get("/api/v1/connectors/hubspot/callback")
+    .query({
+      state: Buffer.from(
+        JSON.stringify({
+          accountKey: "primary",
+          organizationId: "org_1",
+          provider: "hubspot",
+          requestId: "req_2",
+          tenantId: "tenant_1",
+          userId: "user_1",
+          version: 1
+        })
+      ).toString("base64url")
+    })
+    .expect(401);
+});

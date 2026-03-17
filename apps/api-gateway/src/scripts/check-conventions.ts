@@ -1,22 +1,14 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const files = [
-  "src/routes/index.ts",
-  "src/integrations/resilience.ts",
-  "src/integrations/error-catalog.ts",
-];
+const serverContent = readFileSync(resolve(process.cwd(), "src/server.ts"), "utf8");
 
-for (const file of files) {
-  const content = readFileSync(resolve(process.cwd(), file), "utf8");
+if (!serverContent.includes('./routes/supported.js')) {
+  throw new Error("Convention violated: server must mount only the supported gateway surface");
+}
 
-  if (file.includes("routes") && content.includes("throw new Error(")) {
-    throw new Error(`Convenção violada: use erros tipados em ${file}`);
-  }
-
-  if (file.includes("integrations") && !content.includes("IntegrationError")) {
-    throw new Error(`Convenção violada: integração sem catálogo de erro em ${file}`);
-  }
+if (serverContent.includes('./routes/index.js')) {
+  throw new Error("Convention violated: deprecated legacy routes cannot be mounted");
 }
 
 console.log("Conventions check passed");

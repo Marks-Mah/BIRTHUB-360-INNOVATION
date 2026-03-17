@@ -8,6 +8,7 @@ import { apiV1Router, router } from "./routes/supported.js";
 import { openApiDocument } from "./docs/openapi.js";
 import { errorHandler } from "./errors/http-error.js";
 import { createLogger } from "./lib/logger.js";
+import { resolveGatewayProxyPath } from "./proxy/path-map.js";
 import { proxyExpressRequest } from "./proxy/service-proxy.js";
 
 const logger = createLogger({ service: "api-gateway" });
@@ -21,6 +22,8 @@ const legacyCompatEnabled =
 const app: Express = express();
 app.use(helmet());
 app.use(cors());
+app.use("/webhooks/stripe", express.raw({ type: "application/json" }));
+app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "256kb" }));
 app.use(morgan("dev"));
 
@@ -77,6 +80,7 @@ app.use(async (req, res, next) => {
   try {
     await proxyExpressRequest(req, res, {
       baseUrl: primaryApiUrl,
+      path: resolveGatewayProxyPath(req.originalUrl),
       serviceName: "primary-api"
     });
   } catch (error) {

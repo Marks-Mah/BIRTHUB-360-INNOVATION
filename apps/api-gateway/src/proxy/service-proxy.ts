@@ -9,6 +9,8 @@ export interface ProxyRequestConfig {
   payload?: unknown;
 }
 
+type ProxyRequestBody = Exclude<RequestInit["body"], null | undefined>;
+
 function createForwardHeaders(req: Request): Headers {
   const headers = new Headers();
 
@@ -23,12 +25,42 @@ function createForwardHeaders(req: Request): Headers {
   return headers;
 }
 
+export function resolveProxyRequestBody(
+  method: string,
+  body: unknown,
+  payload?: unknown
+): ProxyRequestBody | null {
+  if (method === "GET" || method === "HEAD") {
+    return null;
+  }
+
+  const source = payload ?? body;
+
+  if (source === null || source === undefined) {
+    return null;
+  }
+
+  if (
+    typeof source === "string" ||
+    source instanceof ArrayBuffer ||
+    source instanceof URLSearchParams
+  ) {
+    return source;
+  }
+
+  if (ArrayBuffer.isView(source)) {
+    return source as ProxyRequestBody;
+  }
+
+  return JSON.stringify(source);
+}
+
 export async function proxyRequest(req: Request, config: ProxyRequestConfig) {
   const timeoutMs = config.timeoutMs ?? 5_000;
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), timeoutMs);
   try {
-    const body = config.payload ? JSON.stringify(config.payload) : null;
+    const body = resolveProxyRequestBody(config.method ?? "GET", null, config.payload);
     const requestInit: RequestInit = {
       headers: createForwardHeaders(req),
       method: config.method ?? "GET",
@@ -61,8 +93,7 @@ export async function proxyExpressRequest(
       method: config.method ?? req.method,
       signal: abortController.signal
     };
-    const hasBody = req.method !== "GET" && req.method !== "HEAD";
-    const body = hasBody ? JSON.stringify(config.payload ?? req.body) : null;
+    const body = resolveProxyRequestBody(config.method ?? req.method, req.body, config.payload);
 
     if (body !== null) {
       requestInit.body = body;

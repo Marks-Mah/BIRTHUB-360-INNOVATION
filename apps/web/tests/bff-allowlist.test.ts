@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { isBffPathAllowed } from "../app/api/bff/policy";
 
-test("BFF allowlist blocks admin routes", () => {
+void test("BFF allowlist blocks admin routes", () => {
   assert.equal(isBffPathAllowed("api/v1/admin/users"), false);
   assert.equal(isBffPathAllowed("api/v1/workflows"), true);
 });

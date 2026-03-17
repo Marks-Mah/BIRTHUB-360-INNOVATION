@@ -212,7 +212,10 @@ export function runPnpm(args, options = {}) {
   const invocation = resolvePnpmInvocation();
   return run(invocation.command, [...invocation.argsPrefix, ...args], {
     ...options,
-    env: invocation.env
+    env: {
+      ...invocation.env,
+      ...(options.env ?? {})
+    }
   });
 }
 
@@ -220,7 +223,10 @@ export function capturePnpm(args, options = {}) {
   const invocation = resolvePnpmInvocation();
   return runCapture(invocation.command, [...invocation.argsPrefix, ...args], {
     ...options,
-    env: invocation.env
+    env: {
+      ...invocation.env,
+      ...(options.env ?? {})
+    }
   });
 }
 

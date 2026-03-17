@@ -1,4 +1,4 @@
-import { ActivityType, PrismaClient } from '@birthub/database';
+import { ActivityType, PrismaClient } from '@birthub/db';
 import { LLMClient } from '@birthub/llm-client';
 import { createQueue } from '@birthub/queue';
 import { QueueName } from '@birthub/shared-types';

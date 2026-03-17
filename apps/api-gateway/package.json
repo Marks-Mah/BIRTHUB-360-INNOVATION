@@ -12,7 +12,7 @@
     "lint": "node --import tsx src/scripts/check-conventions.ts"
   },
   "dependencies": {
-    "@birthub/database": "workspace:*",
+    "@birthub/db": "workspace:*",
     "@birthub/queue": "workspace:*",
     "@birthub/shared-types": "workspace:*",
     "@birthub/utils": "workspace:*",

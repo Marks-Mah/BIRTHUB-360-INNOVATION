@@ -72,9 +72,9 @@ function logInfrastructureWarnings(ciEnvironmentDefaults) {
 }
 
 const stepDefinitions = {
-  build: { kind: "pnpm", args: ["build"] },
-  "build:core": { kind: "pnpm", args: ["build:core"] },
-  "build:satellites": { kind: "pnpm", args: ["build:satellites"] },
+  build: { kind: "pnpm", args: ["build"], env: { NODE_ENV: "production" } },
+  "build:core": { kind: "pnpm", args: ["build:core"], env: { NODE_ENV: "production" } },
+  "build:satellites": { kind: "pnpm", args: ["build:satellites"], env: { NODE_ENV: "production" } },
   "db:generate": { kind: "pnpm", args: ["db:generate"] },
   install: { kind: "pnpm", args: ["install", "--frozen-lockfile"] },
   "lint:workflows": { kind: "pnpm", args: ["lint:workflows"] },
@@ -167,7 +167,12 @@ function runNamedStep(name, ciEnvironmentDefaults) {
   }
 
   if (definition.kind === "pnpm") {
-    runPnpm(definition.args, { env: ciEnvironmentDefaults });
+    runPnpm(definition.args, {
+      env: {
+        ...ciEnvironmentDefaults,
+        ...(definition.env ?? {})
+      }
+    });
     return;
   }
 

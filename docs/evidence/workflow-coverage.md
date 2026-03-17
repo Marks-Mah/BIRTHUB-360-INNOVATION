@@ -1,6 +1,6 @@
 # Workflow Coverage Report
 
-- Generated at: 2026-03-17T02:45:25.699Z
+- Generated at: 2026-03-17T03:32:38.321Z
 - Required step types: 11
 - Critical scenarios:
   - 6.8.C3 PASS - HTTP and email side-effects are mocked inside the automated workflow suite (apps/worker/src/engine/runner.workflow-chain.test.ts)

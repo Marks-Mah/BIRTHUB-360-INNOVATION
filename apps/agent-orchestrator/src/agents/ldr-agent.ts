@@ -1,4 +1,4 @@
-import { LeadStatus, PrismaClient } from '@birthub/database';
+import { LeadStatus, PrismaClient } from '@birthub/db';
 import { LLMClient } from '@birthub/llm-client';
 import { createQueue } from '@birthub/queue';
 import { parseQualificationResponse, type LeadQualificationResult } from './agent-parsers.js';

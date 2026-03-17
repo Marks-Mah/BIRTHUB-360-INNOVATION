@@ -72,7 +72,15 @@ void test("Manifest runtime integration persists memory, output, approval and me
       },
       timeout: 30_000
     });
-    const result = JSON.parse(stdout) as {
+    const jsonLine = stdout
+      .trim()
+      .split(/\r?\n/)
+      .reverse()
+      .find((line) => line.trim().startsWith("{"));
+
+    assert.ok(jsonLine, "Runtime harness did not emit a JSON payload.");
+
+    const result = JSON.parse(jsonLine) as {
       approvedOutputStatus: string | null;
       budgetEventKinds: string[];
       executionStatus: string;

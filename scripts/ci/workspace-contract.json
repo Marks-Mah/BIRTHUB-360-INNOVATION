@@ -67,6 +67,7 @@
     {
       "allowedRoots": [
         "apps/api",
+        "packages/db",
         "apps/web",
         "apps/worker",
         "packages/database",

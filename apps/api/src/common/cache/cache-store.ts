@@ -1,9 +1,20 @@
 import { Redis } from "ioredis";
+import { createLogger } from "@birthub/logger";
 
 export interface CacheStore {
   del: (...keys: string[]) => Promise<number>;
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string, ttlSeconds: number) => Promise<void>;
+}
+
+class CacheStoreError extends Error {
+  public readonly cause: unknown;
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = "CacheStoreError";
+    this.cause = cause;
+  }
 }
 
 class NoopCacheStore implements CacheStore {
@@ -100,15 +111,34 @@ class RedisCacheStore implements CacheStore {
 
 const noopStore = new NoopCacheStore();
 const inMemoryStore = new InMemoryCacheStore();
+const logger = createLogger("cache-store");
 
 let cacheStore: CacheStore = noopStore;
+let strictCacheMode = false;
 
 function useFallbackStore(): void {
   cacheStore = inMemoryStore;
 }
 
-export function configureCacheStore(redisUrl: string | undefined): void {
+export function configureCacheStore(
+  redisUrl: string | undefined,
+  nodeEnv = process.env.NODE_ENV ?? "development"
+): void {
+  strictCacheMode = nodeEnv === "production";
+
   if (!redisUrl?.trim()) {
+    if (strictCacheMode) {
+      logger.error(
+        {
+          event: "cache.configuration.invalid",
+          nodeEnv,
+          reason: "missing_redis_url"
+        },
+        "Redis is required for cache operations in production"
+      );
+      throw new CacheStoreError("CACHE_CONFIGURATION_INVALID");
+    }
+
     useFallbackStore();
     return;
   }
@@ -123,7 +153,20 @@ export async function deleteCacheKeys(keys: string[]): Promise<void> {
 
   try {
     await cacheStore.del(...keys);
-  } catch {
+  } catch (error) {
+    logger.error(
+      {
+        err: error,
+        event: "cache.delete.failed",
+        keyCount: keys.length
+      },
+      "Cache delete operation failed"
+    );
+
+    if (strictCacheMode) {
+      throw new CacheStoreError("CACHE_DELETE_FAILED", error);
+    }
+
     useFallbackStore();
   }
 }
@@ -131,7 +174,20 @@ export async function deleteCacheKeys(keys: string[]): Promise<void> {
 export async function readCacheValue(key: string): Promise<string | null> {
   try {
     return await cacheStore.get(key);
-  } catch {
+  } catch (error) {
+    logger.error(
+      {
+        err: error,
+        event: "cache.read.failed",
+        key
+      },
+      "Cache read operation failed"
+    );
+
+    if (strictCacheMode) {
+      throw new CacheStoreError("CACHE_READ_FAILED", error);
+    }
+
     useFallbackStore();
     return null;
   }
@@ -148,7 +204,21 @@ export async function writeCacheValue(
 ): Promise<void> {
   try {
     await cacheStore.set(key, value, ttlSeconds);
-  } catch {
+  } catch (error) {
+    logger.error(
+      {
+        err: error,
+        event: "cache.write.failed",
+        key,
+        ttlSeconds
+      },
+      "Cache write operation failed"
+    );
+
+    if (strictCacheMode) {
+      throw new CacheStoreError("CACHE_WRITE_FAILED", error);
+    }
+
     useFallbackStore();
   }
 }

@@ -103,7 +103,7 @@ export function createApp(dependencies: AppDependencies = {}): Express {
   const shouldExposeDocs = dependencies.shouldExposeDocs ?? config.NODE_ENV !== "production";
   const stripeWebhookEnabled = Boolean(config.STRIPE_SECRET_KEY && config.STRIPE_WEBHOOK_SECRET);
 
-  configureCacheStore(config.REDIS_URL);
+  configureCacheStore(config.REDIS_URL, config.NODE_ENV);
   if (config.NODE_ENV !== "test") {
     registerTenantCacheInvalidationMiddleware();
   }

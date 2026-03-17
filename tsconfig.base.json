@@ -23,6 +23,15 @@
       "@birthub/agents-core": [
         "packages/agents-core/src/index.ts"
       ],
+      "@birthub/agents-core/tools": [
+        "packages/agents-core/src/tools/index.ts"
+      ],
+      "@birthub/agents-core/tools/*": [
+        "packages/agents-core/src/tools/*.ts"
+      ],
+      "@birthub/agents-core/policy/*": [
+        "packages/agents-core/src/policy/*.ts"
+      ],
       "@birthub/agents-core/*": [
         "packages/agents-core/src/*"
       ],

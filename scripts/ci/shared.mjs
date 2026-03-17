@@ -146,18 +146,18 @@ export function resolvePnpmInvocation() {
   const env = buildEnv();
   const npmExecPath = process.env.npm_execpath;
 
-  if (npmExecPath && npmExecPath.toLowerCase().includes("pnpm")) {
-    return {
-      argsPrefix: [npmExecPath],
-      command: process.execPath,
-      env
-    };
-  }
-
   if (existsSync(portableNodeExecutable) && existsSync(portablePnpmCli)) {
     return {
       argsPrefix: [portablePnpmCli],
       command: portableNodeExecutable,
+      env
+    };
+  }
+
+  if (npmExecPath && npmExecPath.toLowerCase().includes("pnpm")) {
+    return {
+      argsPrefix: [npmExecPath],
+      command: process.execPath,
       env
     };
   }

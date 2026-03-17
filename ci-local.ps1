@@ -1,8 +1,8 @@
-$ErrorActionPreference = "Stop"
-
 param(
     [string]$Target = "full"
 )
+
+$ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSCommandPath
 $artifactRoot = Join-Path $repoRoot "artifacts\agent-prompt-v2\local-ci"

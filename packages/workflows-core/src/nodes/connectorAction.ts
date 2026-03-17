@@ -65,7 +65,7 @@ export async function executeConnectorActionNode(
   executor: ConnectorExecutor
 ): Promise<unknown> {
   return executor.execute({
-    action: interpolateValue(action, context) as ConnectorActionRequest,
+    action: interpolateValue(action, context),
     contextSummary: summarizeContext(context),
     executionId: context.executionId,
     tenantId: context.tenantId,

@@ -27,13 +27,13 @@
     {
       "lane": "legacy",
       "packageName": "@birthub/api-gateway",
-      "purpose": "Legacy/public gateway surface backed by @birthub/db and supported separately.",
+      "purpose": "Legacy/public gateway kept as compatibility proxy and supported separately.",
       "root": "apps/api-gateway"
     },
     {
       "lane": "legacy",
       "packageName": "orchestrator-worker",
-      "purpose": "Legacy orchestration runtime backed by @birthub/db and supported separately.",
+      "purpose": "Legacy orchestration worker overlay limited to worker.ts and supported separately.",
       "root": "apps/agent-orchestrator"
     }
   ],
@@ -56,12 +56,10 @@
   "importRules": [
     {
       "allowedRoots": [
-        "apps/agent-orchestrator",
-        "apps/api-gateway",
         "apps/dashboard",
         "packages/db"
       ],
-      "description": "@birthub/db is the legacy CRM schema and must stay isolated to legacy workspaces.",
+      "description": "@birthub/db is frozen legacy CRM schema. New code must use @birthub/database and imports are restricted to packages/db and apps/dashboard quarantine surfaces.",
       "packageName": "@birthub/db"
     },
     {

@@ -10,6 +10,7 @@ export const apiV1Router = Router();
 export const router = Router();
 
 const logger = createLogger({ service: "api-gateway", surface: "supported" });
+const LEGACY_AGENT_LOGS_DEPRECATED_AT = "2026-03-17";
 const createLeadSchema = z.object({
   assignee: z.string().trim().min(2).max(80),
   email: z.string().trim().email(),
@@ -109,4 +110,17 @@ apiV1Router.get("/internal/activities/:id", requireInternalServiceToken, async (
   const activityId = requireRouteId(req.params.id);
   const status = await internalStateStore.getActivityStatus(activityId);
   res.json({ id: activityId, status: status ?? "UNKNOWN" });
+});
+
+router.get("/agents/logs", (_req, res) => {
+  const payload = {
+    code: "LEGACY_AGENT_LOGS_DEPRECATED",
+    message:
+      "GET /agents/logs is deprecated. Agent logs moved to canonical multi-tenant telemetry services.",
+    deprecatedAt: LEGACY_AGENT_LOGS_DEPRECATED_AT,
+    replacement: "Use canonical telemetry APIs behind apps/api."
+  } as const;
+
+  logger.warn("legacy-route-deprecated", payload);
+  res.status(410).json(payload);
 });

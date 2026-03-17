@@ -1,8 +1,16 @@
-# @birthub/db (deprecated)
+# @birthub/db (DEPRECATED)
 
-Este pacote foi mantido somente como camada de compatibilidade temporária.
-A fonte canônica de Prisma e repositórios é `@birthub/database`.
+Status: frozen legacy compatibility package.
+Owner: Platform Architecture.
+Freeze date: 2026-03-17.
 
-- Não adicionar novas migrações aqui.
-- Não usar em novos imports.
-- Remoção planejada após cutover completo.
+Canonical Prisma client and repositories live in `@birthub/database`.
+
+Hard rules:
+- Do not add new migrations under `packages/db/prisma/migrations`.
+- Do not add new runtime imports of `@birthub/db`.
+- Do not add new domain models here.
+- Keep this package read-only until final removal.
+
+Planned removal:
+- Target window: after runtime consolidation in Stage 7.

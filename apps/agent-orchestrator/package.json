@@ -8,12 +8,9 @@
     "start:worker": "tsx worker.ts",
     "dev": "tsx worker.ts",
     "test": "node --import tsx --test \"src/worker.contract.test.ts\"",
-    "typecheck": "tsc -p tsconfig.supported.json --noEmit",
-    "start:sdr-worker": "tsx src/workers/sdr-worker.ts",
-    "start:ldr-worker": "tsx src/workers/ldr-worker.ts"
+    "typecheck": "tsc -p tsconfig.supported.json --noEmit"
   },
   "dependencies": {
-    "@birthub/db": "workspace:*",
     "@birthub/llm-client": "workspace:*",
     "@birthub/queue": "workspace:*",
     "@birthub/shared-types": "workspace:*",

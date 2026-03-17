@@ -8,6 +8,7 @@ const WINDOWS_COMMAND_EXTENSIONS = [".cmd", ".exe", ".bat"];
 
 export const projectRoot = path.resolve(__dirname, "../..");
 export const portableNodeHome = path.join(projectRoot, ".tools", "node-v22.22.1-win-x64");
+export const portableCorepackHome = path.join(projectRoot, ".tools", "corepack-home");
 export const portableNodeExecutable = path.join(
   portableNodeHome,
   process.platform === "win32" ? "node.exe" : "node"
@@ -114,6 +115,7 @@ export function buildEnv(overrides = {}) {
   return {
     ...process.env,
     ...overrides,
+    COREPACK_HOME: overrides.COREPACK_HOME ?? process.env.COREPACK_HOME ?? portableCorepackHome,
     PATH: pathEntries.join(path.delimiter)
   };
 }

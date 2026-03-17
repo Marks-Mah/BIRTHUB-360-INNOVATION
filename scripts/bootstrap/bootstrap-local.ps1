@@ -4,15 +4,33 @@ $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $nodeBootstrap = Join-Path $PSScriptRoot "install-node-portable.ps1"
 $portableNodeHome = Join-Path $repoRoot ".tools\node-v22.22.1-win-x64"
 $portableNodeExe = Join-Path $portableNodeHome "node.exe"
+$corepackHome = Join-Path $repoRoot ".tools\corepack-home"
+
+New-Item -ItemType Directory -Force -Path $corepackHome | Out-Null
+$env:COREPACK_HOME = $corepackHome
 
 function Get-ExistingDirectories {
     param(
         [string[]]$Paths
     )
 
-    return $Paths |
-        Where-Object { $_ -and (Test-Path $_ -PathType Container) } |
-        Select-Object -Unique
+    $existing = @()
+
+    foreach ($pathEntry in $Paths) {
+        if (-not $pathEntry) {
+            continue
+        }
+
+        try {
+            if (Test-Path $pathEntry -PathType Container -ErrorAction Stop) {
+                $existing += $pathEntry
+            }
+        } catch {
+            continue
+        }
+    }
+
+    return $existing | Select-Object -Unique
 }
 
 function Get-GitHubDesktopGitEntries {
@@ -121,12 +139,12 @@ $nodeVersion = if (Get-Command node -ErrorAction SilentlyContinue) {
     $null
 }
 
-$pnpmCommand = Get-Command pnpm -ErrorAction SilentlyContinue
 $portablePnpm = Join-Path $portableNodeHome "pnpm.CMD"
-$pnpmVersion = if ($pnpmCommand) {
-    (& $pnpmCommand.Source --version) 2>&1
-} elseif (Test-Path $portablePnpm) {
+$pnpmCommand = Get-Command pnpm -ErrorAction SilentlyContinue
+$pnpmVersion = if (Test-Path $portablePnpm) {
     (& $portablePnpm --version) 2>&1
+} elseif ($pnpmCommand) {
+    (& $pnpmCommand.Source --version) 2>&1
 } else {
     $null
 }
@@ -151,10 +169,10 @@ $dockerVersion = if ($dockerCommand) {
 
 Write-Host ""
 Write-Host "[bootstrap] Runtime summary"
-Write-Host "  Node:   $($nodeVersion ?? 'missing')"
-Write-Host "  pnpm:   $($pnpmVersion ?? 'missing')"
-Write-Host "  Python: $($pythonVersion ?? 'missing')"
-Write-Host "  Docker: $($dockerVersion ?? 'missing')"
+Write-Host "  Node:   $(if ($nodeVersion) { $nodeVersion } else { 'missing' })"
+Write-Host "  pnpm:   $(if ($pnpmVersion) { $pnpmVersion } else { 'missing' })"
+Write-Host "  Python: $(if ($pythonVersion) { $pythonVersion } else { 'missing' })"
+Write-Host "  Docker: $(if ($dockerVersion) { $dockerVersion } else { 'missing' })"
 
 if (-not $pythonVersion) {
     Write-Warning "Python 3.12+ is still missing. 'pnpm test:agents' remains blocked until Python is installed."

@@ -10,9 +10,12 @@ $nodeFolder = "node-v$NodeVersion-win-x64"
 $nodeHome = Join-Path $toolsRoot $nodeFolder
 $nodeZip = Join-Path $toolsRoot "$nodeFolder.zip"
 $shaFile = Join-Path $toolsRoot "node-v$NodeVersion-SHASUMS256.txt"
+$corepackHome = Join-Path $toolsRoot "corepack-home"
 $releaseBase = "https://nodejs.org/download/release/v$NodeVersion"
 
 New-Item -ItemType Directory -Force -Path $toolsRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $corepackHome | Out-Null
+$env:COREPACK_HOME = $corepackHome
 
 if (!(Test-Path $nodeZip)) {
     Write-Host "[bootstrap] Downloading Node.js v$NodeVersion portable zip"

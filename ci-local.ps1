@@ -10,19 +10,36 @@ $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $logPath = Join-Path $artifactRoot "ci-local-$timestamp.log"
 $portableNodeHome = Join-Path $repoRoot ".tools\node-v22.22.1-win-x64"
 $portableNodeExe = Join-Path $portableNodeHome "node.exe"
+$corepackHome = Join-Path $repoRoot ".tools\corepack-home"
 $runnerScript = Join-Path $repoRoot "scripts\ci\full.mjs"
 $bootstrapScript = Join-Path $repoRoot "scripts\bootstrap\install-node-portable.ps1"
 
 New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $corepackHome | Out-Null
+$env:COREPACK_HOME = $corepackHome
 
 function Get-ExistingDirectories {
     param(
         [string[]]$Paths
     )
 
-    return $Paths |
-        Where-Object { $_ -and (Test-Path $_ -PathType Container) } |
-        Select-Object -Unique
+    $existing = @()
+
+    foreach ($pathEntry in $Paths) {
+        if (-not $pathEntry) {
+            continue
+        }
+
+        try {
+            if (Test-Path $pathEntry -PathType Container -ErrorAction Stop) {
+                $existing += $pathEntry
+            }
+        } catch {
+            continue
+        }
+    }
+
+    return $existing | Select-Object -Unique
 }
 
 function Get-GitHubDesktopGitEntries {

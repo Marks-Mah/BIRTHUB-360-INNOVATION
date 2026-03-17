@@ -11,8 +11,7 @@ async function proxy(request: NextRequest, path: string): Promise<NextResponse> 
     return NextResponse.json({ error: "Path is not allowed by BFF policy." }, { status: 403 });
   }
 
-  const response = await fetch(`${webConfig.NEXT_PUBLIC_API_URL}/${path}`, {
-    body: request.method === "GET" ? undefined : await request.text(),
+  const requestInit: RequestInit = {
     headers: {
       authorization: request.headers.get("authorization") ?? "",
       "content-type": request.headers.get("content-type") ?? "application/json",
@@ -20,7 +19,13 @@ async function proxy(request: NextRequest, path: string): Promise<NextResponse> 
       "x-correlation-id": request.headers.get("x-correlation-id") ?? ""
     },
     method: request.method
-  });
+  };
+
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    requestInit.body = await request.text();
+  }
+
+  const response = await fetch(`${webConfig.NEXT_PUBLIC_API_URL}/${path}`, requestInit);
 
   const nextResponse = new NextResponse(await response.text(), { status: response.status });
   const setCookie = response.headers.get("set-cookie");

@@ -103,7 +103,6 @@ function Get-CommonToolPathEntries {
         (Join-Path $env:ProgramFiles "Docker\Docker\resources\bin"),
         (Join-Path $env:APPDATA "npm"),
         (Join-Path $env:LOCALAPPDATA "pnpm"),
-        (Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps"),
         (Join-Path $env:USERPROFILE "scoop\shims")
     )
 
